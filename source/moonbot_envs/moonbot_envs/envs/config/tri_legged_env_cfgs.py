@@ -14,11 +14,11 @@ from .sence_cfgs import *
 
 @configclass
 class TriLeggedManipulateEnvCfg(ManagerBasedRLEnvCfg):
-    scene: TriLeggedManipulateSceneCfg = TriLeggedManipulateSceneCfg(num_envs=4096, env_spacing=10)
+    scene: TriLeggedManipulateSceneCfg = TriLeggedManipulateSceneCfg(num_envs=4096, env_spacing=10) # type: ignore
 
-    observations: ObservationsManipulateCfg = ObservationsManipulateCfg()
-    actions: ActionsManipulateCfg = ActionsManipulateCfg()
-    commands: TriLeggedCommandsManipulateCfg = TriLeggedCommandsManipulateCfg()
+    observations: ObservationsManipulateCfg = ObservationsManipulateCfg() # type: ignore
+    actions: ActionsManipulateCfg = ActionsManipulateCfg() # type: ignore
+    commands: TriLeggedCommandsManipulateCfg = TriLeggedCommandsManipulateCfg() # type: ignore
 
     rewards: RewardsManipulateStandingCfg = RewardsManipulateStandingCfg()
     terminations: TerminationsManipulateCfg = TerminationsManipulateCfg()

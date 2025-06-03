@@ -1,0 +1,10 @@
+{
+  "extraPaths": [
+    "./source/isaaclab",
+    "./source/isaaclab_rl",
+    "./source/isaaclab_assets",
+    "./source/isaaclab_mimic",
+    "./source/isaaclab_tasks",
+    "./moonbot_envs/moonbot"
+  ]
+}

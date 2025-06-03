@@ -14,10 +14,10 @@ from .sence_cfgs import *
 
 @configclass
 class DragonLocomotionEnvCfg(ManagerBasedRLEnvCfg):
-    scene: DragonLocomotionSceneCfg = DragonLocomotionSceneCfg(num_envs=4096, env_spacing=10)
+    scene: DragonLocomotionSceneCfg = DragonLocomotionSceneCfg(num_envs=4096, env_spacing=10) # type: ignore
 
-    observations: DragonLocomotionObservationCfg = DragonLocomotionObservationCfg()
-    actions: DragonActionsCfg = DragonActionsCfg()
+    observations: DragonLocomotionObservationCfg = DragonLocomotionObservationCfg() # type: ignore
+    actions: DragonActionsCfg = DragonActionsCfg() # type: ignore
     commands: DragonLocomotionCommandCfg = DragonLocomotionCommandCfg()
 
     rewards: DragonLocomotionRewardsCfg = DragonLocomotionRewardsCfg()
@@ -30,7 +30,7 @@ class DragonLocomotionEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 4
         self.episode_length_s = 20.0
         self.viewer.eye = (3.5, 3.5, 3.5)
-        
+
         self.sim.dt = 0.005
 
         if self.scene.contact_forces is not None:
@@ -55,7 +55,7 @@ class DragonReachingEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 4
         self.episode_length_s = 6.0
         self.viewer.eye = (3.5, 3.5, 3.5)
-        
+
         self.sim.dt = 0.005
 
         if self.scene.contact_forces is not None:

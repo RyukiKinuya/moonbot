@@ -1,0 +1,174 @@
+from isaaclab.envs import ManagerBasedRLEnvCfg
+
+import isaaclab.sim as sim_utils
+from isaaclab.utils import configclass
+from isaaclab.assets import AssetBaseCfg
+
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.scene import InteractiveSceneCfg
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.utils import configclass
+from isaaclab.assets import ArticulationCfg
+from isaaclab.terrains import TerrainImporterCfg
+from .terrain_configs.terrain_cfg import TRI_LEGGED_TERRAINS_CFG
+from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
+from moonbot_envs.assets import *
+import moonbot_envs.envs.mdp as mdp
+
+from isaaclab.managers import ObservationGroupCfg as ObsGroup
+from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import ActionTermCfg as ActionTermCfg
+from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers.action_manager import ActionTermCfg as ActionTerm
+
+
+@configclass
+class IntegrationSceneCfg(InteractiveSceneCfg):
+    ground = AssetBaseCfg(
+        prim_path="/World/Ground",
+        spawn=sim_utils.GroundPlaneCfg(),
+    )
+    sky_light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=750.0,
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
+    )
+
+    moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal")
+    moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon")
+    moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full")
+
+@configclass
+class IntegrationObsCfg:
+    @configclass
+    class MoonbotObsCfg(ObsGroup):
+        def __init__(self, asset_cfg: SceneEntityCfg):
+            super().__init__()
+            self.joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": asset_cfg})
+            self.joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": asset_cfg})
+            self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
+            self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
+            self.pose_command = ObsTerm(func=mdp.ee_pose_command, params={"command_name": "ee_pose", "asset_cfg": asset_cfg})
+            self.actions = ObsTerm(func=mdp.last_action, params={"action_name": asset_cfg.name})
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    obs_minimal: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
+    obs_dragon: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
+    obs_full: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
+
+@configclass
+class IntegrationActCfg:
+    act_minimal: ActionTerm = mdp.JointPositionActionCfg(asset_name="moonbot_minimal", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    act_dragon: ActionTerm = mdp.JointPositionActionCfg(asset_name="moonbot_dragon", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    act_full: ActionTerm = mdp.JointPositionActionCfg(asset_name="moonbot_full", joint_names=[".*"], scale=0.5, use_default_offset=True)
+
+@configclass
+class IntegrationCmdCfg:
+    base_velocity_minimal = mdp.UniformVelocityCommandCfg(
+        asset_name="moonbot_minimal",
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
+        ),
+    )
+    base_velocity_dragon = mdp.UniformVelocityCommandCfg(
+        asset_name="moonbot_dragon",
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
+        ),
+    )
+    base_velocity_full = mdp.UniformVelocityCommandCfg(
+        asset_name="moonbot_full",
+        resampling_time_range=(10.0, 10.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
+        ),
+    )
+
+
+@configclass
+class IntegrationRewardCfg:
+    @configclass
+    class MoonbotRewardCfg:
+        def __init__(self, asset_cfg: SceneEntityCfg):
+            self.asset_cfg = asset_cfg
+
+    reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
+    reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
+    reward_full: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
+
+@configclass
+class IntegrationTerminationCfg:
+    pass
+
+@configclass
+class IntegrationEventCfg:
+    reset_minimal = EventTerm(
+        func=mdp.reset_scene_to_default,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("moonbot_minimal"),
+        }
+    )
+    reset_dragon = EventTerm(
+        func=mdp.reset_scene_to_default,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("moonbot_dragon"),
+        }
+    )
+    reset_full = EventTerm(
+        func=mdp.reset_scene_to_default,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("moonbot_full"),
+        }
+    )
+
+@configclass
+class IntegrationCurriculumCfg:
+    pass
+
+@configclass
+class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
+    scene: IntegrationSceneCfg = IntegrationSceneCfg(num_envs=4096, env_spacing=10) # type: ignore
+
+    observations: IntegrationObsCfg = IntegrationObsCfg()  # type: ignore
+    actions: IntegrationActCfg = IntegrationActCfg()  # type: ignore
+    commands: IntegrationCmdCfg = IntegrationCmdCfg()  # type: ignore
+
+    rewards: IntegrationRewardCfg = IntegrationRewardCfg()  # type: ignore
+    terminations: IntegrationTerminationCfg = IntegrationTerminationCfg() # type: ignore
+
+    events: IntegrationEventCfg = IntegrationEventCfg() # type: ignore
+    curriculum: IntegrationCurriculumCfg = IntegrationCurriculumCfg() # type: ignore
+
+
+    def __post_init__(self):
+        self.decimation = 4
+        self.episode_length_s = 10.0
+        self.viewer.eye = (3.5, 3.5, 3.5)
+
+        self.sim.dt = 0.005

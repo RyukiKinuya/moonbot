@@ -17,4 +17,4 @@ keywords = ["robotics", "rl", "il", "learning"]
 "isaaclab_tasks" = {}
 
 [[python.module]]
-name = "omni.isaac.contrib_tasks"
+name = "moonbot_envs"

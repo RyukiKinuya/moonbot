@@ -4,7 +4,7 @@ import math
 from dataclasses import MISSING
 
 from isaaclab.managers import TerminationTermCfg as DoneTerm
-import omni.isaac.contrib_tasks.moonbot.mdp as mdp
+import moonbot_envs.moonbot.mdp as mdp
 from isaaclab.managers import SceneEntityCfg
 
 from isaaclab.utils import configclass

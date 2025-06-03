@@ -17,8 +17,8 @@ INSTALL_REQUIRES = [
 
 # Installation operation
 setup(
-    name="omni.isaac.contrib_tasks",
-    packages=["omni.isaac.contrib_tasks"],
+    name="moonbot_envs",
+    packages=["moonbot_envs"],
     url=EXTENSION_TOML_DATA["package"]["repository"],
     version=EXTENSION_TOML_DATA["package"]["version"],
     description=EXTENSION_TOML_DATA["package"]["description"],
@@ -30,8 +30,7 @@ setup(
     classifiers=[
         "Natural Language :: English",
         "Programming Language :: Python :: 3.10",
-        "Isaac Sim :: 2023.1.1",
-        "Isaac Sim :: 4.0.0",
+        "Isaac Sim :: 4.5.0",
     ],
     zip_safe=False,
 )

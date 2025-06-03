@@ -7,14 +7,13 @@ from isaaclab.assets import AssetBaseCfg
 
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab_assets.moonbot import *
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 from isaaclab.assets import ArticulationCfg
 from isaaclab.terrains import TerrainImporterCfg
 from .terrain_configs.terrain_cfg import TRI_LEGGED_TERRAINS_CFG
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
-
+from moonbot_envs.moonbot.assets import *
 
 @configclass
 class TriLeggedManipulateSceneCfg(InteractiveSceneCfg):
@@ -34,7 +33,7 @@ class TriLeggedManipulateSceneCfg(InteractiveSceneCfg):
     robot = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
-    
+
 
 @configclass
 class UniLeggedManipulateSceneCfg(InteractiveSceneCfg):
@@ -111,7 +110,7 @@ class UniLeggedStandingReachingSceneCfg(InteractiveSceneCfg):
             },
         ),
     )
-    
+
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
 
@@ -210,7 +209,7 @@ class DragonLocomotionSceneCfg(InteractiveSceneCfg):
     robot = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
-    
+
 
 @configclass
 class DragonReachingSceneCfg(InteractiveSceneCfg):

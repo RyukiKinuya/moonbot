@@ -4,7 +4,7 @@ from dataclasses import MISSING
 
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
-import omni.isaac.contrib_tasks.moonbot.mdp as mdp
+import moonbot_envs.moonbot.mdp as mdp
 import math
 
 from isaaclab.utils import configclass

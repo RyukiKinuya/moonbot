@@ -4,7 +4,7 @@ import torch
 import math
 from dataclasses import MISSING
 
-import omni.isaac.contrib_tasks.moonbot.mdp as mdp
+import moonbot_envs.moonbot.mdp as mdp
 from isaaclab.managers import EventTermCfg as EventTerm
 
 

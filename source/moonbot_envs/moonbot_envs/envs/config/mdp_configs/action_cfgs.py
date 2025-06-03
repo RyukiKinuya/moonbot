@@ -6,7 +6,7 @@ from dataclasses import MISSING
 
 
 from isaaclab.managers.action_manager import ActionTermCfg as ActionTerm
-import omni.isaac.contrib_tasks.moonbot.mdp as mdp
+import moonbot_envs.moonbot.mdp as mdp
 
 from isaaclab.utils import configclass
 
@@ -29,5 +29,4 @@ class DragonActionsCfg:
     # wheel_action1: ActionTerm = mdp.WheelVelocityActionCfg(asset_name="robot", joint_names=["wheel12.*joint"], scale=50.0)
     # wheel_action2: ActionTerm = mdp.WheelVelocityActionCfg(asset_name="robot", joint_names=["wheel14.*joint"], scale=50.0)
     wheel_action: ActionTerm = mdp.JointVelocityActionCfg(asset_name="robot", joint_names=["wheel.*joint"], scale=10.0)
-    
-    
+

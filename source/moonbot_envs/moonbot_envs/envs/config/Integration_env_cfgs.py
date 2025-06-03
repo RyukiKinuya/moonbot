@@ -21,6 +21,7 @@ from isaaclab.managers import ActionTermCfg as ActionTermCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.action_manager import ActionTermCfg as ActionTerm
+from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg
 
 
 @configclass
@@ -51,7 +52,6 @@ class IntegrationObsCfg:
             self.joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": asset_cfg})
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
-            self.pose_command = ObsTerm(func=mdp.ee_pose_command, params={"command_name": "ee_pose", "asset_cfg": asset_cfg})
             self.actions = ObsTerm(func=mdp.last_action, params={"action_name": asset_cfg.name})
 
         def __post_init__(self):
@@ -111,7 +111,7 @@ class IntegrationCmdCfg:
 @configclass
 class IntegrationRewardCfg:
     @configclass
-    class MoonbotRewardCfg:
+    class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
             self.asset_cfg = asset_cfg
 

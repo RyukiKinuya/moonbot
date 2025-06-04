@@ -89,7 +89,7 @@ UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
             solver_velocity_iteration_count=4,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, 
+            enabled_self_collisions=True,
             solver_position_iteration_count=10,
             solver_velocity_iteration_count=4,
             fix_root_link=False,
@@ -112,7 +112,7 @@ UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
             damping=20.0,
             velocity_limit=3.14,
         ),
-        
+
         "wheel": ImplicitActuatorCfg(
             joint_names_expr=["Wheel.*"],
             stiffness=200.0,
@@ -145,7 +145,7 @@ UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
             solver_velocity_iteration_count=2,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, 
+            enabled_self_collisions=True,
             solver_position_iteration_count=10,
             solver_velocity_iteration_count=2,
             fix_root_link=True,
@@ -169,7 +169,7 @@ UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
             velocity_limit=100.0,
             effort_limit=87.0,
         ),
-        
+
         "wheel": ImplicitActuatorCfg(
             joint_names_expr=["Wheel.*"],
             stiffness=200.0,
@@ -236,5 +236,5 @@ DRAGON_MOONBOT_CFG = ArticulationCfg(
             velocity_limit=100.0,
         ),
     }
-        
+
 )

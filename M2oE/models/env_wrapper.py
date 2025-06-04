@@ -24,7 +24,8 @@ class ModulerRobotEnvWrapper(VecEnv):
         self.clip_actions = clip_actions
 
         # store information required by wrapper
-        self.num_envs = self.unwrapped.num_envs
+        self.num_morphologies = self.unwrapped.reward_manager.num_groups()
+        self.num_envs = self.unwrapped.num_envs * self.num_morphologies
         self.device = self.unwrapped.device
         self.max_episode_length = self.unwrapped.max_episode_length
 
@@ -121,25 +122,27 @@ class ModulerRobotEnvWrapper(VecEnv):
         # reset the environment
         obs_dict, _ = self.env.reset()
         # return observations
-        return obs_dict["policy"], {"observations": obs_dict}
+        return obs_dict, {"observations": obs_dict}
 
-    def step(self, actions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict]:
+    def step(self, actions: torch.Tensor):
+        # process actions:
+        # actions: [num_envs * num_morphologies , num_actions]
+        # TODO: groupfy the action_manager
+        actions = self._process_actions(actions)
+
         # clip actions
         if self.clip_actions is not None:
             actions = torch.clamp(actions, -self.clip_actions, self.clip_actions)
         # record step information
         obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
+        rew = self._process_rewards(rew)
         dones = (terminated | truncated).to(dtype=torch.long)
-        # move extra observations to the extras dict
-        obs = obs_dict["policy"]
         extras["observations"] = obs_dict
-        # move time out information to the extras dict
-        # this is only needed for infinite horizon tasks
         if not self.unwrapped.cfg.is_finite_horizon:
             extras["time_outs"] = truncated
 
-        # return the step information
-        return obs, rew, dones, extras
+        # LIU CHANG: obs_dict needs to be processed in runner using learnable padding vector
+        return obs_dict, rew, dones, extras
 
     def close(self):  # noqa: D102
         return self.env.close()
@@ -162,3 +165,18 @@ class ModulerRobotEnvWrapper(VecEnv):
             self.env.unwrapped.single_action_space, self.num_envs
         )
 
+    def _process_actions(self, actions):
+        # TODO: update the action manager to support group actions
+        return actions
+
+    def _process_rewards(self, rewards):
+        # reward: dict (str -> torch.Tensor[num_envs, 1])
+        # return: tensor of shape [num_envs * num_morphologies]
+
+        # dict to tensor [num_envs, num_morphologies]
+        rewards = torch.stack(
+            [rewards[key] for key in self.unwrapped.reward_manager.group_reward_dim.keys()], dim=1
+        )
+
+        # flatten the tensor to [num_envs * num_morphologies]
+        return rewards.view(-1)

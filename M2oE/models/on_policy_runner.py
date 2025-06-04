@@ -45,16 +45,10 @@ class OnPolicyRunner:
         num_obs = max([obs_tensor.shape[1] for obs_tensor in obs_dict.values()])
 
         # resolve type of privileged observations
-        if self.training_type == "rl":
-            if "critic" in extras["observations"]:
-                self.privileged_obs_type = "critic"  # actor-critic reinforcement learnig, e.g., PPO
-            else:
-                self.privileged_obs_type = None
-        if self.training_type == "distillation":
-            if "teacher" in extras["observations"]:
-                self.privileged_obs_type = "teacher"  # policy distillation
-            else:
-                self.privileged_obs_type = None
+        if "critic" in extras["observations"]:
+            self.privileged_obs_type = "critic"  # actor-critic reinforcement learnig, e.g., PPO
+        else:
+            self.privileged_obs_type = None
 
         # resolve dimensions of privileged observations
         if self.privileged_obs_type is not None:
@@ -81,14 +75,9 @@ class OnPolicyRunner:
             # scale down the rnd weight with timestep (similar to how rewards are scaled down in legged_gym envs)
             self.alg_cfg["rnd_cfg"]["weight"] *= env.unwrapped.step_dt
 
-        # if using symmetry then pass the environment config object
-        if "symmetry_cfg" in self.alg_cfg and self.alg_cfg["symmetry_cfg"] is not None:
-            # this is used by the symmetry function for handling different observation terms
             self.alg_cfg["symmetry_cfg"]["_env"] = env
 
-        # initialize algorithm
-        alg_class = eval(self.alg_cfg.pop("class_name"))
-        self.alg: PPO | Distillation = alg_class(policy, device=self.device, **self.alg_cfg, multi_gpu_cfg=self.multi_gpu_cfg)
+        self.alg: PPO = PPO(policy, device=self.device, **self.alg_cfg, multi_gpu_cfg=self.multi_gpu_cfg)
 
         # store training configuration
         self.num_steps_per_env = self.cfg["num_steps_per_env"]
@@ -196,7 +185,9 @@ class OnPolicyRunner:
                     # Sample actions
                     actions = self.alg.act(obs, privileged_obs)
                     # Step the environment
+                    # obs: dict, rewards: [num_envs * num_morphologies], dones: [num_envs, 1], infos: dict
                     obs, rewards, dones, infos = self.env.step(actions.to(self.env.device))
+                    obs = self._process_observations(obs)
                     # Move to device
                     obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
                     # perform normalization
@@ -521,3 +512,9 @@ class OnPolicyRunner:
         )
         # set device to the local rank
         torch.cuda.set_device(self.gpu_local_rank)
+
+    def _process_observations(self, obs_dict):
+        # obs_dict: dict: (name, torch.Tensor)
+        # TODO: padding obs with learnable vector
+
+        return obs, privileged_obs

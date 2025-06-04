@@ -62,4 +62,4 @@ _build
 # Pre-Trained Checkpoints
 /.pretrained_checkpoints/
 
-Moonbot/
+usd/

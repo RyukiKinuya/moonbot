@@ -70,6 +70,10 @@ class RewardManager(ManagerBase):
         """Name of active reward terms."""
         return self._term_names
 
+    def num_groups(self) -> int:
+        """Returns the number of reward groups."""
+        return len(self._group_reward_term_names)
+
     """
     Operations.
     """

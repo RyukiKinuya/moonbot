@@ -17,6 +17,7 @@ import moonbot_envs.envs.mdp as mdp
 
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.managers import ActionTermCfg as ActionTermCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
@@ -41,6 +42,10 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
     moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal")
     moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon")
     moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full")
+
+    minimal_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/minimal/.*", history_length=3, track_air_time=True)
+    dragon_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/dragon/.*", history_length=3, track_air_time=True)
+    full_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/full/.*", history_length=3, track_air_time=True)
 
 @configclass
 class IntegrationObsCfg:
@@ -121,7 +126,21 @@ class IntegrationRewardCfg:
 
 @configclass
 class IntegrationTerminationCfg:
-    pass
+    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    base_contact_minimal = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("minimal_contact_forces", body_names="base_link"), "threshold": 8.0},
+    )
+    base_contact_dragon = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("dragon_contact_forces", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
+    )
+    base_contact_full = DoneTerm(
+        func=mdp.illegal_contact,
+        params={"sensor_cfg": SceneEntityCfg("full_contact_forces", body_names="base_link"), "threshold": 8.0}
+    )
+
+
 
 @configclass
 class IntegrationEventCfg:

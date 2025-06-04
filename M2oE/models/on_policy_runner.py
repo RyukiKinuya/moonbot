@@ -38,10 +38,11 @@ class OnPolicyRunner:
 
         self.training_type = "rl"
 
-        obs = self.env.get_observations()
+        obs_dict, extras = self.env.get_observations()
+
         # obs: dict: (name, torch.Tensor)
         # num obs is the dimension of the observation with max number of observations
-        num_obs = max([obs_tensor.shape[1] for obs_tensor in obs.values()])
+        num_obs = max([obs_tensor.shape[1] for obs_tensor in obs_dict.values()])
 
         # resolve type of privileged observations
         if self.training_type == "rl":

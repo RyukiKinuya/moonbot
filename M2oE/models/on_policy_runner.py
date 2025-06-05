@@ -30,6 +30,9 @@ from rsl_rl.modules import (
 >>>>>>> ecbb13069f56fef970897dc76a2d45825d8c8d28
 from rsl_rl.utils import store_code_state
 
+from M2oE.models.modules.actor_critic import ActorCritic
+from M2oE.models.modules.ppo import PPO
+
 
 class OnPolicyRunner:
     """On-policy runner for training and evaluation."""

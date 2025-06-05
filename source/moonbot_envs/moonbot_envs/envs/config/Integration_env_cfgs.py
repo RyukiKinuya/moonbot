@@ -18,11 +18,9 @@ import moonbot_envs.envs.mdp as mdp
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab.managers import ActionTermCfg as ActionTermCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.managers.action_manager import ActionTermCfg as ActionTerm
-from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg
+from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
 
 
 @configclass
@@ -69,9 +67,57 @@ class IntegrationObsCfg:
 
 @configclass
 class IntegrationActCfg:
-    act_minimal: ActionTerm = mdp.JointPositionActionCfg(asset_name="moonbot_minimal", joint_names=[".*"], scale=0.5, use_default_offset=True)
-    act_dragon: ActionTerm = mdp.JointPositionActionCfg(asset_name="moonbot_dragon", joint_names=[".*"], scale=0.5, use_default_offset=True)
-    act_full: ActionTerm = mdp.JointPositionActionCfg(asset_name="moonbot_full", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    @configclass
+    class MoonbotActCfg(ActionGroupCfg):
+        def __init__(self, asset_name: str, robot_type: str):
+            if robot_type == "tri_legged":
+                self.arm_action = mdp.JointPositionActionCfg(
+                    asset_name=asset_name,
+                    joint_names=["arm_joint.*"],
+                    scale=0.5,
+                    use_default_offset=True,
+                )
+                self.wheel_action = mdp.JointVelocityActionCfg(
+                    asset_name=asset_name,
+                    joint_names=[".*wheel.*"],
+                    scale=50.0,
+                )
+            elif robot_type == "dragon":
+                self.arm_action = mdp.JointPositionActionCfg(
+                    asset_name=asset_name,
+                    joint_names=["leg3joint.*"],
+                    scale=0.1,
+                    use_default_offset=True,
+                )
+                self.wheel_action = mdp.JointVelocityActionCfg(
+                    asset_name=asset_name,
+                    joint_names=["wheel.*joint"],
+                    scale=10.0,
+                )
+            elif robot_type == "unilegged":
+                self.arm_action = mdp.JointPositionActionCfg(
+                    asset_name=asset_name,
+                    joint_names=["joint.*"],
+                    scale=0.5,
+                    use_default_offset=True,
+                )
+                self.wheel_action = mdp.JointVelocityActionCfg(
+                    asset_name=asset_name,
+                    joint_names=["Wheel.*"],
+                    scale=10.0,
+                )
+            else:
+                raise ValueError(f"Unknown robot type: {robot_type}")
+
+    act_minimal: MoonbotActCfg = MoonbotActCfg(
+        asset_name="moonbot_minimal", robot_type="unilegged"
+    )
+    act_dragon: MoonbotActCfg = MoonbotActCfg(
+        asset_name="moonbot_dragon", robot_type="dragon"
+    )
+    act_full: MoonbotActCfg = MoonbotActCfg(
+        asset_name="moonbot_full", robot_type="tri_legged"
+    )
 
 @configclass
 class IntegrationCmdCfg:

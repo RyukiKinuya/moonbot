@@ -13,7 +13,7 @@ from isaaclab.assets import ArticulationCfg
 from isaaclab.terrains import TerrainImporterCfg
 from .terrain_configs.terrain_cfg import TRI_LEGGED_TERRAINS_CFG
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
-from moonbot_envs.moonbot.assets import *
+from moonbot_envs.moonbot_envs.assets import *
 
 @configclass
 class TriLeggedManipulateSceneCfg(InteractiveSceneCfg):

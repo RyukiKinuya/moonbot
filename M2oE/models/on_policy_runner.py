@@ -43,6 +43,7 @@ class OnPolicyRunner:
         # obs: dict: (name, torch.Tensor)
         # num obs is the dimension of the observation with max number of observations
         num_obs = max([obs_tensor.shape[1] for obs_tensor in obs_dict.values()])
+        self.num_obs = num_obs
 
         # resolve type of privileged observations
         if "critic" in extras["observations"]:
@@ -514,7 +515,17 @@ class OnPolicyRunner:
         torch.cuda.set_device(self.gpu_local_rank)
 
     def _process_observations(self, obs_dict):
-        # obs_dict: dict: (name, torch.Tensor)
-        # TODO: padding obs with learnable vector
+        # obs_dict: dict of (name, torch.Tensor)
+        # Pad each observation to the maximum dimension using the policy padding
 
-        return obs, privileged_obs
+        padded_obs = []
+        pad_vec = self.alg.policy.padding
+        for key in sorted(obs_dict.keys()):
+            obs = obs_dict[key]
+            diff = self.num_obs - obs.shape[1]
+            if diff > 0:
+                pad = pad_vec[obs.shape[1] : self.num_obs].unsqueeze(0).expand(obs.shape[0], -1)
+                obs = torch.cat([obs, pad], dim=1)
+            padded_obs.append(obs)
+        obs = torch.cat(padded_obs, dim=0)
+        return obs

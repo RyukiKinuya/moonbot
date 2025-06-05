@@ -14,17 +14,17 @@ from torch.distributions import Normal
 from rsl_rl.utils import resolve_nn_activation
 
 
-class ActorCritic(nn.Module):
+class M2oEActorCritic(nn.Module):
     is_recurrent = False
 
     def __init__(
         self,
         num_actor_obs,
-        num_critic_obs,
         num_actions,
-        activation="elu",
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
+        padding_mode: str = "learnable",
+        padding_method: str = "concat"
         **kwargs,
     ):
         if kwargs:
@@ -49,7 +49,14 @@ class ActorCritic(nn.Module):
         Normal.set_default_validate_args(False)
 
         # learnable padding vector to pad observations to the maximum length
-        self.padding = nn.Parameter(torch.zeros(num_actor_obs))
+        if padding_mode == "learnable":
+            self.padding_mode = padding_mode
+            self.padding = nn.Parameter(torch.zeros(num_actor_obs))
+        else:
+            self.padding_mode = padding_mode
+            self.padding = torch.zeros(num_actor_obs)
+
+        self.padding_method = padding_method
 
         # store observation dimension
         self.num_actor_obs = num_actor_obs

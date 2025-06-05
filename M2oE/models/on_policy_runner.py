@@ -14,15 +14,9 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.algorithms import PPO, Distillation
+from rsl_rl.algorithms import PPO
 from rsl_rl.env import VecEnv
-from rsl_rl.modules import (
-    ActorCritic,
-    ActorCriticRecurrent,
-    EmpiricalNormalization,
-    StudentTeacher,
-    StudentTeacherRecurrent,
-)
+from .modules.actor_critic import M2oEActorCritic
 from rsl_rl.utils import store_code_state
 
 
@@ -57,9 +51,7 @@ class OnPolicyRunner:
         else:
             num_privileged_obs = num_obs
 
-        # evaluate the policy class
-        policy_class = eval(self.policy_cfg.pop("class_name"))
-        policy: ActorCritic | ActorCriticRecurrent | StudentTeacher | StudentTeacherRecurrent = policy_class(
+        policy = M2oEActorCritic(
             num_obs, num_privileged_obs, self.env.num_actions, **self.policy_cfg
         ).to(self.device)
 
@@ -150,6 +142,7 @@ class OnPolicyRunner:
 
         # start learning
         obs, extras = self.env.get_observations()
+        obs = self._process_observations(obs)
         privileged_obs = extras["observations"].get(self.privileged_obs_type, obs)
         obs, privileged_obs = obs.to(self.device), privileged_obs.to(self.device)
         self.train_mode()  # switch to train mode (for dropout for example)
@@ -515,17 +508,22 @@ class OnPolicyRunner:
         torch.cuda.set_device(self.gpu_local_rank)
 
     def _process_observations(self, obs_dict):
-        # obs_dict: dict of (name, torch.Tensor)
-        # Pad each observation to the maximum dimension using the policy padding
-
         padded_obs = []
         pad_vec = self.alg.policy.padding
         for key in sorted(obs_dict.keys()):
             obs = obs_dict[key]
             diff = self.num_obs - obs.shape[1]
-            if diff > 0:
-                pad = pad_vec[obs.shape[1] : self.num_obs].unsqueeze(0).expand(obs.shape[0], -1)
-                obs = torch.cat([obs, pad], dim=1)
-            padded_obs.append(obs)
-        obs = torch.cat(padded_obs, dim=0)
+            if self.alg.policy.padding_method == "concat":
+                if diff > 0:
+                    pad = pad_vec[obs.shape[1] : self.num_obs].unsqueeze(0).expand(obs.shape[0], -1)
+                    # obs: [num_envs, num_obs]
+                    obs = torch.cat([obs, pad], dim=1)
+            elif self.alg.policy.padding_method == "add":
+                pad = pad_vec.expand(obs.shape[0], -1)
+                obs = obs + pad
+
+            # padded_obs: [num_envs, 1, num_obs]
+            padded_obs.append(obs.unsqueeze(1))
+        obs = torch.cat(padded_obs, dim=1).reshape(-1, self.num_obs)
+        # obs: [num_envs * num_morphologies, num_obs]
         return obs

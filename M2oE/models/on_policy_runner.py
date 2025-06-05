@@ -14,9 +14,20 @@ import torch
 from collections import deque
 
 import rsl_rl
+<<<<<<< HEAD
 from rsl_rl.algorithms import PPO
 from rsl_rl.env import VecEnv
 from .modules.actor_critic import M2oEActorCritic
+=======
+from rsl_rl.algorithms import Distillation
+from rsl_rl.env import VecEnv
+from rsl_rl.modules import (
+    ActorCriticRecurrent,
+    EmpiricalNormalization,
+    StudentTeacher,
+    StudentTeacherRecurrent,
+)
+>>>>>>> ecbb13069f56fef970897dc76a2d45825d8c8d28
 from rsl_rl.utils import store_code_state
 
 

@@ -18,8 +18,8 @@ sys.path.append(REPO_ROOT)
 
 import scripts.reinforcement_learning.rsl_rl.cli_args as cli_args  # isort: skip
 
-from M2oE.models.env_wrapper import ModulerRobotEnvWrapper
-from M2oE.models.on_policy_runner import OnPolicyRunner
+from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
+from M2oE.models.modules.on_policy_runner import OnPolicyRunner
 
 import gymnasium as gym
 import torch

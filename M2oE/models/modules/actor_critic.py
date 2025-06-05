@@ -48,6 +48,18 @@ class ActorCritic(nn.Module):
         # disable args validation for speedup
         Normal.set_default_validate_args(False)
 
+        # learnable padding vector to pad observations to the maximum length
+        self.padding = nn.Parameter(torch.zeros(num_actor_obs))
+
+        # store observation dimension
+        self.num_actor_obs = num_actor_obs
+
+        # TODO: define actor network
+        self.actor = nn.Identity()  # TODO
+
+        # TODO: define critic network
+        self.critic = nn.Identity()  # TODO
+
     @staticmethod
     # not used at the moment
     def init_weights(sequential, scales):

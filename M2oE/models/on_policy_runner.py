@@ -14,16 +14,18 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.algorithms import PPO, Distillation
+from rsl_rl.algorithms import Distillation
 from rsl_rl.env import VecEnv
 from rsl_rl.modules import (
-    ActorCritic,
     ActorCriticRecurrent,
     EmpiricalNormalization,
     StudentTeacher,
     StudentTeacherRecurrent,
 )
 from rsl_rl.utils import store_code_state
+
+from M2oE.models.modules.actor_critic import ActorCritic
+from M2oE.models.modules.ppo import PPO
 
 
 class OnPolicyRunner:

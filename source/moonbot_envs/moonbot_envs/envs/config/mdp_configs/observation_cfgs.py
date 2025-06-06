@@ -5,7 +5,7 @@ from dataclasses import MISSING
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
-import moonbot_envs.moonbot_envs.envs.mdp as mdp
+import moonbot_envs.envs.mdp as mdp
 from isaaclab.managers import SceneEntityCfg
 
 from isaaclab.utils import configclass

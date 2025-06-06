@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
 
 class GroupActionManager(ManagerBase):
-    """Action manager that handles grouped action terms."""
-
     _env: ManagerBasedEnv
 
     def __init__(self, cfg: object, env: ManagerBasedEnv):
@@ -165,4 +163,3 @@ class GroupActionManager(ManagerBase):
                 self._group_action_terms[group_name].append(term)
                 self._group_action_term_dim[group_name].append(term.action_dim)
                 self._term_names.append(f"{group_name}/{term_name}")
-

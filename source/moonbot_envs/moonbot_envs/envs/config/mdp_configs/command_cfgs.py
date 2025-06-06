@@ -4,7 +4,7 @@ import torch
 import math
 from dataclasses import MISSING
 
-import moonbot_envs.moonbot_envs.mdp as mdp
+import moonbot_envs.mdp as mdp
 
 from isaaclab.utils import configclass
 

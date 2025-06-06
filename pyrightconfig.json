@@ -5,6 +5,6 @@
     "./source/isaaclab_assets",
     "./source/isaaclab_mimic",
     "./source/isaaclab_tasks",
-    "./source/moonbot_ens"
+    "./source/moonbot_envs"
   ]
 }

@@ -82,6 +82,7 @@ class IntegrationActCfg:
                     joint_names=[".*wheel.*"],
                     scale=50.0,
                 )
+
             elif asset_name == "dragon":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
@@ -94,6 +95,7 @@ class IntegrationActCfg:
                     joint_names=["wheel.*joint"],
                     scale=10.0,
                 )
+
             elif asset_name == "unilegged":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
@@ -106,6 +108,7 @@ class IntegrationActCfg:
                     joint_names=["Wheel.*"],
                     scale=10.0,
                 )
+
 
     act_minimal: MoonbotActCfg = MoonbotActCfg(
         asset_name="moonbot_minimal"

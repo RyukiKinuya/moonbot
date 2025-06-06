@@ -69,8 +69,8 @@ class IntegrationObsCfg:
 class IntegrationActCfg:
     @configclass
     class MoonbotActCfg(ActionGroupCfg):
-        def __init__(self, asset_name: str, robot_type: str):
-            if robot_type == "tri_legged":
+        def __init__(self, asset_name: str):
+            if asset_name == "tri_legged":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
                     joint_names=["arm_joint.*"],
@@ -82,7 +82,8 @@ class IntegrationActCfg:
                     joint_names=[".*wheel.*"],
                     scale=50.0,
                 )
-            elif robot_type == "dragon":
+
+            elif asset_name == "dragon":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
                     joint_names=["leg3joint.*"],
@@ -94,7 +95,8 @@ class IntegrationActCfg:
                     joint_names=["wheel.*joint"],
                     scale=10.0,
                 )
-            elif robot_type == "unilegged":
+
+            elif asset_name == "unilegged":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
                     joint_names=["joint.*"],
@@ -106,17 +108,16 @@ class IntegrationActCfg:
                     joint_names=["Wheel.*"],
                     scale=10.0,
                 )
-            else:
-                raise ValueError(f"Unknown robot type: {robot_type}")
+
 
     act_minimal: MoonbotActCfg = MoonbotActCfg(
-        asset_name="moonbot_minimal", robot_type="unilegged"
+        asset_name="moonbot_minimal"
     )
     act_dragon: MoonbotActCfg = MoonbotActCfg(
-        asset_name="moonbot_dragon", robot_type="dragon"
+        asset_name="moonbot_dragon"
     )
     act_full: MoonbotActCfg = MoonbotActCfg(
-        asset_name="moonbot_full", robot_type="tri_legged"
+        asset_name="moonbot_full"
     )
 
 @configclass

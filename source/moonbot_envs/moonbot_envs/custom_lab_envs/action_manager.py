@@ -61,11 +61,13 @@ class GroupActionManager(ManagerBase):
         return sum(self.group_action_dim.values())
 
     @property
+
     def active_terms(self) -> dict[str, list[str]]:
         """Name of active action terms for each group."""
         return self._group_action_term_names
 
     @property
+
     def action(self) -> dict[str, torch.Tensor]:
         return self._action
 

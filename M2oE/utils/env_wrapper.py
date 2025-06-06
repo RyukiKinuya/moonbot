@@ -170,13 +170,8 @@ class ModulerRobotEnvWrapper(VecEnv):
         return actions
 
     def _process_rewards(self, rewards):
-        # reward: dict (str -> torch.Tensor[num_envs, 1])
-        # return: tensor of shape [num_envs * num_morphologies]
-
-        # dict to tensor [num_envs, num_morphologies]
         rewards = torch.stack(
             [rewards[key] for key in self.unwrapped.reward_manager.group_reward_dim.keys()], dim=1
         )
 
-        # flatten the tensor to [num_envs * num_morphologies]
         return rewards.view(-1)

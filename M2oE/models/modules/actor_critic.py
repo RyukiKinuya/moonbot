@@ -12,6 +12,7 @@ import torch.nn as nn
 from torch.distributions import Normal
 
 from rsl_rl.utils import resolve_nn_activation
+from M2oE.models.M2oE import M2oE
 
 
 class M2oEActorCritic(nn.Module):
@@ -20,11 +21,14 @@ class M2oEActorCritic(nn.Module):
     def __init__(
         self,
         num_actor_obs,
+        num_global_obs,
         num_actions,
+        max_num_modules,
+        hidden_dim=256,
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
         padding_mode: str = "learnable",
-        padding_method: str = "concat"
+        padding_method: str = "concat",
         **kwargs,
     ):
         if kwargs:
@@ -61,19 +65,26 @@ class M2oEActorCritic(nn.Module):
         # store observation dimension
         self.num_actor_obs = num_actor_obs
 
-        # TODO: define actor network
-        self.actor = nn.Identity()  # TODO
+        self.actor = M2oE(
+            num_obs=num_actor_obs,
+            num_global_obs=num_global_obs,
+            hidden_dim=hidden_dim,
+            max_num_modules=max_num_modules,
+            num_actions=num_actions,
+            num_experts=8,
+            activation=resolve_nn_activation("elu")
+        )
 
-        # TODO: define critic network
-        self.critic = nn.Identity()  # TODO
+        self.critic = nn.ModuleList(
+            [
+                nn.Linear(num_actor_obs + num_global_obs, hidden_dim),
+                nn.ELU(),
+                nn.Linear(hidden_dim, hidden_dim),
+                nn.ELU(),
+                nn.Linear(hidden_dim, 1)
+            ]
+        )
 
-    @staticmethod
-    # not used at the moment
-    def init_weights(sequential, scales):
-        [
-            torch.nn.init.orthogonal_(module.weight, gain=scales[idx])
-            for idx, module in enumerate(mod for mod in sequential if isinstance(mod, nn.Linear))
-        ]
 
     def reset(self, dones=None):
         pass

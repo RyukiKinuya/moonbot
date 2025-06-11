@@ -8,13 +8,13 @@ import torch
 
 from rsl_rl.env import VecEnv
 
-from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv
+from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
 
 
 class ModulerRobotEnvWrapper(VecEnv):
-    def __init__(self, env: ManagerBasedRLEnv, clip_actions: float | None = None):
+    def __init__(self, env: CustomManagerBasedRLEnv, clip_actions: float | None = None):
         # check that input is valid
-        if not isinstance(env.unwrapped, ManagerBasedRLEnv):
+        if not isinstance(env.unwrapped, CustomManagerBasedRLEnv):
             raise ValueError(
                 "The environment must be inherited from ManagerBasedRLEnv. Environment type:"
                 f" {type(env)}"
@@ -29,10 +29,8 @@ class ModulerRobotEnvWrapper(VecEnv):
         self.device = self.unwrapped.device
         self.max_episode_length = self.unwrapped.max_episode_length
 
-        # obtain dimensions of the environment
-        # TODO: Check if this is the correct way to obtain the dimensions
-        self.num_actions = max(self.unwrapped.action_manager.action_term_dim)
-        self.num_obs = max([obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.value()])
+        self.num_actions = max(self.unwrapped.action_manager.action_term_dim) # type: ignore
+        self.num_obs = max([obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.value()]) # type: ignore
 
         # -- privileged observations
         if (
@@ -86,12 +84,12 @@ class ModulerRobotEnvWrapper(VecEnv):
         return cls.__name__
 
     @property
-    def unwrapped(self) -> ManagerBasedRLEnv | DirectRLEnv:
+    def unwrapped(self) -> CustomManagerBasedRLEnv:
         """Returns the base environment of the wrapper.
 
         This will be the bare :class:`gymnasium.Env` environment, underneath all layers of wrappers.
         """
-        return self.env.unwrapped
+        return self.env.unwrapped # type: ignore
 
     """
     Properties
@@ -108,7 +106,7 @@ class ModulerRobotEnvWrapper(VecEnv):
         return self.unwrapped.episode_length_buf
 
     @episode_length_buf.setter
-    def episode_length_buf(self, value: torch.Tensor):
+    def episode_length_buf(self, value: torch.Tensor): # type: ignore
         self.unwrapped.episode_length_buf = value
 
     """
@@ -122,12 +120,11 @@ class ModulerRobotEnvWrapper(VecEnv):
         # reset the environment
         obs_dict, _ = self.env.reset()
         # return observations
-        return obs_dict, {"observations": obs_dict}
+        return obs_dict, {"observations": obs_dict} # type: ignore
 
     def step(self, actions: torch.Tensor):
         # process actions:
         # actions: [num_envs * num_morphologies , num_actions]
-        # TODO: groupfy the action_manager
         actions = self._process_actions(actions)
 
         # clip actions
@@ -166,7 +163,6 @@ class ModulerRobotEnvWrapper(VecEnv):
         )
 
     def _process_actions(self, actions):
-        # TODO: update the action manager to support group actions
         return actions
 
     def _process_rewards(self, rewards):

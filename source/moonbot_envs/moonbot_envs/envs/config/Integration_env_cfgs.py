@@ -61,9 +61,21 @@ class IntegrationObsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    class GlobalCfg(ObsGroup):
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
+        pose_command = ObsTerm(func=mdp.ee_pose_command, params={"command_name": "ee_pose"})
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
     obs_minimal: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
     obs_dragon: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
     obs_full: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
+    obs_global: GlobalCfg = GlobalCfg()
 
 @configclass
 class IntegrationActCfg:

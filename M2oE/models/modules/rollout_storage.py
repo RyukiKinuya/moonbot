@@ -50,6 +50,7 @@ class RolloutStorage:
         self.num_transitions_per_env = num_transitions_per_env
         self.num_envs = num_envs
         self.obs_shape = obs_shape
+        self.global_obs_shape = global_obs_shape
         self.privileged_obs_shape = privileged_obs_shape
         self.rnd_state_shape = rnd_state_shape
         self.actions_shape = actions_shape
@@ -98,6 +99,7 @@ class RolloutStorage:
 
         # Core
         self.observations[self.step].copy_(transition.observations)
+        self.global_observations[self.step].copy_(transition.global_observations)
         if self.privileged_observations is not None:
             self.privileged_observations[self.step].copy_(transition.privileged_observations)
         self.actions[self.step].copy_(transition.actions)
@@ -195,6 +197,7 @@ class RolloutStorage:
 
         # Core
         observations = self.observations.flatten(0, 1)
+        global_observations = self.global_observations.flatten(0, 1)
         if self.privileged_observations is not None:
             privileged_observations = self.privileged_observations.flatten(0, 1)
         else:
@@ -224,6 +227,7 @@ class RolloutStorage:
                 # Create the mini-batch
                 # -- Core
                 obs_batch = observations[batch_idx]
+                global_obs_batch = global_observations[batch_idx]
                 privileged_observations_batch = privileged_observations[batch_idx]
                 actions_batch = actions[batch_idx]
 
@@ -242,7 +246,7 @@ class RolloutStorage:
                     rnd_state_batch = None
 
                 # yield the mini-batch
-                yield obs_batch, privileged_observations_batch, actions_batch, target_values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, old_mu_batch, old_sigma_batch, (
+                yield obs_batch, global_obs_batch, privileged_observations_batch, actions_batch, target_values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, old_mu_batch, old_sigma_batch, (
                     None,
                     None,
                 ), None, rnd_state_batch
@@ -252,6 +256,7 @@ class RolloutStorage:
         if self.training_type != "rl":
             raise ValueError("This function is only available for reinforcement learning training.")
         padded_obs_trajectories, trajectory_masks = split_and_pad_trajectories(self.observations, self.dones)
+        padded_global_obs_trajectories, _ = split_and_pad_trajectories(self.global_observations, self.dones)
         if self.privileged_observations is not None:
             padded_privileged_obs_trajectories, _ = split_and_pad_trajectories(self.privileged_observations, self.dones)
         else:
@@ -278,6 +283,7 @@ class RolloutStorage:
 
                 masks_batch = trajectory_masks[:, first_traj:last_traj]
                 obs_batch = padded_obs_trajectories[:, first_traj:last_traj]
+                global_obs_batch = padded_global_obs_trajectories[:, first_traj:last_traj]
                 privileged_obs_batch = padded_privileged_obs_trajectories[:, first_traj:last_traj]
 
                 if padded_rnd_state_trajectories is not None:
@@ -313,10 +319,8 @@ class RolloutStorage:
                 hid_a_batch = hid_a_batch[0] if len(hid_a_batch) == 1 else hid_a_batch
                 hid_c_batch = hid_c_batch[0] if len(hid_c_batch) == 1 else hid_c_batch
 
-                yield obs_batch, privileged_obs_batch, actions_batch, values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, old_mu_batch, old_sigma_batch, (
+                yield obs_batch, global_obs_batch, privileged_obs_batch, actions_batch, values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, old_mu_batch, old_sigma_batch, (
                     hid_a_batch,
                     hid_c_batch,
                 ), masks_batch, rnd_state_batch
-
                 first_traj = last_traj
-

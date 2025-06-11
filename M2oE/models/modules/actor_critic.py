@@ -12,6 +12,7 @@ import torch.nn as nn
 from torch.distributions import Normal
 
 from rsl_rl.utils import resolve_nn_activation
+
 from M2oE.models.M2oE import M2oE
 
 
@@ -85,7 +86,6 @@ class M2oEActorCritic(nn.Module):
             ]
         )
 
-
     def reset(self, dones=None):
         pass
 
@@ -147,4 +147,3 @@ class M2oEActorCritic(nn.Module):
 
         super().load_state_dict(state_dict, strict=strict)
         return True
-

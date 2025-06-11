@@ -14,10 +14,8 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.algorithms import PPO
 from rsl_rl.env import VecEnv
-from .actor_critic import M2oEActorCritic
-from rsl_rl.utils import store_code_state
+from rsl_rl.utils import EmpiricalNormalization, store_code_state
 
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
@@ -48,14 +46,21 @@ class OnPolicyRunner:
         else:
             self.privileged_obs_type = None
 
-        # resolve dimensions of privileged observations
+        # resolve dimensions of privileged and global observations
         if self.privileged_obs_type is not None:
             num_privileged_obs = extras["observations"][self.privileged_obs_type].shape[1]
         else:
             num_privileged_obs = num_obs
+        if "obs_global" in extras["observations"]:
+            num_global_obs = extras["observations"]["obs_global"].shape[1]
+        else:
+            num_global_obs = num_obs
 
         policy = M2oEActorCritic(
-            num_obs, num_privileged_obs, self.env.num_actions, **self.policy_cfg
+            num_obs,
+            num_global_obs,
+            self.env.num_actions,
+            **self.policy_cfg,
         ).to(self.device)
 
         # resolve dimension of rnd gated state
@@ -94,6 +99,7 @@ class OnPolicyRunner:
             self.env.num_envs,
             self.num_steps_per_env,
             [num_obs],
+            [num_global_obs],
             [num_privileged_obs],
             [self.env.num_actions],
         )
@@ -145,7 +151,7 @@ class OnPolicyRunner:
 
         # start learning
         obs, extras = self.env.get_observations()
-        obs, obs_global= self._process_observations(obs)
+        obs, obs_global = self._process_observations(obs)
         privileged_obs = extras["observations"].get(self.privileged_obs_type, obs)
         obs, obs_global, privileged_obs = obs.to(self.device), obs_global.to(self.device), privileged_obs.to(self.device)
         self.train_mode()  # switch to train mode (for dropout for example)

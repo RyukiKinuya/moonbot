@@ -12,10 +12,11 @@ import torch.nn as nn
 import torch.optim as optim
 from itertools import chain
 
-from M2oE.models.modules.actor_critic import M2oEActorCritic
-from M2oE.models.modules.rollout_storage import RolloutStorage
 from rsl_rl.modules.rnd import RandomNetworkDistillation
 from rsl_rl.utils import string_to_callable
+
+from M2oE.models.modules.actor_critic import M2oEActorCritic
+from M2oE.models.modules.rollout_storage import RolloutStorage
 
 
 class PPO:
@@ -113,7 +114,14 @@ class PPO:
         self.normalize_advantage_per_mini_batch = normalize_advantage_per_mini_batch
 
     def init_storage(
-        self, training_type, num_envs, num_transitions_per_env, actor_obs_shape, critic_obs_shape, actions_shape
+        self,
+        training_type,
+        num_envs,
+        num_transitions_per_env,
+        actor_obs_shape,
+        global_obs_shape,
+        critic_obs_shape,
+        actions_shape,
     ):
         # create memory for RND as well :)
         if self.rnd:
@@ -126,6 +134,7 @@ class PPO:
             num_envs,
             num_transitions_per_env,
             actor_obs_shape,
+            global_obs_shape,
             critic_obs_shape,
             actions_shape,
             rnd_state_shape,
@@ -136,14 +145,14 @@ class PPO:
         if self.policy.is_recurrent:
             self.transition.hidden_states = self.policy.get_hidden_states()
         # compute the actions and values
-        self.transition.actions = self.policy.act(obs).detach() # type: ignore
+        self.transition.actions = self.policy.act(obs, obs_global).detach()  # type: ignore
         self.transition.values = self.policy.evaluate(critic_obs).detach()
         self.transition.actions_log_prob = self.policy.get_actions_log_prob(self.transition.actions).detach()
         self.transition.action_mean = self.policy.action_mean.detach()
         self.transition.action_sigma = self.policy.action_std.detach()
         # need to record obs and critic_obs before env.step()
         self.transition.observations = obs
-        self.transition.global_observations = obs_global # type: ignore
+        self.transition.global_observations = obs_global  # type: ignore
         self.transition.privileged_observations = critic_obs
         return self.transition.actions
 
@@ -207,6 +216,7 @@ class PPO:
         # iterate over batches
         for (
             obs_batch,
+            global_obs_batch,
             critic_obs_batch,
             actions_batch,
             target_values_batch,
@@ -255,7 +265,12 @@ class PPO:
             # Recompute actions log prob and entropy for current batch of transitions
             # Note: we need to do this because we updated the policy with the new parameters
             # -- actor
-            self.policy.act(obs_batch, masks=masks_batch, hidden_states=hid_states_batch[0])
+            self.policy.act(
+                obs_batch,
+                global_obs_batch,
+                masks=masks_batch,
+                hidden_states=hid_states_batch[0],
+            )
             actions_log_prob_batch = self.policy.get_actions_log_prob(actions_batch)
             # -- critic
             value_batch = self.policy.evaluate(critic_obs_batch, masks=masks_batch, hidden_states=hid_states_batch[1])
@@ -472,4 +487,3 @@ class PPO:
                 param.grad.data.copy_(all_grads[offset : offset + numel].view_as(param.grad.data))
                 # update the offset for the next parameter
                 offset += numel
-

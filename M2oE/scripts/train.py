@@ -83,7 +83,7 @@ simulation_app = app_launcher.app
 
 
 @hydra_task_config(args_cli.task, "rsl_rl_cfg_entry_point")
-def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg):
+def main(env_cfg: CustomManagerBasedRLEnv, agent_cfg):
     """Train with the custom M2oE runner and wrapper."""
 
     # Update configuration from CLI arguments

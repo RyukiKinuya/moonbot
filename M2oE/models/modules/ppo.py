@@ -12,17 +12,14 @@ import torch.nn as nn
 import torch.optim as optim
 from itertools import chain
 
-from M2oE.models.modules.actor_critic import ActorCritic
+from M2oE.models.modules.actor_critic import M2oEActorCritic
+from M2oE.models.modules.rollout_storage import RolloutStorage
 from rsl_rl.modules.rnd import RandomNetworkDistillation
-from rsl_rl.storage import RolloutStorage
 from rsl_rl.utils import string_to_callable
 
 
 class PPO:
-    """Proximal Policy Optimization algorithm (https://arxiv.org/abs/1707.06347)."""
-
-    policy: ActorCritic
-    """The actor critic module."""
+    policy: M2oEActorCritic
 
     def __init__(
         self,
@@ -135,17 +132,18 @@ class PPO:
             self.device,
         )
 
-    def act(self, obs, critic_obs):
+    def act(self, obs, obs_global, critic_obs):
         if self.policy.is_recurrent:
             self.transition.hidden_states = self.policy.get_hidden_states()
         # compute the actions and values
-        self.transition.actions = self.policy.act(obs).detach()
+        self.transition.actions = self.policy.act(obs).detach() # type: ignore
         self.transition.values = self.policy.evaluate(critic_obs).detach()
         self.transition.actions_log_prob = self.policy.get_actions_log_prob(self.transition.actions).detach()
         self.transition.action_mean = self.policy.action_mean.detach()
         self.transition.action_sigma = self.policy.action_std.detach()
         # need to record obs and critic_obs before env.step()
         self.transition.observations = obs
+        self.transition.global_observations = obs_global # type: ignore
         self.transition.privileged_observations = critic_obs
         return self.transition.actions
 

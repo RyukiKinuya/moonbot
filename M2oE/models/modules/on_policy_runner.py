@@ -145,9 +145,9 @@ class OnPolicyRunner:
 
         # start learning
         obs, extras = self.env.get_observations()
-        obs = self._process_observations(obs)
+        obs, obs_global= self._process_observations(obs)
         privileged_obs = extras["observations"].get(self.privileged_obs_type, obs)
-        obs, privileged_obs = obs.to(self.device), privileged_obs.to(self.device)
+        obs, obs_global, privileged_obs = obs.to(self.device), obs_global.to(self.device), privileged_obs.to(self.device)
         self.train_mode()  # switch to train mode (for dropout for example)
 
         # Book keeping
@@ -180,11 +180,12 @@ class OnPolicyRunner:
             with torch.inference_mode():
                 for _ in range(self.num_steps_per_env):
                     # Sample actions
-                    actions = self.alg.act(obs, privileged_obs)
+                    actions = self.alg.act(obs, obs_global, privileged_obs)
                     # Step the environment
                     # obs: dict, rewards: [num_envs * num_morphologies], dones: [num_envs, 1], infos: dict
                     obs, rewards, dones, infos = self.env.step(actions.to(self.env.device))
-                    obs = self._process_observations(obs)
+                    obs, obs_global = self._process_observations(obs)
+                    # obs: [num * ]
                     # Move to device
                     obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
                     # perform normalization
@@ -511,6 +512,12 @@ class OnPolicyRunner:
         torch.cuda.set_device(self.gpu_local_rank)
 
     def _process_observations(self, obs_dict):
+        global_obs = obs_dict.get("obs_global", None)
+        if global_obs is None:
+            # raise error
+            raise ValueError("Global observations not found in the observation dictionary. Please check the environment.")
+        obs_dict.pop("obs_global", None)
+
         padded_obs = []
         pad_vec = self.alg.policy.padding
         for key in sorted(obs_dict.keys()):
@@ -529,4 +536,4 @@ class OnPolicyRunner:
             padded_obs.append(obs.unsqueeze(1))
         obs = torch.cat(padded_obs, dim=1).reshape(-1, self.num_obs)
         # obs: [num_envs * num_morphologies, num_obs]
-        return obs
+        return obs, global_obs

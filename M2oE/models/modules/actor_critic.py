@@ -104,9 +104,9 @@ class M2oEActorCritic(nn.Module):
     def entropy(self):
         return self.distribution.entropy().sum(dim=-1)
 
-    def update_distribution(self, observations):
+    def update_distribution(self, observations, obs_global):
         # compute mean
-        mean = self.actor(observations)
+        mean = self.actor(observations, obs_global)
         # compute standard deviation
         if self.noise_std_type == "scalar":
             std = self.std.expand_as(mean)
@@ -117,8 +117,8 @@ class M2oEActorCritic(nn.Module):
         # create distribution
         self.distribution = Normal(mean, std)
 
-    def act(self, observations, **kwargs):
-        self.update_distribution(observations)
+    def act(self, observations, obs_global, **kwargs):
+        self.update_distribution(observations, obs_global)
         return self.distribution.sample()
 
     def get_actions_log_prob(self, actions):

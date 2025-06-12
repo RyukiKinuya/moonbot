@@ -124,8 +124,8 @@ class M2oEActorCritic(nn.Module):
     def get_actions_log_prob(self, actions):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
-    def act_inference(self, observations):
-        actions_mean = self.actor(observations)
+    def act_inference(self, observations, obs_global):
+        actions_mean = self.actor(observations, obs_global)
         return actions_mean
 
     def evaluate(self, critic_observations, **kwargs):

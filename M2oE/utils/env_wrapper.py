@@ -29,8 +29,10 @@ class ModulerRobotEnvWrapper(VecEnv):
         self.device = self.unwrapped.device
         self.max_episode_length = self.unwrapped.max_episode_length
 
-        self.num_actions = max(self.unwrapped.action_manager.action_term_dim) # type: ignore
+        self.num_actions = max(self.unwrapped.action_manager.group_action_dim) # type: ignore
         self.num_obs = max([obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.value()]) # type: ignore
+        
+        self.num_act_sum = sum(self.unwrapped.action_manager.group_action_dim.value()) # type: ignore
 
         # -- privileged observations
         if (
@@ -163,7 +165,19 @@ class ModulerRobotEnvWrapper(VecEnv):
         )
 
     def _process_actions(self, actions):
-        return actions
+        # actions: [num_envs * num_morphologies, num_actions]
+        processed_actions = torch.zeros(
+            (self.num_envs, self.num_act_sum), dtype=torch.float32, device=self.device
+        )
+        actions = actions.view(self.num_envs // self.num_morphologies, self.num_morphologies, -1)
+        group_dims = self.unwrapped.action_manager.group_action_dim.value()  # type: ignore
+        start = 0
+        for i in range(self.num_morphologies):
+            # get the action dimension for the current morphology
+            processed_actions[:, start:start+group_dims[i]] = actions[:, i, :group_dims[i]]
+            start += group_dims[i]
+
+        return processed_actions
 
     def _process_rewards(self, rewards):
         rewards = torch.stack(

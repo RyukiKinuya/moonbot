@@ -14,17 +14,18 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.env import VecEnv
-from rsl_rl.utils import EmpiricalNormalization, store_code_state
+from rsl_rl.utils import store_code_state
 
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
+from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
+from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
 
 
 class OnPolicyRunner:
     """On-policy runner for training and evaluation."""
 
-    def __init__(self, env: VecEnv, train_cfg: dict, log_dir: str | None = None, device="cpu"):
+    def __init__(self, env: ModulerRobotEnvWrapper, train_cfg: dict, log_dir: str | None = None, device="cpu"):
         self.cfg = train_cfg
         self.alg_cfg = train_cfg["algorithm"]
         self.policy_cfg = train_cfg["policy"]
@@ -193,7 +194,7 @@ class OnPolicyRunner:
                     obs, obs_global = self._process_observations(obs)
                     # obs: [num * ]
                     # Move to device
-                    obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
+                    obs, obs_global, rewards, dones = (obs.to(self.device), obs_global.to(self.device), rewards.to(self.device), dones.to(self.device))
                     # perform normalization
                     obs = self.obs_normalizer(obs)
                     if self.privileged_obs_type is not None:

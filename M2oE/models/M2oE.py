@@ -68,5 +68,6 @@ class M2oE(nn.Module):
         # action: [batch_size, max_num_modules, num_actions] -> [batch_size, num_actions]
         action = torch.einsum('bmn, bmnk -> bmk', gate, expert_outputs)
         action = action.flatten(start_dim=1)
+        # action: [batch_size, num_actions]
 
         return action

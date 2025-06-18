@@ -31,12 +31,12 @@ class ModulerRobotEnvWrapper(VecEnv):
         self.device = self.unwrapped.device
         self.max_episode_length = self.unwrapped.max_episode_length
 
-        self.num_actions = max(self.unwrapped.action_manager.group_action_dim)  # type: ignore
+        self.num_actions = max(self.unwrapped.action_manager.group_action_dim.values())  # type: ignore
         self.num_obs = max(
-            [obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.value()]  # type: ignore
+            [obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.values()]  # type: ignore
         )
 
-        self.num_act_sum = sum(self.unwrapped.action_manager.group_action_dim.value())  # type: ignore
+        self.num_act_sum = sum(self.unwrapped.action_manager.group_action_dim.values())  # type: ignore
 
         # -- privileged observations
         if (
@@ -174,8 +174,8 @@ class ModulerRobotEnvWrapper(VecEnv):
         # reshape into [base_num_envs, num_morphologies, num_actions]
         actions = actions.view(self.base_num_envs, self.num_morphologies, -1)
 
-        group_dims = list(self.unwrapped.action_manager.group_action_dim.value().values())  # type: ignore
-        group_names = list(self.unwrapped.action_manager.group_action_dim.value().keys())  # type: ignore
+        group_dims = list(self.unwrapped.action_manager.group_action_dim.values())  # type: ignore
+        group_names = list(self.unwrapped.action_manager.group_action_dim.keys())  # type: ignore
 
         processed_actions = {}
         for idx, (name, dim) in enumerate(zip(group_names, group_dims)):
@@ -184,8 +184,7 @@ class ModulerRobotEnvWrapper(VecEnv):
         return processed_actions
 
     def _process_rewards(self, rewards):
-        rewards = torch.stack(
-            [rewards[key] for key in self.unwrapped.reward_manager.group_reward_dim.keys()], dim=1
-        )
+        reward_tensors = [rewards[key] for key in rewards.keys()]
+        rewards = torch.stack(reward_tensors, dim=1)
 
-        return rewards.view(-1)
+        return rewards.view(self.num_envs, 1)

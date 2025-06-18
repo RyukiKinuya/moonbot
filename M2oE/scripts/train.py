@@ -18,26 +18,20 @@ sys.path.append(REPO_ROOT)
 
 import scripts.reinforcement_learning.rsl_rl.cli_args as cli_args  # isort: skip
 
-from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
-from M2oE.models.modules.on_policy_runner import OnPolicyRunner
-
 import gymnasium as gym
 import torch
 
-from isaaclab.envs import (
-    DirectMARLEnv,
-    DirectMARLEnvCfg,
-    DirectRLEnvCfg,
-    ManagerBasedRLEnvCfg,
-    multi_agent_to_single_agent,
-)
 from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
+
+from isaaclab.envs import (DirectMARLEnv, DirectMARLEnvCfg, DirectRLEnvCfg, ManagerBasedRLEnvCfg,
+                           multi_agent_to_single_agent)
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
+from M2oE.models.modules.on_policy_runner import OnPolicyRunner
+from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
 
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
-
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -83,7 +77,10 @@ simulation_app = app_launcher.app
 
 
 @hydra_task_config(args_cli.task, "rsl_rl_cfg_entry_point")
-def main(env_cfg: CustomManagerBasedRLEnv, agent_cfg):
+def main(
+    env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg,
+    agent_cfg,
+):
     """Train with the custom M2oE runner and wrapper."""
 
     # Update configuration from CLI arguments
@@ -158,4 +155,3 @@ def main(env_cfg: CustomManagerBasedRLEnv, agent_cfg):
 if __name__ == "__main__":
     main()
     simulation_app.close()
-

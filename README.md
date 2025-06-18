@@ -29,6 +29,16 @@ python M2oE/scripts/train.py --task Tri_Legged_Manipulate_v1 --num_envs 16
 ```
 The script creates the corresponding Gym environment and uses `ModulerRobotEnvWrapper` to handle observation and action dimensions before training with `OnPolicyRunner`.
 
+## Modular Robot Setup
+Each task instantiates `num_morphology` modular robots inside every Isaac Lab environment. Training treats
+all robots across environments as independent workers: with `num_env` simulator instances the policy sees
+`num_env * num_morphology` parallel agents. Observations from different morphologies are padded to a common
+size and actions are sliced back into groups before being passed to the simulator.
+The wrapper assembles these groups into a dictionary keyed by the robot morphology
+name so that the `GroupActionManager` can apply them correctly. The M2oE model
+inside `M2oE/models` leverages the padded observations to output actions for all
+modules simultaneously.
+
 ## Requirements and Usage
 - First install [Isaac Lab](https://github.com/isaac-sim/IsaacLab) along with its dependencies.
 - Using a GPU-enabled environment is recommended for the best simulation and training performance.

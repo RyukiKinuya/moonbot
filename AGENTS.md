@@ -1,6 +1,13 @@
 # MoonBot Repository Agent Guide
 
 This repository builds upon Isaac Lab and introduces custom MoonBot environments and training modules.
+Each environment spawns multiple robot morphologies. When training, the wrapper
+merges these robots across all simulator instances so the policy operates on
+`num_env * num_morphology` agents in parallel. Observations for each morphology
+are padded to a fixed length and actions are grouped before dispatching them
+back to the simulator. The wrapper converts these grouped actions into a
+dictionary keyed by morphology name so they can be applied through the custom
+`GroupActionManager`.
 
 ## Directory Overview
 - `source/moonbot_envs` – gym-style environments and assets.

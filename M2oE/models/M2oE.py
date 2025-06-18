@@ -38,7 +38,6 @@ class M2oE(nn.Module):
             nn.Softmax(dim=-1)
         )
 
-
     def forward(self, obs, global_obs):
         # obs: [batch_size, max_num_modules, modular_obs_dim]
         batch_size = obs.shape[0]
@@ -55,7 +54,9 @@ class M2oE(nn.Module):
 
         # global feature extraction
         # [batch_size, hidden_dim]
-        global_features = self.global_feature_extractor(torch.cat([obs, global_obs], dim=-1))
+        # compute global features from the full observation vector and global state
+        global_input = torch.cat([obs.reshape(batch_size, -1), global_obs], dim=-1)
+        global_features = self.global_feature_extractor(global_input)
 
         # gate compute
         # gate_input: [batch_size, max_num_modules, modular_obs_dim + hidden_dim]

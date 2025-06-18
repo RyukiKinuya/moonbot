@@ -6,9 +6,8 @@
 import gymnasium as gym
 import torch
 
-from rsl_rl.env import VecEnv
-
 from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
+from rsl_rl.env import VecEnv
 
 
 class ModulerRobotEnvWrapper(VecEnv):
@@ -25,14 +24,19 @@ class ModulerRobotEnvWrapper(VecEnv):
 
         # store information required by wrapper
         self.num_morphologies = self.unwrapped.reward_manager.num_groups()
-        self.num_envs = self.unwrapped.num_envs * self.num_morphologies
+        # number of physical environments
+        self.base_num_envs = self.unwrapped.num_envs
+        # number of policy environments (all morphologies across envs)
+        self.num_envs = self.base_num_envs * self.num_morphologies
         self.device = self.unwrapped.device
         self.max_episode_length = self.unwrapped.max_episode_length
 
-        self.num_actions = max(self.unwrapped.action_manager.group_action_dim) # type: ignore
-        self.num_obs = max([obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.value()]) # type: ignore
-        
-        self.num_act_sum = sum(self.unwrapped.action_manager.group_action_dim.value()) # type: ignore
+        self.num_actions = max(self.unwrapped.action_manager.group_action_dim)  # type: ignore
+        self.num_obs = max(
+            [obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.value()]  # type: ignore
+        )
+
+        self.num_act_sum = sum(self.unwrapped.action_manager.group_action_dim.value())  # type: ignore
 
         # -- privileged observations
         if (
@@ -91,7 +95,7 @@ class ModulerRobotEnvWrapper(VecEnv):
 
         This will be the bare :class:`gymnasium.Env` environment, underneath all layers of wrappers.
         """
-        return self.env.unwrapped # type: ignore
+        return self.env.unwrapped  # type: ignore
 
     """
     Properties
@@ -108,7 +112,7 @@ class ModulerRobotEnvWrapper(VecEnv):
         return self.unwrapped.episode_length_buf
 
     @episode_length_buf.setter
-    def episode_length_buf(self, value: torch.Tensor): # type: ignore
+    def episode_length_buf(self, value: torch.Tensor):  # type: ignore
         self.unwrapped.episode_length_buf = value
 
     """
@@ -122,7 +126,7 @@ class ModulerRobotEnvWrapper(VecEnv):
         # reset the environment
         obs_dict, _ = self.env.reset()
         # return observations
-        return obs_dict, {"observations": obs_dict} # type: ignore
+        return obs_dict, {"observations": obs_dict}  # type: ignore
 
     def step(self, actions: torch.Tensor):
         # process actions:
@@ -161,21 +165,21 @@ class ModulerRobotEnvWrapper(VecEnv):
             low=-self.clip_actions, high=self.clip_actions, shape=(self.num_actions,)
         )
         self.env.unwrapped.action_space = gym.vector.utils.batch_space(
-            self.env.unwrapped.single_action_space, self.num_envs
+            self.env.unwrapped.single_action_space, self.base_num_envs
         )
 
     def _process_actions(self, actions):
-        # actions: [num_envs * num_morphologies, num_actions]
-        processed_actions = torch.zeros(
-            (self.num_envs, self.num_act_sum), dtype=torch.float32, device=self.device
-        )
-        actions = actions.view(self.num_envs // self.num_morphologies, self.num_morphologies, -1)
-        group_dims = self.unwrapped.action_manager.group_action_dim.value()  # type: ignore
-        start = 0
-        for i in range(self.num_morphologies):
-            # get the action dimension for the current morphology
-            processed_actions[:, start:start+group_dims[i]] = actions[:, i, :group_dims[i]]
-            start += group_dims[i]
+        """Convert flat action tensor into group dictionary for the environment."""
+
+        # reshape into [base_num_envs, num_morphologies, num_actions]
+        actions = actions.view(self.base_num_envs, self.num_morphologies, -1)
+
+        group_dims = list(self.unwrapped.action_manager.group_action_dim.value().values())  # type: ignore
+        group_names = list(self.unwrapped.action_manager.group_action_dim.value().keys())  # type: ignore
+
+        processed_actions = {}
+        for idx, (name, dim) in enumerate(zip(group_names, group_dims)):
+            processed_actions[name] = actions[:, idx, :dim]
 
         return processed_actions
 

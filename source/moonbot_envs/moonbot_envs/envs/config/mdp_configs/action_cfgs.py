@@ -6,7 +6,7 @@ from dataclasses import MISSING
 
 
 from isaaclab.managers.action_manager import ActionTermCfg as ActionTerm
-import moonbot_envs.mdp as mdp
+import moonbot_envs.envs.mdp as mdp
 
 from isaaclab.utils import configclass
 

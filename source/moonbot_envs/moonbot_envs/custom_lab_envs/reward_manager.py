@@ -5,8 +5,8 @@ from collections.abc import Sequence
 from prettytable import PrettyTable
 from typing import TYPE_CHECKING
 
-from isaaclab.isaaclab.managers import ManagerBase, ManagerTermBase
-from isaaclab.isaaclab.managers.manager_term_cfg import RewardTermCfg
+from isaaclab.managers import ManagerBase, ManagerTermBase
+from isaaclab.managers.manager_term_cfg import RewardTermCfg
 from .manager_term_cfg import RewardGroupCfg
 
 

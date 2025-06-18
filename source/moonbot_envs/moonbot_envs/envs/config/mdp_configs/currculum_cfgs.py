@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
-import moonbot_envs.mdp as mdp
+import moonbot_envs.envs.mdp as mdp
 
 from isaaclab.utils import configclass
 

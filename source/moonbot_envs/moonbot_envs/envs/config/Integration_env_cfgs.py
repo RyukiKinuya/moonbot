@@ -19,6 +19,7 @@ from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
 
@@ -29,6 +30,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
         prim_path="/World/Ground",
         spawn=sim_utils.GroundPlaneCfg(),
     )
+
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(
@@ -55,18 +57,16 @@ class IntegrationObsCfg:
             self.joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": asset_cfg})
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
-            self.actions = ObsTerm(func=mdp.last_action, params={"action_name": asset_cfg.name})
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
     class GlobalCfg(ObsGroup):
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
-        pose_command = ObsTerm(func=mdp.ee_pose_command, params={"command_name": "ee_pose"})
+        def __init__(self):
+            super().__init__()
+            self.joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("moonbot_full")})
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -177,7 +177,21 @@ class IntegrationRewardCfg:
     @configclass
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
-            self.asset_cfg = asset_cfg
+            self.end_effector_position_tracking = RewTerm(
+                func=mdp.uni_position_command_error,
+                weight=-1,
+                params={"asset_cfg": SceneEntityCfg("moonbot_full", body_names="gripper_palm"), "command_name": "ee_pose", "base_name": "base_link"},
+            )
+            self.end_effecstor_position_tracking_fine_grained = RewTerm(
+                func=mdp.uni_position_command_error_tanh,
+                weight=0.5,
+                params={"asset_cfg": SceneEntityCfg("moonbot_full", body_names="gripper_palm"), "std": 0.1, "command_name": "ee_pose", "base_name": "base_link"},
+            )
+            self.end_effector_orientation_tracking = RewTerm(
+                func=mdp.uni_orientation_command_error,
+                weight=-0.5,
+                params={"asset_cfg": SceneEntityCfg("moonbot_full", body_names="gripper_palm"), "command_name": "ee_pose", "base_name": "base_link"},
+            )
 
     reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
     reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
@@ -199,30 +213,11 @@ class IntegrationTerminationCfg:
         params={"sensor_cfg": SceneEntityCfg("full_contact_forces", body_names="base_link"), "threshold": 8.0}
     )
 
-
-
 @configclass
 class IntegrationEventCfg:
     reset_minimal = EventTerm(
         func=mdp.reset_scene_to_default,
         mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("moonbot_minimal"),
-        }
-    )
-    reset_dragon = EventTerm(
-        func=mdp.reset_scene_to_default,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("moonbot_dragon"),
-        }
-    )
-    reset_full = EventTerm(
-        func=mdp.reset_scene_to_default,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("moonbot_full"),
-        }
     )
 
 @configclass

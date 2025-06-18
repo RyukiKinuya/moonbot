@@ -3,8 +3,18 @@ import gymnasium as gym
 from .config.tri_legged_env_cfgs import *
 from .config.uni_legged_env_cfgs import *
 from .config.dragon_env_cfgs import *
+from .config.Integration_env_cfgs import IntegrationEnvCfg
 from . import agents
 
+gym.register(
+    id="Integration_Locomotion_v1",
+    entry_point="moonbot_envs.custom_lab_envs:CustomManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": IntegrationEnvCfg,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.MoonBotLocomotionPPORunnerCfg
+    }
+)
 
 gym.register(
     id="Tri_Legged_Manipulate_v1",

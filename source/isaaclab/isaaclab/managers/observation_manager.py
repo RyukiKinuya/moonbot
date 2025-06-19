@@ -104,33 +104,30 @@ class ObservationManager(ManagerBase):
         self._obs_buffer: dict[str, torch.Tensor | dict[str, torch.Tensor]] | None = None
 
     def __str__(self) -> str:
-        """Returns: A string representation for the observation manager."""
-        msg = f"<ObservationManager> contains {len(self._group_obs_term_names)} groups.\n"
+        """Returns a string representation for the observation manager."""
+        num_terms = sum(len(n) for n in self._group_obs_term_names.values())
+        msg = (
+            f"<ObservationManager> contains {len(self._group_obs_term_names)} "
+            f"groups with {num_terms} terms.\n"
+        )
 
-        # add info for each group
-        for group_name, group_dim in self._group_obs_dim.items():
-            # create table for term information
-            table = PrettyTable()
-            table.title = f"Active Observation Terms in Group: '{group_name}'"
-            if self._group_obs_concatenate[group_name]:
-                table.title += f" (shape: {group_dim})"
-            table.field_names = ["Index", "Name", "Shape"]
-            # set alignment of table columns
-            table.align["Name"] = "l"
-            # add info for each term
-            obs_terms = zip(
-                self._group_obs_term_names[group_name],
-                self._group_obs_term_dim[group_name],
-            )
-            for index, (name, dims) in enumerate(obs_terms):
-                # resolve inputs to simplify prints
-                tab_dims = tuple(dims)
-                # add row
-                table.add_row([index, name, tab_dims])
-            # convert table to string
-            msg += table.get_string()
-            msg += "\n"
+        table = PrettyTable()
+        table.title = "Active Observation Terms"
+        table.field_names = ["Index", "Group", "Term", "Shape"]
+        table.align["Group"] = "l"
+        table.align["Term"] = "l"
+        table.align["Shape"] = "l"
 
+        idx = 0
+        for group_name, term_names in self._group_obs_term_names.items():
+            for term_name, dims in zip(
+                term_names, self._group_obs_term_dim[group_name]
+            ):
+                table.add_row([idx, group_name, term_name, tuple(dims)])
+                idx += 1
+
+        msg += table.get_string()
+        msg += "\n"
         return msg
 
     def get_active_iterable_terms(self, env_idx: int) -> Sequence[tuple[str, Sequence[float]]]:

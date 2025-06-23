@@ -32,6 +32,8 @@ class OnPolicyRunner:
         self.device = device
         self.env = env
 
+        self._configure_multi_gpu()
+
         self.training_type = "rl"
 
         obs_dict, extras = self.env.get_observations()
@@ -61,6 +63,7 @@ class OnPolicyRunner:
             num_obs,
             num_global_obs,
             self.env.num_actions,
+            self.cfg["max_num_modules"],
             **self.policy_cfg,
         ).to(self.device)
 
@@ -79,6 +82,7 @@ class OnPolicyRunner:
 
             self.alg_cfg["symmetry_cfg"]["_env"] = env
 
+        self.alg_cfg.pop("class_name")
         self.alg: PPO = PPO(policy, device=self.device, **self.alg_cfg, multi_gpu_cfg=self.multi_gpu_cfg)
 
         # store training configuration
@@ -126,7 +130,6 @@ class OnPolicyRunner:
             if self.logger_type == "neptune":
                 from rsl_rl.utils.neptune_utils import NeptuneSummaryWriter
 
-                self.writer = NeptuneSummaryWriter(log_dir=self.log_dir, flush_secs=10, cfg=self.cfg)
                 self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
             elif self.logger_type == "wandb":
                 from rsl_rl.utils.wandb_utils import WandbSummaryWriter
@@ -171,7 +174,7 @@ class OnPolicyRunner:
             cur_ereward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
             cur_ireward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
-        # Ensure all parameters are in-synced
+
         if self.is_distributed:
             print(f"Synchronizing parameters for rank {self.gpu_global_rank}...")
             self.alg.broadcast_parameters()
@@ -192,7 +195,6 @@ class OnPolicyRunner:
                     # obs: dict, rewards: [num_envs * num_morphologies], dones: [num_envs, 1], infos: dict
                     obs, rewards, dones, infos = self.env.step(actions.to(self.env.device))
                     obs, obs_global = self._process_observations(obs)
-                    # obs: [num * ]
                     # Move to device
                     obs, obs_global, rewards, dones = (obs.to(self.device), obs_global.to(self.device), rewards.to(self.device), dones.to(self.device))
                     # perform normalization
@@ -523,6 +525,12 @@ class OnPolicyRunner:
         if global_obs is None:
             # raise error
             raise ValueError("Global observations not found in the observation dictionary. Please check the environment.")
+        # expend global_obs
+        num_global_obs = global_obs.shape[-1]
+        global_obs = global_obs.unsqueeze(1).expand(-1, self.env.num_morphologies, num_global_obs)
+        # global_obs: [num_envs * num_morphologies, num_global_obs]
+        global_obs = global_obs.reshape(-1, num_global_obs)
+
         obs_dict.pop("obs_global", None)
 
         padded_obs = []

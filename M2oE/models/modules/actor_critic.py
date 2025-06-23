@@ -25,7 +25,7 @@ class M2oEActorCritic(nn.Module):
         num_global_obs,
         num_actions,
         max_num_modules,
-        hidden_dim=256,
+        hidden_dim=128,
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
         padding_mode: str = "learnable",
@@ -73,17 +73,14 @@ class M2oEActorCritic(nn.Module):
             max_num_modules=max_num_modules,
             num_actions=num_actions,
             num_experts=8,
-            activation=resolve_nn_activation("elu")
+            activation=resolve_nn_activation("elu"),
+            global_encoder_type="linear",
         )
 
-        self.critic = nn.ModuleList(
-            [
-                nn.Linear(num_actor_obs + num_global_obs, hidden_dim),
-                nn.ELU(),
-                nn.Linear(hidden_dim, hidden_dim),
-                nn.ELU(),
-                nn.Linear(hidden_dim, 1)
-            ]
+        self.critic = nn.Sequential(
+            nn.Linear(num_actor_obs + num_global_obs, hidden_dim),
+            resolve_nn_activation("elu"),
+            nn.Linear(hidden_dim, 1)
         )
 
     def reset(self, dones=None):
@@ -128,8 +125,11 @@ class M2oEActorCritic(nn.Module):
         actions_mean = self.actor(observations, obs_global)
         return actions_mean
 
-    def evaluate(self, critic_observations, **kwargs):
-        value = self.critic(critic_observations)
+    def evaluate(self, critic_observations, obs_global, **kwargs):
+        # critic_observations: [batch_size, num_obs_padded]
+        # obs_global: [batch_size, num_global_obs]
+        critic_input = torch.cat((critic_observations, obs_global), dim=-1)
+        value = self.critic(critic_input)
         return value
 
     def load_state_dict(self, state_dict, strict=True):

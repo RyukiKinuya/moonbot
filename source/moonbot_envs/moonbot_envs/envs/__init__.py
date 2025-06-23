@@ -12,7 +12,7 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": IntegrationEnvCfg,
-        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.MoonBotLocomotionPPORunnerCfg
+        "M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg
     }
 )
 

@@ -82,10 +82,10 @@ class IntegrationActCfg:
     @configclass
     class MoonbotActCfg(ActionGroupCfg):
         def __init__(self, asset_name: str):
-            if asset_name == "tri_legged":
+            if asset_name == "moonbot_full":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
-                    joint_names=["arm_joint.*"],
+                    joint_names=["(?!.*wheel.*)leg.*"],
                     scale=0.5,
                     use_default_offset=True,
                 )
@@ -95,10 +95,10 @@ class IntegrationActCfg:
                     scale=50.0,
                 )
 
-            elif asset_name == "dragon":
+            elif asset_name == "moonbot_dragon":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
-                    joint_names=["leg3joint.*"],
+                    joint_names=["leg.*joint.*"],
                     scale=0.1,
                     use_default_offset=True,
                 )
@@ -108,7 +108,7 @@ class IntegrationActCfg:
                     scale=10.0,
                 )
 
-            elif asset_name == "unilegged":
+            elif asset_name == "moonbot_minimal":
                 self.arm_action = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
                     joint_names=["joint.*"],

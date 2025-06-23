@@ -146,7 +146,7 @@ class PPO:
             self.transition.hidden_states = self.policy.get_hidden_states()
         # compute the actions and values
         self.transition.actions = self.policy.act(obs, obs_global).detach()  # type: ignore
-        self.transition.values = self.policy.evaluate(critic_obs).detach()
+        self.transition.values = self.policy.evaluate(critic_obs, obs_global).detach()
         self.transition.actions_log_prob = self.policy.get_actions_log_prob(self.transition.actions).detach()
         self.transition.action_mean = self.policy.action_mean.detach()
         self.transition.action_sigma = self.policy.action_std.detach()
@@ -273,7 +273,7 @@ class PPO:
             )
             actions_log_prob_batch = self.policy.get_actions_log_prob(actions_batch)
             # -- critic
-            value_batch = self.policy.evaluate(critic_obs_batch, masks=masks_batch, hidden_states=hid_states_batch[1])
+            value_batch = self.policy.evaluate(critic_obs_batch, global_obs_batch, masks=masks_batch, hidden_states=hid_states_batch[1])
             # -- entropy
             # we only keep the entropy of the first augmentation (the original one)
             mu_batch = self.policy.action_mean[:original_batch_size]

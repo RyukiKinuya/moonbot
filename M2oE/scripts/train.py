@@ -36,6 +36,7 @@ args_cli, hydra_args = parser.parse_known_args()
 if args_cli.video:
     args_cli.enable_cameras = True
 
+args_cli.headless = True
 # Clear out ``sys.argv`` for Hydra
 sys.argv = [sys.argv[0]] + hydra_args
 
@@ -64,7 +65,7 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-@hydra_task_config(args_cli.task, "rsl_rl_cfg_entry_point")
+@hydra_task_config(args_cli.task, "M2oE_entry_point")
 def main(
     env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg,
     agent_cfg,

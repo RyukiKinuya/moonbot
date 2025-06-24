@@ -48,13 +48,15 @@ import os
 import torch
 from datetime import datetime
 
+import moonbot_envs  # noqa: F401
+
 from isaaclab.envs import (DirectMARLEnv, DirectMARLEnvCfg, DirectRLEnvCfg, ManagerBasedRLEnvCfg,
                            multi_agent_to_single_agent)
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
 from M2oE.models.modules.on_policy_runner import OnPolicyRunner
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
-import moonbot_envs
+
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
@@ -91,7 +93,7 @@ def main(
         env_cfg.seed = seed
         agent_cfg.seed = seed
 
-    log_root_path = os.path.join("logs", "M2oE", agent_cfg.experiment_name)
+    log_root_path = os.path.join("M2oE", "log", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

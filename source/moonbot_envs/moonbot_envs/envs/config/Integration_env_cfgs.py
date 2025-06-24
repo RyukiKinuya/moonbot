@@ -1,5 +1,6 @@
 from isaaclab.envs import ManagerBasedRLEnvCfg
 
+import math
 import isaaclab.sim as sim_utils
 from isaaclab.utils import configclass
 from isaaclab.assets import AssetBaseCfg
@@ -134,7 +135,7 @@ class IntegrationActCfg:
 
 @configclass
 class IntegrationCmdCfg:
-    base_velocity_minimal = mdp.UniformVelocityCommandCfg(
+    base_velocity_moonbot_minimal = mdp.UniformVelocityCommandCfg(
         asset_name="moonbot_minimal",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
@@ -146,7 +147,7 @@ class IntegrationCmdCfg:
             lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
         ),
     )
-    base_velocity_dragon = mdp.UniformVelocityCommandCfg(
+    base_velocity_moonbot_dragon = mdp.UniformVelocityCommandCfg(
         asset_name="moonbot_dragon",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
@@ -158,7 +159,7 @@ class IntegrationCmdCfg:
             lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
         ),
     )
-    base_velocity_full = mdp.UniformVelocityCommandCfg(
+    base_velocity_moonbot_full = mdp.UniformVelocityCommandCfg(
         asset_name="moonbot_full",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
@@ -177,21 +178,14 @@ class IntegrationRewardCfg:
     @configclass
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
-            self.end_effector_position_tracking = RewTerm(
-                func=mdp.uni_position_command_error,
-                weight=-1,
-                params={"asset_cfg": SceneEntityCfg("moonbot_full", body_names="gripper_palm"), "command_name": "ee_pose", "base_name": "base_link"},
+            self.track_lin_vel_xy_exp = RewTerm(
+                func=mdp.track_lin_vel_xy_exp, weight=10.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
-            self.end_effecstor_position_tracking_fine_grained = RewTerm(
-                func=mdp.uni_position_command_error_tanh,
-                weight=0.5,
-                params={"asset_cfg": SceneEntityCfg("moonbot_full", body_names="gripper_palm"), "std": 0.1, "command_name": "ee_pose", "base_name": "base_link"},
+
+            self.track_ang_vel_z_exp = RewTerm(
+                func=mdp.track_ang_vel_z_exp, weight=5.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
-            self.end_effector_orientation_tracking = RewTerm(
-                func=mdp.uni_orientation_command_error,
-                weight=-0.5,
-                params={"asset_cfg": SceneEntityCfg("moonbot_full", body_names="gripper_palm"), "command_name": "ee_pose", "base_name": "base_link"},
-            )
+
 
     reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
     reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))

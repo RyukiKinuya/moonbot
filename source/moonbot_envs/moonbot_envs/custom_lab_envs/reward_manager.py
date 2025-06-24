@@ -131,7 +131,7 @@ class RewardManager(ManagerBase):
             if term_cfg.weight == 0.0:
                 continue
 
-            value = term_cfg.func.compute(self._env, **term_cfg.params) * term_cfg.weight * dt
+            value = term_cfg.func(self._env, **term_cfg.params) * term_cfg.weight * dt
 
             group_reward += value
 

@@ -140,9 +140,10 @@ class ModulerRobotEnvWrapper(VecEnv):
         obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
         rew = self._process_rewards(rew)
         dones = (terminated | truncated).to(dtype=torch.long)
+        # extras["time_outs"]:(num_envs, 1)
         extras["observations"] = obs_dict
         if not self.unwrapped.cfg.is_finite_horizon:
-            extras["time_outs"] = truncated
+            extras["time_outs"] = truncated.unsqueeze(-1).repeat(1, self.num_morphologies).reshape(-1, 1)
 
         # LIU CHANG: obs_dict needs to be processed in runner using learnable padding vector
         return obs_dict, rew, dones, extras

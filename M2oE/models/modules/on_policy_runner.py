@@ -14,12 +14,11 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.utils import store_code_state
+from rsl_rl.utils import EmpiricalNormalization, store_code_state
 
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
-from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
 
 
 class OnPolicyRunner:
@@ -130,6 +129,7 @@ class OnPolicyRunner:
             if self.logger_type == "neptune":
                 from rsl_rl.utils.neptune_utils import NeptuneSummaryWriter
 
+                self.writer = NeptuneSummaryWriter(log_dir=self.log_dir, flush_secs=10, cfg=self.cfg)
                 self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
             elif self.logger_type == "wandb":
                 from rsl_rl.utils.wandb_utils import WandbSummaryWriter
@@ -173,7 +173,6 @@ class OnPolicyRunner:
             irewbuffer = deque(maxlen=100)
             cur_ereward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
             cur_ireward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
-
 
         if self.is_distributed:
             print(f"Synchronizing parameters for rank {self.gpu_global_rank}...")
@@ -278,13 +277,32 @@ class OnPolicyRunner:
         if self.log_dir is not None and not self.disable_logs:
             self.save(os.path.join(self.log_dir, f"model_{self.current_learning_iteration}.pt"))
 
-    def log(self, locs: dict, width: int = 80, pad: int = 35):
+    def log(self, locs: dict, width: int = 80, pad: int | None = None):
         # Compute the collection size
         collection_size = self.num_steps_per_env * self.env.num_envs * self.gpu_world_size
         # Update total time-steps and time
         self.tot_timesteps += collection_size
         self.tot_time += locs["collection_time"] + locs["learn_time"]
         iteration_time = locs["collection_time"] + locs["learn_time"]
+
+        if pad is None:
+            labels = [
+                "Computation:",
+                "Mean action noise std:",
+                *(f"Mean {k} loss:" for k in locs["loss_dict"].keys()),
+                "Total timesteps:",
+                "Iteration time:",
+                "Time elapsed:",
+                "ETA:",
+            ]
+            if locs.get("ep_infos"):
+                for k in locs["ep_infos"][0].keys():
+                    labels.append(f"{k}:" if "/" in k else f"Mean episode {k}:")
+            if len(locs.get("rewbuffer", [])) > 0:
+                labels += ["Mean reward:", "Mean episode length:"]
+                if self.alg.rnd:
+                    labels += ["Mean extrinsic reward:", "Mean intrinsic reward:"]
+            pad = max(len(label) for label in labels) + 2
 
         # -- Episode info
         ep_string = ""

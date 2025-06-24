@@ -104,7 +104,7 @@ def base_orient(
     rot_m = matrix_from_quat(base_link_orient)
     z_axis_l = torch.matmul(rot_m, torch.tensor([0, 0, 1], dtype=torch.float, device=env.device)) #(num_env, 3)
 
-    z_axis_w = torch.tensor([0, 0, 1], device=env.device).unsqueeze(0)    
+    z_axis_w = torch.tensor([0, 0, 1], device=env.device).unsqueeze(0)
 
     cos_theta = torch.sum(z_axis_l * z_axis_w, dim = 1)
 
@@ -113,7 +113,7 @@ def base_orient(
     reward = cos_theta_norm
 
     return reward
-    
+
 
 def base_height(
         env, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), norm_factor=0.1
@@ -133,7 +133,7 @@ def base_height(
 
         dist_n = torch.norm(robot_pos - base_height_command, dim=-1)/norm_factor
         return torch.exp(-dist_n**2)
-    
+
 
 def base_vel_direction(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -153,7 +153,7 @@ def base_vel_direction(
     reward = cos_theta_norm
 
     return reward
-        
+
 
 def wheel_air_time(
     env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg
@@ -178,10 +178,10 @@ def diff_from_init_pose(
     return reward
 
 def wheel_orient(
-    env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), 
+    env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
-    
+
     wheel_body_idx = robot.find_bodies("leg.*_wheel_body")[0]
     wheel_body_rot = robot.data.body_state_w[:, wheel_body_idx, 3:7]
     command_orient = env.command_manager.get_command(command_name)[:, :2] #(lin_vel_x, lin_vel_y)
@@ -222,7 +222,7 @@ def torque_rwd(
     robot = env.scene[asset_cfg.name]
     torque = robot.data.applied_torque.norm(dim=-1)
     n_torque = torch.mean(torque, dim=-1) / 1000
-    
+
     reward = torch.exp(-n_torque**2)
 
     return reward
@@ -232,8 +232,8 @@ def torque_rwd(
 #     env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), wheel_radius: float = 0.25
 # ) -> torch.Tensor:
 #     robot = env.scene[asset_cfg.name]
-    
-    
+
+
 #     wheel_bodies = [
 #         "leg2_wheel_left",
 #         "leg2_wheel_right",
@@ -242,35 +242,35 @@ def torque_rwd(
 #         "leg1_wheel_right",
 #         "leg3_wheel_right",
 #     ]
-    
+
 #     command_vel = env.command_manager.get_command(command_name)[:, :2]
-    
+
 #     # 计算命令速度的模长
 #     command_speed = torch.norm(command_vel, dim=1, keepdim=True)
 
 #     total_reward = torch.zeros(env.num_envs, device=env.device)
-    
+
 #     for wheel in wheel_bodies:
-        
+
 #         ang_vel = robot.data.body_ang_vel_w[:, robot.find_bodies(wheel)[0], 2]  # 仅取z轴的角速度
-        
+
 #         # 计算轮子角速度乘以半径得到的线速度
 #         wheel_lin_speed = ang_vel * wheel_radius
-        
+
 #         reward = torch.exp(-torch.abs(wheel_lin_speed - command_speed).sum(dim=1))
-        
+
 #         total_reward += reward
-    
-    
+
+
 #     total_reward /= len(wheel_bodies)
-    
+
 #     return total_reward
 
 def wheel_ang_velocity_reward(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     robot: Articulation = env.scene[asset_cfg.name]
-    
+
     wheel_bodies = [
         "leg2_wheel_left",
         "leg2_wheel_right",
@@ -279,22 +279,22 @@ def wheel_ang_velocity_reward(
         "leg1_wheel_right",
         "leg3_wheel_right",
     ]
-    
+
     total_reward = torch.zeros(env.num_envs, device=env.device)
-    
+
     for wheel in wheel_bodies:
         # from world frame to body frame
         body_ang_vel_b = quat_rotate_inverse(robot.data.body_state_w[:, robot.find_bodies(wheel)[0], 3:7].squeeze(1), robot.data.body_ang_vel_w[:, robot.find_bodies(wheel)[0], :].squeeze(1))
 
         reward_y = torch.exp(-torch.abs(body_ang_vel_b[:, 1]))
         penalty_z = torch.exp(-torch.abs(body_ang_vel_b[:, 2]))
-        
+
         penalty_x = torch.exp(-torch.abs(body_ang_vel_b[:, 0]))
-        
+
         total_reward += reward_y - 0.5*penalty_x - 0.5*penalty_z
-    
+
     total_reward /= len(wheel_bodies)
-    
+
     return total_reward
 
 
@@ -303,7 +303,7 @@ def wheel_joint_vel_reward(
 ) -> torch.Tensor:
     # encourage the wheel joint to move
     robot = env.scene[asset_cfg.name]
-    
+
     wheel_joint_idx = robot.find_joints(wheel_name_expr)[0]
 
     joint_vel = robot.data.joint_vel[:, wheel_joint_idx] # (num_env, num_wheel_joints)
@@ -334,7 +334,7 @@ def tracking_goal_vel(
 
 def wheel_distances(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
-    
+
 
     wheel_body_idx = robot.find_bodies("leg.*_wheel_body")[0]
     base_idx = robot.find_bodies("base_link")[0][0]
@@ -354,17 +354,17 @@ def wheel_distances(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnt
     mean_distance = (dist_12 + dist_13 + dist_23 + dist_base_1 + dist_base_2 + dist_base_3) / 6.0
 
     variance = (
-        (dist_12 - mean_distance) ** 2 + 
-        (dist_13 - mean_distance) ** 2 + 
+        (dist_12 - mean_distance) ** 2 +
+        (dist_13 - mean_distance) ** 2 +
         (dist_23 - mean_distance) ** 2 +
-        (dist_base_1 - mean_distance) ** 2 + 
-        (dist_base_2 - mean_distance) ** 2 + 
+        (dist_base_1 - mean_distance) ** 2 +
+        (dist_base_2 - mean_distance) ** 2 +
         (dist_base_3 - mean_distance) ** 2
     ) / 6.0
 
     reward = torch.exp(-variance**2)
-    
-    
+
+
     return reward.squeeze(-1)
 
 def goal_distance_reward(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -385,20 +385,20 @@ def wheel_stumble_penalty(
     """Penalize feet for hitting vertical surfaces by analyzing net contact forces.
 
     This function penalizes the robot if the lateral (x, y) contact forces on the feet
-    exceed a specified threshold relative to the vertical (z) forces. The purpose is to 
+    exceed a specified threshold relative to the vertical (z) forces. The purpose is to
     discourage non-vertical contacts, which can indicate stumbling or unstable motion.
     """
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     net_forces_w = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
-    
+
     lateral_forces = torch.norm(net_forces_w[:, :, :2], dim=2)
     vertical_forces = torch.abs(net_forces_w[:, :, 2])
-    
+
     # Penalize cases where lateral forces exceed the threshold relative to vertical forces
     penalty_condition = lateral_forces > threshold * vertical_forces
 
     reward = torch.any(penalty_condition, dim=1).float()
-    
+
     return reward
 
 
@@ -447,7 +447,7 @@ def ee_velocity(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityC
     ee_velo_n = torch.norm(ee_velo, dim=-1)/norm_factor
 
     return torch.exp(-ee_velo_n**2)
-    
+
 def base_dist(env:ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), norm_factor=2) -> torch.Tensor:
     # minimize the xy-plane dist
     robot: RigidObject = env.scene[asset_cfg.name]
@@ -573,12 +573,12 @@ def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnti
 
     wheel1_vel = asset.data.joint_vel[:, asset.find_joints("wheel12.*joint")[0]]
     wheel2_vel = asset.data.joint_vel[:, asset.find_joints("wheel14.*joint")[0]]
-    
+
     error1 = torch.norm(wheel1_vel[:, 0] - wheel1_vel[:, 1])
     error2 = torch.norm(wheel2_vel[:, 0] - wheel2_vel[:, 1])
 
     return (error1 + error2) / 10
-    
+
 def wheel_on_ground(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshold) -> torch.Tensor:
     """Penalize undesired contacts as the number of violations that are above a threshold."""
     # extract the used quantities (to enable type-hinting)
@@ -588,3 +588,6 @@ def wheel_on_ground(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshol
     is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
     # sum over contacts for each environment
     return torch.sum(is_contact, dim=1)
+
+
+# Integration rewards

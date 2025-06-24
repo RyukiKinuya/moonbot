@@ -24,12 +24,28 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
 
+from moonbot_envs.envs.config.terrain_configs import WAVE_TERRAINS_CFG
 
 @configclass
 class IntegrationSceneCfg(InteractiveSceneCfg):
-    ground = AssetBaseCfg(
-        prim_path="/World/Ground",
-        spawn=sim_utils.GroundPlaneCfg(),
+    ground = TerrainImporterCfg(
+        prim_path="/World/ground",
+        terrain_type="generator",
+        terrain_generator=WAVE_TERRAINS_CFG,
+        max_init_terrain_level= 1,
+        collision_group=-1,
+        physics_material=sim_utils.RigidBodyMaterialCfg(
+            friction_combine_mode="multiply",
+            restitution_combine_mode="multiply",
+            static_friction=1.0,
+            dynamic_friction=1.0,
+        ),
+        visual_material=sim_utils.MdlFileCfg(
+            mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
+            project_uvw=True,
+            texture_scale=(0.25, 0.25),
+        ),
+        debug_vis=False,
     )
 
     sky_light = AssetBaseCfg(
@@ -40,9 +56,32 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
         ),
     )
 
-    moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal")
-    moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon")
-    moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full")
+    moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal").replace(
+        init_state=ArticulationCfg.InitialStateCfg(
+            pos=(1.0, 1.0, 0.4),
+            joint_pos={
+                ".*": 0.0,
+            },
+        )
+    )
+
+    moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon").replace(
+        init_state=ArticulationCfg.InitialStateCfg(
+            pos=(-1.0, 1.0, 0.5),
+            joint_pos={
+                ".*": 0.0,
+            },
+        )
+    )
+
+    moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full").replace(
+        init_state=ArticulationCfg.InitialStateCfg(
+            pos=(0.0, -1.0, 0.6),
+            joint_pos={
+                ".*": 0.0,
+            },
+        )
+    )
 
     minimal_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/minimal/.*", history_length=3, track_air_time=True)
     dragon_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/dragon/.*", history_length=3, track_air_time=True)
@@ -179,12 +218,30 @@ class IntegrationRewardCfg:
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
             self.track_lin_vel_xy_exp = RewTerm(
-                func=mdp.track_lin_vel_xy_exp, weight=10.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                func=mdp.track_lin_vel_xy_exp, weight=3.5, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.track_ang_vel_z_exp = RewTerm(
-                func=mdp.track_ang_vel_z_exp, weight=5.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                func=mdp.track_ang_vel_z_exp, weight=1.5, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
+
+            self.diff_from_init_pose = RewTerm(
+                func=mdp.diff_from_init_pose,
+                weight=2.0,
+                params={"asset_cfg": asset_cfg},
+            )
+
+            self.is_alive = RewTerm(
+                func=mdp.is_alive,
+                weight=1.0,
+            )
+
+            self.wheel_velocity = RewTerm(
+                func=mdp.wheel_ang_velocity_reward,
+                weight=0.5,
+                params={"asset_cfg": asset_cfg.replace(body_names=".*wheel.*")},
+            )
+
 
 
     reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))

@@ -247,7 +247,7 @@ class OnPolicyRunner:
 
                 # compute returns
                 if self.training_type == "rl":
-                    self.alg.compute_returns(privileged_obs)
+                    self.alg.compute_returns(privileged_obs, obs_global)
 
             # update policy
             loss_dict = self.alg.update()

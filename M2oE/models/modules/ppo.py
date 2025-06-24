@@ -177,19 +177,16 @@ class PPO:
         # Bootstrapping on time outs
         if "time_outs" in infos:
             time_outs = infos["time_outs"].to(self.device).view(-1, 1)
-            self.transition.rewards += self.gamma * torch.squeeze(
-                self.transition.values * time_outs,
-                1,
-            )
+            self.transition.rewards += self.gamma * torch.squeeze(self.transition.values * time_outs, -1)
 
         # record the transition
         self.storage.add_transitions(self.transition)
         self.transition.clear()
         self.policy.reset(dones)
 
-    def compute_returns(self, last_critic_obs):
+    def compute_returns(self, last_critic_obs, global_obs):
         # compute value for the last step
-        last_values = self.policy.evaluate(last_critic_obs).detach()
+        last_values = self.policy.evaluate(last_critic_obs, global_obs).detach()
         self.storage.compute_returns(
             last_values, self.gamma, self.lam, normalize_advantage=not self.normalize_advantage_per_mini_batch
         )

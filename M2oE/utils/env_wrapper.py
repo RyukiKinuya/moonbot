@@ -140,6 +140,7 @@ class ModulerRobotEnvWrapper(VecEnv):
         obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
         rew = self._process_rewards(rew)
         dones = (terminated | truncated).to(dtype=torch.long)
+        dones = dones.unsqueeze(-1).repeat(1, self.num_morphologies).reshape(-1)
         # extras["time_outs"]:(num_envs, 1)
         extras["observations"] = obs_dict
         if not self.unwrapped.cfg.is_finite_horizon:
@@ -188,4 +189,4 @@ class ModulerRobotEnvWrapper(VecEnv):
         reward_tensors = [rewards[key] for key in rewards.keys()]
         rewards = torch.stack(reward_tensors, dim=1)
 
-        return rewards.view(self.num_envs, 1)
+        return rewards.view(self.num_envs)

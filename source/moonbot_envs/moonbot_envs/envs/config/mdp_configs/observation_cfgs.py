@@ -87,7 +87,7 @@ class UniLeggedUnlimitedObservationManipulateCfg:
 
     policy: PolicyCfg = PolicyCfg()
 
- 
+
 @configclass
 class DragonLocomotionObservationCfg:
     @configclass
@@ -97,7 +97,7 @@ class DragonLocomotionObservationCfg:
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
         vel_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
-        
+
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
@@ -106,7 +106,7 @@ class DragonLocomotionObservationCfg:
 
     policy: PolicyCfg = PolicyCfg()
 
- 
+
 @configclass
 class DragonObservationCfg:
     @configclass
@@ -117,7 +117,7 @@ class DragonObservationCfg:
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
         pose_command = ObsTerm(func=mdp.ee_pose_command, params={"command_name": "ee_pose"})
         ee_pose = ObsTerm(func=mdp.ee_pose, params={"ee_name": "leg3gripper2_base"})
-        
+
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):

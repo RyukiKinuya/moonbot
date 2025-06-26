@@ -591,3 +591,31 @@ def wheel_on_ground(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshol
 
 
 # Integration rewards
+from M2oE.configs import morphology_configs
+def wheel_ang_velocity_reward(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg
+) -> torch.Tensor:
+    robot: Articulation = env.scene[asset_cfg.name]
+
+    wheel_link_names = morphology_configs.wheel_link_name_dict[asset_cfg.name]
+
+    wheel_bodies = [robot.find_bodies(name)[0] for name in wheel_link_names]
+
+    total_reward = torch.zeros(env.num_envs, device=env.device)
+
+    for wheel in wheel_bodies:
+        # from world frame to body frame
+        body_ang_vel_b = quat_rotate_inverse(
+            robot.data.body_state_w[:, wheel, 3:7].squeeze(1),
+            robot.data.body_ang_vel_w[:, wheel, :].squeeze(1)
+        )
+
+        reward_y = torch.exp(-torch.abs(body_ang_vel_b[:, 1]))
+        penalty_z = torch.exp(-torch.abs(body_ang_vel_b[:, 2]))
+        penalty_x = torch.exp(-torch.abs(body_ang_vel_b[:, 0]))
+
+        total_reward += reward_y - 0.5 * penalty_x - 0.5 * penalty_z
+
+    total_reward /= len(wheel_bodies)
+    return total_reward
+

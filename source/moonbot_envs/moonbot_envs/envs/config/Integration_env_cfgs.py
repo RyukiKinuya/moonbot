@@ -25,6 +25,7 @@ from isaaclab.managers import SceneEntityCfg
 from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
 
 from moonbot_envs.envs.config.terrain_configs import WAVE_TERRAINS_CFG
+from M2oE.configs import morphology_configs
 
 @configclass
 class IntegrationSceneCfg(InteractiveSceneCfg):
@@ -91,12 +92,12 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 class IntegrationObsCfg:
     @configclass
     class MoonbotObsCfg(ObsGroup):
-        def __init__(self, asset_cfg: SceneEntityCfg):
+        def __init__(self, asset_cfg: SceneEntityCfg, num_morphologies: int ):
             super().__init__()
-            self.joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": asset_cfg})
-            self.joint_vel = ObsTerm(func=mdp.joint_vel_rel, params={"asset_cfg": asset_cfg})
-            self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
-            self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
+            for i in range(num_morphologies):
+                module_name = f"module_{i}"
+                setattr(self, module_name, ObsTerm(func=mdp.module_obs, params={"asset_cfg": asset_cfg, "module_no": i}))
+
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -104,72 +105,65 @@ class IntegrationObsCfg:
 
     @configclass
     class GlobalCfg(ObsGroup):
-        def __init__(self):
+        def __init__(self, asset_cfg: SceneEntityCfg = SceneEntityCfg("moonbot_minimal")):
             super().__init__()
-            self.joint_pos = ObsTerm(func=mdp.joint_pos_rel, params={"asset_cfg": SceneEntityCfg("moonbot_full")})
+            self.base_height = ObsTerm(func=mdp.base_height, params={"asset_cfg": asset_cfg})
+            self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
+            self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
+            self.velocity_commands = ObsTerm(
+                func=mdp.generated_commands,
+                params={"command_name": f"base_velocity_{asset_cfg.name}"},
+            )
+            self.projected_gravity = ObsTerm(
+                func=mdp.projected_gravity,
+                params={"asset_cfg": asset_cfg},
+            )
 
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
 
-    obs_minimal: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
-    obs_dragon: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
-    obs_full: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
-    obs_global: GlobalCfg = GlobalCfg()
+    obs_minimal: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"), num_morphologies=1)
+    obs_dragon:  MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"), num_morphologies=2)
+    obs_full:    MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_full"), num_morphologies=3)
+    obs_minimal_global: GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
+    obs_dragon_global:  GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
+    obs_full_global:    GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
 
 @configclass
 class IntegrationActCfg:
     @configclass
     class MoonbotActCfg(ActionGroupCfg):
-        def __init__(self, asset_name: str):
-            if asset_name == "moonbot_full":
-                self.arm_action = mdp.JointPositionActionCfg(
+        def __init__(self, asset_name: str, num_morphologies: int = 1):
+            super().__init__()
+            for i in range(num_morphologies):
+                leg_action_name = f"module_{i}_action_leg"
+                leg_action_term = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
-                    joint_names=["(?!.*wheel.*)leg.*"],
-                    scale=0.5,
-                    use_default_offset=True,
-                )
-                self.wheel_action = mdp.JointVelocityActionCfg(
-                    asset_name=asset_name,
-                    joint_names=[".*wheel.*"],
-                    scale=50.0,
-                )
+                    joint_names=[morphology_configs.joint_expr_dict[asset_name][i]["leg"]],
+                    scale= 0.5,
+                    use_default_offset=True,)
+                setattr(self, leg_action_name, leg_action_term)
 
-            elif asset_name == "moonbot_dragon":
-                self.arm_action = mdp.JointPositionActionCfg(
+                wheel_action_name = f"module_{i}_action_wheel"
+                wheel_action_term = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
-                    joint_names=["leg.*joint.*"],
-                    scale=0.1,
-                    use_default_offset=True,
-                )
-                self.wheel_action = mdp.JointVelocityActionCfg(
-                    asset_name=asset_name,
-                    joint_names=["wheel.*joint"],
-                    scale=10.0,
-                )
-
-            elif asset_name == "moonbot_minimal":
-                self.arm_action = mdp.JointPositionActionCfg(
-                    asset_name=asset_name,
-                    joint_names=["joint.*"],
-                    scale=0.5,
-                    use_default_offset=True,
-                )
-                self.wheel_action = mdp.JointVelocityActionCfg(
-                    asset_name=asset_name,
-                    joint_names=["Wheel.*"],
-                    scale=10.0,
-                )
-
+                    joint_names=[morphology_configs.joint_expr_dict[asset_name][i]["wheel"]],
+                    scale= 0.5,
+                    use_default_offset=True,)
+                setattr(self, wheel_action_name, wheel_action_term)
 
     act_minimal: MoonbotActCfg = MoonbotActCfg(
-        asset_name="moonbot_minimal"
+        asset_name="moonbot_minimal",
+        num_morphologies=1
     )
     act_dragon: MoonbotActCfg = MoonbotActCfg(
-        asset_name="moonbot_dragon"
+        asset_name="moonbot_dragon",
+        num_morphologies=2
     )
     act_full: MoonbotActCfg = MoonbotActCfg(
-        asset_name="moonbot_full"
+        asset_name="moonbot_full",
+        num_morphologies=3
     )
 
 @configclass
@@ -179,35 +173,37 @@ class IntegrationCmdCfg:
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
-        heading_command=True,
+        heading_command=False,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-3.14, 3.14), heading=(0.0, 0.0)
         ),
     )
+
     base_velocity_moonbot_dragon = mdp.UniformVelocityCommandCfg(
         asset_name="moonbot_dragon",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
-        heading_command=True,
+        heading_command=False,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-3.14, 3.14), heading=(0.0, 0.0)
         ),
     )
+
     base_velocity_moonbot_full = mdp.UniformVelocityCommandCfg(
         asset_name="moonbot_full",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
-        heading_command=True,
+        heading_command=False,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.0, 0.0), heading=(-3.14, 3.14)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-3.14, 3.14), heading=(0.0, 0.0)
         ),
     )
 
@@ -227,7 +223,7 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=2.0,
+                weight=0.5,
                 params={"asset_cfg": asset_cfg},
             )
 
@@ -242,6 +238,17 @@ class IntegrationRewardCfg:
                 params={"asset_cfg": asset_cfg.replace(body_names=".*wheel.*")},
             )
 
+            self.dof_torques_l2 = RewTerm(
+                func=mdp.joint_torques_l2,
+                weight=-1.5e-5,
+                params={"asset_cfg": asset_cfg.replace(body_names="(?!.*wheel.*)leg.*")},  # Exclude wheel joints
+            )
+
+            self.dof_acc_l2 = RewTerm(
+                func=mdp.joint_acc_l2,
+                weight=-2.5e-7,
+                params={"asset_cfg": asset_cfg.replace(body_names="(?!.*wheel.*)leg.*")},  # Exclude wheel joints
+            )
 
 
     reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))

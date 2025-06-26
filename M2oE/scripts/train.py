@@ -36,6 +36,8 @@ args_cli, hydra_args = parser.parse_known_args()
 if args_cli.video:
     args_cli.enable_cameras = True
 
+args_cli.headless = True
+
 # Clear out ``sys.argv`` for Hydra
 sys.argv = [sys.argv[0]] + hydra_args
 

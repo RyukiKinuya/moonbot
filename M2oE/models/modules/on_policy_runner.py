@@ -19,6 +19,7 @@ from rsl_rl.utils import store_code_state
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
+from M2oE.configs import morphology_configs
 
 
 class OnPolicyRunner:
@@ -41,6 +42,7 @@ class OnPolicyRunner:
         # num obs is the dimension of the observation with max number of observations
         num_obs = max([obs_tensor.shape[1] for obs_tensor in obs_dict.values()])
         self.num_obs = num_obs
+        self.num_global_obs = extras["observations"][f"global_obs_{morphology_configs.morphology_list[0]}"].shape[1]
 
         # resolve type of privileged observations
         if "critic" in extras["observations"]:
@@ -53,14 +55,10 @@ class OnPolicyRunner:
             num_privileged_obs = extras["observations"][self.privileged_obs_type].shape[1]
         else:
             num_privileged_obs = num_obs
-        if "obs_global" in extras["observations"]:
-            num_global_obs = extras["observations"]["obs_global"].shape[1]
-        else:
-            num_global_obs = num_obs
 
         policy = M2oEActorCritic(
-            num_obs,
-            num_global_obs,
+            self.num_obs,
+            self.num_global_obs,
             self.env.num_actions,
             self.cfg["max_num_modules"],
             **self.policy_cfg,
@@ -539,17 +537,14 @@ class OnPolicyRunner:
         torch.cuda.set_device(self.gpu_local_rank)
 
     def _process_observations(self, obs_dict):
-        global_obs = obs_dict.get("obs_global", None)
-        if global_obs is None:
-            # raise error
-            raise ValueError("Global observations not found in the observation dictionary. Please check the environment.")
-        # expend global_obs
-        num_global_obs = global_obs.shape[-1]
-        global_obs = global_obs.unsqueeze(1).expand(-1, self.env.num_morphologies, num_global_obs)
-        # global_obs: [num_envs * num_morphologies, num_global_obs]
-        global_obs = global_obs.reshape(-1, num_global_obs)
+        global_name_list = [f"global_name_{i}" for i in morphology_configs.morphology_list]
+        try:
+            global_obs = [obs for name, obs in obs_dict.items()]
+        except KeyError as e:
+            raise KeyError(f"Observation dictionary does not contain expected keys: {global_name_list}.") from e
 
-        obs_dict.pop("obs_global", None)
+        global_obs = torch.cat(global_obs, dim=1).reshape(-1, self.num_global_obs)
+
 
         padded_obs = []
         pad_vec = self.alg.policy.padding

@@ -100,8 +100,8 @@ class OnPolicyRunner:
             self.training_type,
             self.env.num_envs,
             self.num_steps_per_env,
-            [num_obs],
-            [num_global_obs],
+            [self.num_obs],
+            [self.num_global_obs],
             [num_privileged_obs],
             [self.env.num_actions],
         )
@@ -537,14 +537,16 @@ class OnPolicyRunner:
         torch.cuda.set_device(self.gpu_local_rank)
 
     def _process_observations(self, obs_dict):
-        global_name_list = [f"global_name_{i}" for i in morphology_configs.morphology_list]
+        global_name_list = [f"global_obs_{i}" for i in morphology_configs.morphology_list]
         try:
-            global_obs = [obs for name, obs in obs_dict.items()]
+            global_obs = [obs for obs_name, obs in obs_dict.items() if obs_name in global_name_list]
         except KeyError as e:
             raise KeyError(f"Observation dictionary does not contain expected keys: {global_name_list}.") from e
 
         global_obs = torch.cat(global_obs, dim=1).reshape(-1, self.num_global_obs)
 
+        for key in global_name_list:
+            obs_dict.pop(key, None)  # remove global observations from obs_dict
 
         padded_obs = []
         pad_vec = self.alg.policy.padding
@@ -562,6 +564,6 @@ class OnPolicyRunner:
 
             # padded_obs: [num_envs, 1, num_obs]
             padded_obs.append(obs.unsqueeze(1))
-        obs = torch.cat(padded_obs, dim=1).reshape(-1, self.num_obs)
+        obs = torch.cat(padded_obs, dim=1).reshape(self.env.num_envs, self.num_obs)
         # obs: [num_envs * num_morphologies, num_obs]
         return obs, global_obs

@@ -103,16 +103,31 @@ def _last_action(env: CustomManagerBasedRLEnv, group_name: str | None = None, ac
             return env.action_manager.get_term(group_name, action_name).action
 
 # Integration Env Observation
+def joint_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[int]):
+    asset: Articulation = env.scene[asset_cfg.name]
+    return asset.data.joint_vel[:, joint_ids]
+
+def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[int]) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+    return asset.data.joint_pos[:, joint_ids]
+
 from M2oE.configs import morphology_configs
 def module_obs(env: ManagerBasedEnv, module_no:int, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     robot_name = asset_cfg.name
 
-    joint_expr = morphology_configs.joint_expr_dict[robot_name][module_no]
+    joint_names = morphology_configs.joint_names_dict[robot_name][module_no]
+    new_asset_cfg = SceneEntityCfg(name=robot_name)
+
+    leg_joint_names = joint_names["leg"]
+    wheel_joint_names = joint_names["wheel"]
+
+    leg_ids = env.scene[robot_name].find_joints(leg_joint_names)[0]
+    wheel_ids = env.scene[robot_name].find_joints(wheel_joint_names)[0]
 
     # observation terms
-    joint_pos = mdp.joint_pos(env, asset_cfg=asset_cfg.replace(joint_names=[joint_expr["leg"], joint_expr["wheel"]]))
-    joint_vel = mdp.joint_vel(env, asset_cfg=asset_cfg.replace(joint_names=[joint_expr["leg"], joint_expr["wheel"]]))
+    _joint_pos = joint_pos(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids+wheel_ids)
+    _joint_vel = joint_vel(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids+wheel_ids)
 
     return torch.cat([
-        joint_pos,
-        joint_vel], dim=-1)
+        _joint_pos,  # Select only the leg joints
+        _joint_vel], dim=-1)

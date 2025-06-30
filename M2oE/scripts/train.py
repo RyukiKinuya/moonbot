@@ -15,7 +15,7 @@ parser.add_argument(
     default=2000,
     help="Interval between video recordings (in steps).",
 )
-parser.add_argument("--num_envs", type=int, default=16, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=512, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
@@ -35,7 +35,6 @@ args_cli, hydra_args = parser.parse_known_args()
 
 if args_cli.video:
     args_cli.enable_cameras = True
-
 args_cli.headless = True
 
 # Clear out ``sys.argv`` for Hydra

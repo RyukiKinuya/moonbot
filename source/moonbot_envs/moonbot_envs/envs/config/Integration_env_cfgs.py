@@ -126,9 +126,9 @@ class IntegrationObsCfg:
     obs_minimal: MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"), num_morphologies=1)
     obs_dragon:  MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"), num_morphologies=2)
     obs_full:    MoonbotObsCfg = MoonbotObsCfg(asset_cfg=SceneEntityCfg("moonbot_full"), num_morphologies=3)
-    obs_minimal_global: GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
-    obs_dragon_global:  GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
-    obs_full_global:    GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
+    global_obs_moonbot_minimal: GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
+    global_obs_moonbot_dragon:  GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
+    global_obs_moonbot_full:    GlobalCfg = GlobalCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
 
 @configclass
 class IntegrationActCfg:
@@ -140,7 +140,7 @@ class IntegrationActCfg:
                 leg_action_name = f"module_{i}_action_leg"
                 leg_action_term = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
-                    joint_names=[morphology_configs.joint_expr_dict[asset_name][i]["leg"]],
+                    joint_names=morphology_configs.joint_names_dict[asset_name][i]["leg"],
                     scale= 0.5,
                     use_default_offset=True,)
                 setattr(self, leg_action_name, leg_action_term)
@@ -148,7 +148,7 @@ class IntegrationActCfg:
                 wheel_action_name = f"module_{i}_action_wheel"
                 wheel_action_term = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
-                    joint_names=[morphology_configs.joint_expr_dict[asset_name][i]["wheel"]],
+                    joint_names=morphology_configs.joint_names_dict[asset_name][i]["wheel"],
                     scale= 0.5,
                     use_default_offset=True,)
                 setattr(self, wheel_action_name, wheel_action_term)
@@ -223,31 +223,13 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=0.5,
+                weight=1.0,
                 params={"asset_cfg": asset_cfg},
             )
 
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
                 weight=1.0,
-            )
-
-            self.wheel_velocity = RewTerm(
-                func=mdp.wheel_ang_velocity_reward,
-                weight=0.5,
-                params={"asset_cfg": asset_cfg.replace(body_names=".*wheel.*")},
-            )
-
-            self.dof_torques_l2 = RewTerm(
-                func=mdp.joint_torques_l2,
-                weight=-1.5e-5,
-                params={"asset_cfg": asset_cfg.replace(body_names="(?!.*wheel.*)leg.*")},  # Exclude wheel joints
-            )
-
-            self.dof_acc_l2 = RewTerm(
-                func=mdp.joint_acc_l2,
-                weight=-2.5e-7,
-                params={"asset_cfg": asset_cfg.replace(body_names="(?!.*wheel.*)leg.*")},  # Exclude wheel joints
             )
 
 

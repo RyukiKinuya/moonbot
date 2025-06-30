@@ -94,7 +94,7 @@ def main(
         env_cfg.seed = seed
         agent_cfg.seed = seed
 
-    log_root_path = os.path.join("M2oE", "log", agent_cfg.experiment_name)
+    log_root_path = os.path.join("M2oE", "logs", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

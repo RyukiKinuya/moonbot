@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
 from isaaclab.envs import mdp
+import re
 
 
 def feet_air_time(
@@ -629,3 +630,17 @@ def base_balance(
         return dragon_flat_orientation_l2(env, asset_cfg)
     else:
         return mdp.flat_orientation_l2(env, asset_cfg)
+
+def undesired_contacts(
+    env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshold: float = 1.0
+) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    net_contact_forces = contact_sensor.data.net_forces_w_history
+    robot_name = re.sub(r"contact_forces_", "", sensor_cfg.name)
+    body_names = morphology_configs.contact_undesired_dict.get(robot_name)
+    robot = env.scene[robot_name]
+    body_ids = robot.find_bodies(body_names)[0]
+
+    is_contact = torch.max(torch.norm(net_contact_forces[:, :, body_ids], dim=-1), dim=1)[0] > threshold
+    # sum over contacts for each environment
+    return torch.sum(is_contact, dim=1)

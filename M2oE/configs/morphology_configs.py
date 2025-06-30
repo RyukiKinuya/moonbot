@@ -32,6 +32,12 @@ base_link_name_dict = {
     "moonbot_full": "base_link",
 }
 
+contact_undesired_dict = {
+    "moonbot_minimal": ["base_link", "Arm_Link1", "Arm_Link2", "Arm_Link3", "Arm_Link4", "Arm_Link5", "Arm_Link6", "Arm_Link7"],
+    "moonbot_dragon": ["leg4link3", "leg4link4", "leg3link3", "leg3link4"],
+    "moonbot_full": ["base_link"],
+}
+
 joint_names_dict = {
     "moonbot_minimal": [{
         "leg": ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"],

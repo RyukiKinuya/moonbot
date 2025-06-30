@@ -84,9 +84,9 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
         )
     )
 
-    minimal_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/minimal/.*", history_length=3, track_air_time=True)
-    dragon_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/dragon/.*", history_length=3, track_air_time=True)
-    full_contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/full/.*", history_length=3, track_air_time=True)
+    contact_forces_moonbot_minimal = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/minimal/.*", history_length=3, track_air_time=True)
+    contact_forces_moonbot_dragon = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/dragon/.*", history_length=3, track_air_time=True)
+    contact_forces_moonbot_full = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/full/.*", history_length=3, track_air_time=True)
 
 @configclass
 class IntegrationObsCfg:
@@ -232,6 +232,12 @@ class IntegrationRewardCfg:
                 weight=1.0,
             )
 
+            self.undesired_contacts = RewTerm(
+                func=mdp.undesired_contacts,
+                weight=-0.5,
+                params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
+            )
+
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
                 weight=1.0,
@@ -248,15 +254,15 @@ class IntegrationTerminationCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact_minimal = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("minimal_contact_forces", body_names="base_link"), "threshold": 8.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_minimal", body_names="base_link"), "threshold": 8.0},
     )
     base_contact_dragon = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("dragon_contact_forces", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
     )
     base_contact_full = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("full_contact_forces", body_names="base_link"), "threshold": 8.0}
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base_link"), "threshold": 8.0}
     )
 
 @configclass

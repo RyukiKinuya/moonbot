@@ -276,6 +276,17 @@ class OnPolicyRunner:
             self.save(os.path.join(self.log_dir, f"model_{self.current_learning_iteration}.pt"))
 
     def log(self, locs: dict, width: int = 80, pad: int | None = None):
+        # Color codes for logging
+        HEADER = '\033[95m'
+        OKBLUE = '\033[94m'
+        OKCYAN = '\033[96m'
+        OKGREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+
         # Compute the collection size
         collection_size = self.num_steps_per_env * self.env.num_envs * self.gpu_world_size
         # Update total time-steps and time
@@ -320,10 +331,10 @@ class OnPolicyRunner:
                 # log to logger and terminal
                 if "/" in key:
                     self.writer.add_scalar(key, value, locs["it"])
-                    ep_string += f"""{f'{key}:':>{pad}} {value:.4f}\n"""
+                    ep_string += f"{OKGREEN}{f'{key}':>{pad}}{ENDC} {value:.4f}\n"
                 else:
                     self.writer.add_scalar("Episode/" + key, value, locs["it"])
-                    ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
+                    ep_string += f"{OKGREEN}{f'Mean episode {key}':>{pad}}{ENDC} {value:.4f}\n"
 
         mean_std = self.alg.policy.action_std.mean()
         fps = int(collection_size / (locs["collection_time"] + locs["learn_time"]))
@@ -357,48 +368,38 @@ class OnPolicyRunner:
                     "Train/mean_episode_length/time", statistics.mean(locs["lenbuffer"]), self.tot_time
                 )
 
-        str = f" \033[1m Learning iteration {locs['it']}/{locs['tot_iter']} \033[0m "
+        title_str = f" {BOLD} Learning iteration {locs['it']}/{locs['tot_iter']} {ENDC} "
+
+        log_string = f"{HEADER}{'#' * width}{ENDC}\n"
+        log_string += f"{title_str.center(width, ' ')}\n\n"
+
+        comp_string = f"steps/s (collection: {locs['collection_time']:.3f}s, learning {locs['learn_time']:.3f}s)"
+        log_string += f"{OKBLUE}{'Computation:':>{pad}}{ENDC} {WARNING}{fps:.0f}{ENDC} {comp_string}\n"
+        log_string += f"{OKBLUE}{'Mean action noise std:':>{pad}}{ENDC} {mean_std.item():.2f}\n"
 
         if len(locs["rewbuffer"]) > 0:
-            log_string = (
-                f"""{'#' * width}\n"""
-                f"""{str.center(width, ' ')}\n\n"""
-                f"""{'Computation:':>{pad}} {fps:.0f} steps/s (collection: {locs[
-                    'collection_time']:.3f}s, learning {locs['learn_time']:.3f}s)\n"""
-                f"""{'Mean action noise std:':>{pad}} {mean_std.item():.2f}\n"""
-            )
             # -- Losses
             for key, value in locs["loss_dict"].items():
-                log_string += f"""{f'Mean {key} loss:':>{pad}} {value:.4f}\n"""
+                log_string += f"{OKCYAN}{f'Mean {key} loss:':>{pad}}{ENDC} {value:.4f}\n"
             # -- Rewards
             if self.alg.rnd:
-                log_string += (
-                    f"""{'Mean extrinsic reward:':>{pad}} {statistics.mean(locs['erewbuffer']):.2f}\n"""
-                    f"""{'Mean intrinsic reward:':>{pad}} {statistics.mean(locs['irewbuffer']):.2f}\n"""
-                )
-            log_string += f"""{'Mean reward:':>{pad}} {statistics.mean(locs['rewbuffer']):.2f}\n"""
+                log_string += f"{OKGREEN}{'Mean extrinsic reward:':>{pad}}{ENDC} {statistics.mean(locs['erewbuffer']):.2f}\n"
+                log_string += f"{OKGREEN}{'Mean intrinsic reward:':>{pad}}{ENDC} {statistics.mean(locs['irewbuffer']):.2f}\n"
+            log_string += f"{OKGREEN}{'Mean reward:':>{pad}}{ENDC} {statistics.mean(locs['rewbuffer']):.2f}\n"
             # -- episode info
-            log_string += f"""{'Mean episode length:':>{pad}} {statistics.mean(locs['lenbuffer']):.2f}\n"""
+            log_string += f"{OKGREEN}{'Mean episode length:':>{pad}}{ENDC} {statistics.mean(locs['lenbuffer']):.2f}\n"
         else:
-            log_string = (
-                f"""{'#' * width}\n"""
-                f"""{str.center(width, ' ')}\n\n"""
-                f"""{'Computation:':>{pad}} {fps:.0f} steps/s (collection: {locs[
-                    'collection_time']:.3f}s, learning {locs['learn_time']:.3f}s)\n"""
-                f"""{'Mean action noise std:':>{pad}} {mean_std.item():.2f}\n"""
-            )
             for key, value in locs["loss_dict"].items():
-                log_string += f"""{f'{key}:':>{pad}} {value:.4f}\n"""
+                log_string += f"{OKCYAN}{f'{key}':>{pad}}{ENDC} {value:.4f}\n"
 
         log_string += ep_string
-        log_string += (
-            f"""{'-' * width}\n"""
-            f"""{'Total timesteps:':>{pad}} {self.tot_timesteps}\n"""
-            f"""{'Iteration time:':>{pad}} {iteration_time:.2f}s\n"""
-            f"""{'Time elapsed:':>{pad}} {time.strftime("%H:%M:%S", time.gmtime(self.tot_time))}\n"""
-            f"""{'ETA:':>{pad}} {time.strftime("%H:%M:%S", time.gmtime(self.tot_time / (locs['it'] - locs['start_iter'] + 1) * (
-                               locs['start_iter'] + locs['num_learning_iterations'] - locs['it'])))}\n"""
-        )
+        log_string += f"{HEADER}{'-' * width}{ENDC}\n"
+        log_string += f"{OKBLUE}{'Total timesteps:':>{pad}}{ENDC} {self.tot_timesteps}\n"
+        log_string += f"{OKBLUE}{'Iteration time:':>{pad}}{ENDC} {iteration_time:.2f}s\n"
+        log_string += f"{OKBLUE}{'Time elapsed:':>{pad}}{ENDC} {time.strftime('%H:%M:%S', time.gmtime(self.tot_time))}\n"
+        eta_time = self.tot_time / (locs['it'] - locs['start_iter'] + 1) * (locs['start_iter'] + locs['num_learning_iterations'] - locs['it'])
+        log_string += f"{OKBLUE}{'ETA:':>{pad}}{ENDC} {time.strftime('%H:%M:%S', time.gmtime(eta_time))}\n"
+
         print(log_string)
 
     def save(self, path: str, infos=None):

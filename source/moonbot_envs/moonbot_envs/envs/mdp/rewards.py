@@ -1,5 +1,3 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
-# All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +15,8 @@ import numpy as np
 import math
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
+
+from isaaclab.envs import mdp
 
 
 def feet_air_time(
@@ -619,3 +619,13 @@ def wheel_ang_velocity_reward(
     total_reward /= len(wheel_bodies)
     return total_reward
 
+def base_balance(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward the robot for keeping its base upright."""
+    if asset_cfg.name == "minimal":
+        return uni_leg_flat_orientation_l2(env, asset_cfg.replace(body_names="base_link"))
+    elif asset_cfg.name == "dragon":
+        return dragon_flat_orientation_l2(env, asset_cfg)
+    else:
+        return mdp.flat_orientation_l2(env, asset_cfg)

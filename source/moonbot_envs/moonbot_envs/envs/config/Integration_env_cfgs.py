@@ -232,6 +232,12 @@ class IntegrationRewardCfg:
                 weight=1.0,
             )
 
+            self.base_balance = RewTerm(
+                func=mdp.base_balance,
+                weight=1.0,
+                params={"asset_cfg": asset_cfg},
+            )
+
 
     reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
     reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))

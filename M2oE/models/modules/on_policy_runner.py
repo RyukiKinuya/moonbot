@@ -14,12 +14,12 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.utils import store_code_state
+from rsl_rl.utils import EmpiricalNormalization, store_code_state
 
+from M2oE.configs import morphology_configs
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
-from M2oE.configs import morphology_configs
 
 
 class OnPolicyRunner:
@@ -277,15 +277,19 @@ class OnPolicyRunner:
 
     def log(self, locs: dict, width: int = 80, pad: int | None = None):
         # Color codes for logging
-        HEADER = '\033[95m'
-        OKBLUE = '\033[94m'
-        OKCYAN = '\033[96m'
-        OKGREEN = '\033[92m'
-        WARNING = '\033[93m'
-        FAIL = '\033[91m'
-        ENDC = '\033[0m'
-        BOLD = '\033[1m'
-        UNDERLINE = '\033[4m'
+        HEADER = "\033[95m"
+        OKBLUE = "\033[94m"
+        OKCYAN = "\033[96m"
+        OKGREEN = "\033[92m"
+        WARNING = "\033[93m"
+        ENDC = "\033[0m"
+        BOLD = "\033[1m"
+
+        GROUP_COLORS = {
+            "reward_minimal": "\033[95m",
+            "reward_dragon": "\033[94m",
+            "reward_full": "\033[92m",
+        }
 
         # Compute the collection size
         collection_size = self.num_steps_per_env * self.env.num_envs * self.gpu_world_size
@@ -331,10 +335,14 @@ class OnPolicyRunner:
                 # log to logger and terminal
                 if "/" in key:
                     self.writer.add_scalar(key, value, locs["it"])
-                    ep_string += f"{OKGREEN}{f'{key}':>{pad}}{ENDC} {value:.4f}\n"
+                    group = key.split("/")[1]
+                    color = GROUP_COLORS.get(group, OKGREEN)
+                    ep_string += f"{color}{f'{key}':>{pad}}{ENDC} {color}{value:.4f}{ENDC}\n"
                 else:
                     self.writer.add_scalar("Episode/" + key, value, locs["it"])
-                    ep_string += f"{OKGREEN}{f'Mean episode {key}':>{pad}}{ENDC} {value:.4f}\n"
+                    ep_string += (
+                        f"{OKGREEN}{f'Mean episode {key}':>{pad}}{ENDC} {OKGREEN}{value:.4f}{ENDC}\n"
+                    )
 
         mean_std = self.alg.policy.action_std.mean()
         fps = int(collection_size / (locs["collection_time"] + locs["learn_time"]))
@@ -375,30 +383,30 @@ class OnPolicyRunner:
 
         comp_string = f"steps/s (collection: {locs['collection_time']:.3f}s, learning {locs['learn_time']:.3f}s)"
         log_string += f"{OKBLUE}{'Computation:':>{pad}}{ENDC} {WARNING}{fps:.0f}{ENDC} {comp_string}\n"
-        log_string += f"{OKBLUE}{'Mean action noise std:':>{pad}}{ENDC} {mean_std.item():.2f}\n"
+        log_string += f"{OKBLUE}{'Mean action noise std:':>{pad}}{ENDC} {OKBLUE}{mean_std.item():.2f}{ENDC}\n"
 
         if len(locs["rewbuffer"]) > 0:
             # -- Losses
             for key, value in locs["loss_dict"].items():
-                log_string += f"{OKCYAN}{f'Mean {key} loss:':>{pad}}{ENDC} {value:.4f}\n"
+                log_string += f"{OKCYAN}{f'Mean {key} loss:':>{pad}}{ENDC} {OKCYAN}{value:.4f}{ENDC}\n"
             # -- Rewards
             if self.alg.rnd:
-                log_string += f"{OKGREEN}{'Mean extrinsic reward:':>{pad}}{ENDC} {statistics.mean(locs['erewbuffer']):.2f}\n"
-                log_string += f"{OKGREEN}{'Mean intrinsic reward:':>{pad}}{ENDC} {statistics.mean(locs['irewbuffer']):.2f}\n"
-            log_string += f"{OKGREEN}{'Mean reward:':>{pad}}{ENDC} {statistics.mean(locs['rewbuffer']):.2f}\n"
+                log_string += f"{OKGREEN}{'Mean extrinsic reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['erewbuffer']):.2f}{ENDC}\n"
+                log_string += f"{OKGREEN}{'Mean intrinsic reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['irewbuffer']):.2f}{ENDC}\n"
+            log_string += f"{OKGREEN}{'Mean reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['rewbuffer']):.2f}{ENDC}\n"
             # -- episode info
-            log_string += f"{OKGREEN}{'Mean episode length:':>{pad}}{ENDC} {statistics.mean(locs['lenbuffer']):.2f}\n"
+            log_string += f"{OKGREEN}{'Mean episode length:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['lenbuffer']):.2f}{ENDC}\n"
         else:
             for key, value in locs["loss_dict"].items():
-                log_string += f"{OKCYAN}{f'{key}':>{pad}}{ENDC} {value:.4f}\n"
+                log_string += f"{OKCYAN}{f'{key}':>{pad}}{ENDC} {OKCYAN}{value:.4f}{ENDC}\n"
 
         log_string += ep_string
         log_string += f"{HEADER}{'-' * width}{ENDC}\n"
-        log_string += f"{OKBLUE}{'Total timesteps:':>{pad}}{ENDC} {self.tot_timesteps}\n"
-        log_string += f"{OKBLUE}{'Iteration time:':>{pad}}{ENDC} {iteration_time:.2f}s\n"
-        log_string += f"{OKBLUE}{'Time elapsed:':>{pad}}{ENDC} {time.strftime('%H:%M:%S', time.gmtime(self.tot_time))}\n"
+        log_string += f"{OKBLUE}{'Total timesteps:':>{pad}}{ENDC} {OKBLUE}{self.tot_timesteps}{ENDC}\n"
+        log_string += f"{OKBLUE}{'Iteration time:':>{pad}}{ENDC} {OKBLUE}{iteration_time:.2f}s{ENDC}\n"
+        log_string += f"{OKBLUE}{'Time elapsed:':>{pad}}{ENDC} {OKBLUE}{time.strftime('%H:%M:%S', time.gmtime(self.tot_time))}{ENDC}\n"
         eta_time = self.tot_time / (locs['it'] - locs['start_iter'] + 1) * (locs['start_iter'] + locs['num_learning_iterations'] - locs['it'])
-        log_string += f"{OKBLUE}{'ETA:':>{pad}}{ENDC} {time.strftime('%H:%M:%S', time.gmtime(eta_time))}\n"
+        log_string += f"{OKBLUE}{'ETA:':>{pad}}{ENDC} {OKBLUE}{time.strftime('%H:%M:%S', time.gmtime(eta_time))}{ENDC}\n"
 
         print(log_string)
 

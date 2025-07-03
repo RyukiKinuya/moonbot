@@ -283,6 +283,22 @@ class IntegrationEventCfg:
                 func=mdp.reset_scene_to_default,
                 mode="reset",
             ))
+            setattr(self, f"reset_positions_states_{asset_name}", EventTerm(
+                func=mdp.reset_root_state_random,
+                mode="reset",
+                params={
+                "asset_cfg": SceneEntityCfg(asset_name),
+                "pose_range": {"z": (0.3, 0,3),"yaw": (-3.14, 3.14)},
+                "velocity_range": {
+                    "x": (-0.5, 0.5),
+                    "y": (-0.5, 0.5),
+                    "z": (-0.5, 0.5),
+                    "roll": (-0.5, 0.5),
+                    "pitch": (-0.5, 0.5),
+                    "yaw": (-0.5, 0.5),
+            },
+        },                
+            ))
 
             setattr(self, f"base_external_force_{asset_name}", EventTerm(
                 func=mdp.apply_external_force_torque,

@@ -110,6 +110,20 @@ class DragonLocomotionEventCfg:
         mode="reset",
     )
 
+    random_pos_state = EventTerm(func=mdp.reset_root_state_random,
+        mode="reset",
+        params={
+            "pose_range": {"z":(0.3,0.3),"yaw": (-3.14, 3.14)},
+            "velocity_range": {
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "roll": (-0.5, 0.5),
+                "pitch": (-0.5, 0.5),
+                "yaw": (-0.5, 0.5),
+            },
+        },
+    )
+    
     randomize_physic_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",

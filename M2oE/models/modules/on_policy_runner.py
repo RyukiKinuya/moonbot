@@ -14,7 +14,7 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.utils import EmpiricalNormalization, store_code_state
+from rsl_rl.utils import store_code_state
 
 from M2oE.configs import morphology_configs
 from M2oE.models.modules.actor_critic import M2oEActorCritic

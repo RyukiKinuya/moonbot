@@ -271,11 +271,17 @@ class IntegrationEventCfg:
         for asset_name in ["moonbot_minimal", "moonbot_dragon", "moonbot_full"]:
             setattr(self, f"base_mass_randomize_{asset_name}", EventTerm(
                 func=mdp.randomize_rigid_body_mass,
+                mode="startup",
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
                     "mass_distribution_params": (-5.0, 5.0),
                     "operation": "add",
                 },
+            ))
+
+            setattr(self, f"reset_robots_{asset_name}", EventTerm(
+                func=mdp.reset_scene_to_default,
+                mode="reset",
             ))
 
             setattr(self, f"base_external_force_{asset_name}", EventTerm(

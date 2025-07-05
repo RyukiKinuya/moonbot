@@ -20,6 +20,7 @@ from M2oE.configs import morphology_configs
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
+from M2oE.utils.utils import process_observations
 
 
 class OnPolicyRunner:
@@ -40,9 +41,8 @@ class OnPolicyRunner:
 
         # obs: dict: (name, torch.Tensor)
         # num obs is the dimension of the observation with max number of observations
-        num_obs = max([obs_tensor.shape[1] for obs_tensor in obs_dict.values()])
-        self.num_obs = num_obs
-        self.num_global_obs = extras["observations"][f"global_obs_{morphology_configs.morphology_list[0]}"].shape[1]
+        self.num_obs = self.env.num_obs
+        self.num_global_obs = self.env.num_global_obs
 
         # resolve type of privileged observations
         if "critic" in extras["observations"]:
@@ -54,7 +54,7 @@ class OnPolicyRunner:
         if self.privileged_obs_type is not None:
             num_privileged_obs = extras["observations"][self.privileged_obs_type].shape[1]
         else:
-            num_privileged_obs = num_obs
+            num_privileged_obs = self.num_obs
 
         policy = M2oEActorCritic(
             self.num_obs,
@@ -546,33 +546,4 @@ class OnPolicyRunner:
         torch.cuda.set_device(self.gpu_local_rank)
 
     def _process_observations(self, obs_dict):
-        global_name_list = [f"global_obs_{i}" for i in morphology_configs.morphology_list]
-        try:
-            global_obs = [obs for obs_name, obs in obs_dict.items() if obs_name in global_name_list]
-        except KeyError as e:
-            raise KeyError(f"Observation dictionary does not contain expected keys: {global_name_list}.") from e
-
-        global_obs = torch.cat(global_obs, dim=1).reshape(-1, self.num_global_obs)
-
-        for key in global_name_list:
-            obs_dict.pop(key, None)  # remove global observations from obs_dict
-
-        padded_obs = []
-        pad_vec = self.alg.policy.padding
-        for key in sorted(obs_dict.keys()):
-            obs = obs_dict[key]
-            diff = self.num_obs - obs.shape[1]
-            if self.alg.policy.padding_method == "concat":
-                if diff > 0:
-                    pad = pad_vec[obs.shape[1] : self.num_obs].unsqueeze(0).expand(obs.shape[0], -1)
-                    # obs: [num_envs, num_obs]
-                    obs = torch.cat([obs, pad], dim=1)
-            elif self.alg.policy.padding_method == "add":
-                pad = pad_vec.expand(obs.shape[0], -1)
-                obs = obs + pad
-
-            # padded_obs: [num_envs, 1, num_obs]
-            padded_obs.append(obs.unsqueeze(1))
-        obs = torch.cat(padded_obs, dim=1).reshape(self.env.num_envs, self.num_obs)
-        # obs: [num_envs * num_morphologies, num_obs]
-        return obs, global_obs
+        return process_observations(obs_dict, self.num_obs, self.num_global_obs, self.alg.policy, self.env.num_envs)

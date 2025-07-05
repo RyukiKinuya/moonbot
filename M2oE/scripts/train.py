@@ -4,7 +4,7 @@ import sys
 
 from isaaclab.app import AppLauncher
 
-import scripts.reinforcement_learning.rsl_rl.cli_args as cli_args  # isort: skip
+import M2oE.utils.cli_args as cli_args  # isort: skip
 
 parser = argparse.ArgumentParser(description="Train an RL agent with M2oE modules.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
@@ -26,8 +26,7 @@ parser.add_argument(
     help="Run training with multiple GPUs or nodes.",
 )
 
-# Append RSL-RL specific arguments (experiment name, logger etc.)
-cli_args.add_rsl_rl_args(parser)
+cli_args.add_m2oe_rl_args(parser)
 # Append AppLauncher CLI args
 AppLauncher.add_app_launcher_args(parser)
 
@@ -35,7 +34,7 @@ args_cli, hydra_args = parser.parse_known_args()
 
 if args_cli.video:
     args_cli.enable_cameras = True
-#args_cli.headless = True
+args_cli.headless = True
 
 # Clear out ``sys.argv`` for Hydra
 sys.argv = [sys.argv[0]] + hydra_args
@@ -75,7 +74,7 @@ def main(
     """Train with the custom M2oE runner and wrapper."""
 
     # Update configuration from CLI arguments
-    agent_cfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
+    agent_cfg = cli_args.update_m2oe_cfg(agent_cfg, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     agent_cfg.max_iterations = (
         args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg.max_iterations

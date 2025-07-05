@@ -2,8 +2,6 @@ from dataclasses import MISSING
 
 from isaaclab.utils import configclass
 
-from isaaclab.terrains.terrain_generator_cfg import SubTerrainBaseCfg
-from isaaclab.terrains.height_field import hf_terrains
 from isaaclab.terrains.height_field.hf_terrains_cfg import HfTerrainBaseCfg
 from .hf_terrains import wave_terrain
 

@@ -1,7 +1,6 @@
 from isaaclab.terrains.terrain_generator_cfg import TerrainGeneratorCfg
-from isaaclab.utils import configclass
-from isaaclab.terrains.height_field import HfTerrainBaseCfg
-from isaaclab.terrains.height_field import hf_terrains
+
+from .hf_terrains_cfg import HfWaveTerrainCfg
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
     size=(120.0, 120.0),

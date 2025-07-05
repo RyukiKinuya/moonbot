@@ -283,6 +283,7 @@ class IntegrationEventCfg:
                 func=mdp.reset_scene_to_default,
                 mode="reset",
             ))
+
             setattr(self, f"reset_positions_states_{asset_name}", EventTerm(
                 func=mdp.reset_root_state_random,
                 mode="reset",
@@ -297,7 +298,7 @@ class IntegrationEventCfg:
                     "pitch": (-0.5, 0.5),
                     "yaw": (-0.5, 0.5),
             },
-        },                
+        },
             ))
 
             setattr(self, f"base_external_force_{asset_name}", EventTerm(

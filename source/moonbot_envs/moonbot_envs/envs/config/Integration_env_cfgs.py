@@ -288,7 +288,7 @@ class IntegrationEventCfg:
                 mode="reset",
                 params={
                 "asset_cfg": SceneEntityCfg(asset_name),
-                "pose_range": {"z": (0.3, 0,3),"yaw": (-3.14, 3.14)},
+                "pose_range": {"z": (0.2, 0,2),"yaw": (-3.14, 3.14)},
                 "velocity_range": {
                     "x": (-0.5, 0.5),
                     "y": (-0.5, 0.5),

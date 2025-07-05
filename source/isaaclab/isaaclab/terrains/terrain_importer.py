@@ -343,7 +343,17 @@ class TerrainImporter:
         ).to(torch.long)
         # create tensor based on number of environments
         env_origins = torch.zeros(num_envs, 3, device=self.device)
-        env_origins[:] = origins[self.terrain_levels, self.terrain_types]
+        if origins.ndim == 4:
+            # origins: (num_rows, num_cols, num_height, 3)
+            num_heights = origins.shape[2]
+            for idx in range(num_envs):
+                lvl = self.terrain_levels[idx]
+                typ = self.terrain_types[idx]
+                
+                h = idx % num_heights
+                env_origins[idx] = origins[lvl, typ, h]
+        else:
+            env_origins[:] = origins[self.terrain_levels, self.terrain_types]
         return env_origins
 
     def _compute_env_origins_grid(self, num_envs: int, env_spacing: float) -> torch.Tensor:

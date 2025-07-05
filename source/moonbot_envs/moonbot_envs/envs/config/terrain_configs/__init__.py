@@ -1,1 +1,0 @@
-from .wave_terrains_cfg import WAVE_TERRAINS_CFG

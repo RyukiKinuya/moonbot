@@ -8,6 +8,7 @@ import torch
 
 from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
 from rsl_rl.env import VecEnv
+from M2oE.configs import morphology_configs
 
 
 class ModulerRobotEnvWrapper(VecEnv):
@@ -32,10 +33,12 @@ class ModulerRobotEnvWrapper(VecEnv):
         self.max_episode_length = self.unwrapped.max_episode_length
 
         self.num_actions = max(self.unwrapped.action_manager.group_action_dim.values())  # type: ignore
+        obs_dict, extras = self.get_observations()
+        morph_obs = {k: v for k, v in obs_dict.items() if "global" not in k}
         self.num_obs = max(
-            [obs_tensor[0] for obs_tensor in self.unwrapped.observation_manager.group_obs_dim.values()]  # type: ignore
+                [obs_tensor.shape[1] for obs_tensor in morph_obs.values()]
         )
-
+        self.num_global_obs = obs_dict.get(f"global_obs_{morphology_configs.morphology_list[0]}", torch.zeros(1)).shape[1]
         self.num_act_sum = sum(self.unwrapped.action_manager.group_action_dim.values())  # type: ignore
 
         # -- privileged observations

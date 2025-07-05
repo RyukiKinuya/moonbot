@@ -7,11 +7,10 @@ from isaaclab.assets import AssetBaseCfg
 
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 from isaaclab.assets import ArticulationCfg
 from isaaclab.terrains import TerrainImporterCfg
-from .terrain_configs.terrain_cfg import TRI_LEGGED_TERRAINS_CFG
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 from moonbot_envs.assets import *
 import moonbot_envs.envs.mdp as mdp
@@ -24,7 +23,7 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
 
-from moonbot_envs.envs.config.terrain_configs import WAVE_TERRAINS_CFG
+from moonbot_envs.custom_lab_envs.terrains.config.wave_terrains_cfg import WAVE_TERRAINS_CFG
 from M2oE.configs import morphology_configs
 
 @configclass
@@ -283,6 +282,7 @@ class IntegrationEventCfg:
                 func=mdp.reset_scene_to_default,
                 mode="reset",
             ))
+
             setattr(self, f"reset_positions_states_{asset_name}", EventTerm(
                 func=mdp.reset_root_state_random,
                 mode="reset",
@@ -297,7 +297,7 @@ class IntegrationEventCfg:
                     "pitch": (-0.5, 0.5),
                     "yaw": (-0.5, 0.5),
             },
-        },                
+        },
             ))
 
             setattr(self, f"base_external_force_{asset_name}", EventTerm(

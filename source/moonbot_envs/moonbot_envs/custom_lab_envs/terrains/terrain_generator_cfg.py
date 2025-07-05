@@ -144,6 +144,8 @@ class TerrainGeneratorCfg:
     num_cols: int = 1
     """Number of columns of sub-terrains to generate. Defaults to 1."""
 
+    num_height: int = 3
+
     color_scheme: Literal["height", "random", "none"] = "none"
     """Color scheme to use for the terrain. Defaults to "none".
 
@@ -181,7 +183,7 @@ class TerrainGeneratorCfg:
     configurations.
     """
 
-    difficulty_range: tuple[float, float] = (0.0, 1.0)
+    difficulty_range: tuple[float, float] = (0.0, 0.0)
     """The range of difficulty values for the sub-terrains. Defaults to (0.0, 1.0).
 
     If curriculum is enabled, the terrains will be generated based on this range in ascending order

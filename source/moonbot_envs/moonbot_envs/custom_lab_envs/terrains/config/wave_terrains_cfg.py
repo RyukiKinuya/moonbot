@@ -3,14 +3,16 @@ from isaaclab.terrains.terrain_generator_cfg import TerrainGeneratorCfg
 from .hf_terrains_cfg import HfWaveTerrainCfg
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
-    size=(120.0, 120.0),
-    border_width=20.0,
+    size=(50.0, 50.0),
+    border_width=00.0,
     num_rows=1,
     num_cols=1,
+    num_height=3,
     horizontal_scale=0.1,
     vertical_scale=0.005,
     slope_threshold=0.75,
     use_cache=False,
+    curriculum=False,
     sub_terrains={
         # "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
         #     proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25

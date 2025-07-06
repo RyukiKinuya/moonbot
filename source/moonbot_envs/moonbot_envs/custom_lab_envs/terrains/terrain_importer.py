@@ -17,10 +17,10 @@ from isaaclab.markers import VisualizationMarkers
 from isaaclab.markers.config import FRAME_MARKER_CFG
 
 from .terrain_generator import TerrainGenerator
-from .utils import create_prim_from_mesh
+from isaaclab.terrains.utils import create_prim_from_mesh
 
 if TYPE_CHECKING:
-    from .terrain_importer_cfg import TerrainImporterCfg
+    from isaaclab.terrains.terrain_generator_cfg import TerrainGeneratorCfg
 
 
 class TerrainImporter:
@@ -349,7 +349,7 @@ class TerrainImporter:
             for idx in range(num_envs):
                 lvl = self.terrain_levels[idx]
                 typ = self.terrain_types[idx]
-                
+
                 h = idx % num_heights
                 env_origins[idx] = origins[lvl, typ, h]
         else:

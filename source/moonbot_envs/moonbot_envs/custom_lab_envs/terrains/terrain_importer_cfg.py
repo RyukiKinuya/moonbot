@@ -1,7 +1,7 @@
 import isaaclab.terrains as terrain_gen
 
 from isaaclab.terrains import TerrainGeneratorCfg
-from .mesh_terrains_cfg import MeshMoonSimTerrainCfg
+from .config.mesh_terrains_cfg import MeshMoonSimTerrainCfg
 
 
 TRI_LEGGED_TERRAINS_CFG = TerrainGeneratorCfg(

@@ -3,7 +3,7 @@ from dataclasses import MISSING
 from isaaclab.utils import configclass
 
 from isaaclab.terrains.height_field.hf_terrains_cfg import HfTerrainBaseCfg
-from .hf_terrains import wave_terrain
+from moonbot_envs.custom_lab_envs.terrains.height_field.hf_terrains import wave_terrain
 
 
 @configclass

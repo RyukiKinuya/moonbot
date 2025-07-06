@@ -1,7 +1,7 @@
 from dataclasses import MISSING
 from typing import Literal
 
-from .mesh_terrains import *
+from moonbot_envs.custom_lab_envs.terrains.mesh.mesh_terrains import moon_sim_terrain
 from isaaclab.utils import configclass
 
 from isaaclab.terrains.terrain_generator_cfg import SubTerrainBaseCfg

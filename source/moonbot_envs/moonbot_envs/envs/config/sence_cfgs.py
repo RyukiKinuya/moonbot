@@ -11,9 +11,9 @@ from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 from isaaclab.assets import ArticulationCfg
 from isaaclab.terrains import TerrainImporterCfg
-from .terrain_configs.terrain_cfg import TRI_LEGGED_TERRAINS_CFG
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 from moonbot_envs.assets import *
+from moonbot_envs.custom_lab_envs.terrains.terrain_importer_cfg import TRI_LEGGED_TERRAINS_CFG
 
 @configclass
 class TriLeggedManipulateSceneCfg(InteractiveSceneCfg):

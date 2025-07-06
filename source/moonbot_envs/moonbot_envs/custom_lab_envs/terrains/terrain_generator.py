@@ -10,10 +10,10 @@ from isaaclab.utils.io import dump_yaml
 from isaaclab.utils.timer import Timer
 from isaaclab.utils.warp import convert_to_warp_mesh
 
-from .height_field import HfTerrainBaseCfg
+from isaaclab.terrains.height_field import HfTerrainBaseCfg
 from .terrain_generator_cfg import FlatPatchSamplingCfg, SubTerrainBaseCfg, TerrainGeneratorCfg
-from .trimesh.utils import make_border
-from .utils import color_meshes_by_height, find_flat_patches
+from isaaclab.terrains.trimesh.utils import make_border
+from isaaclab.terrains.utils import color_meshes_by_height, find_flat_patches
 
 
 class TerrainGenerator:
@@ -295,7 +295,7 @@ class TerrainGenerator:
         self.terrain_meshes.append(mesh)
         # add origin to the list
         self.terrain_origins[row, col, hig] = origin + transform[:3, -1]
-        
+
 
     def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray]:
         """Generate a sub-terrain mesh based on the input difficulty parameter.

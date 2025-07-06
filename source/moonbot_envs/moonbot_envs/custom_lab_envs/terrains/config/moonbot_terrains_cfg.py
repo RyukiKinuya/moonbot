@@ -1,10 +1,10 @@
 import isaaclab.terrains as terrain_gen
 
 from isaaclab.terrains import TerrainGeneratorCfg
-from .config.mesh_terrains_cfg import MeshMoonSimTerrainCfg
+from .mesh_terrains_cfg import MeshMoonSimTerrainCfg
 
 
-TRI_LEGGED_TERRAINS_CFG = TerrainGeneratorCfg(
+MOONBOT_TERRAIN_CFG = TerrainGeneratorCfg(
     size=(3.2,  12.2),
     curriculum=False,
     num_rows=25,

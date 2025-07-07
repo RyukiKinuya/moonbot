@@ -2,7 +2,8 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import torch
 from collections.abc import Sequence
 from typing import Any
@@ -26,7 +27,7 @@ from isaaclab.assets import (
     RigidObjectCollectionCfg,
 )
 from isaaclab.sensors import ContactSensorCfg, FrameTransformerCfg, SensorBase, SensorBaseCfg
-from isaaclab.terrains import TerrainImporter, TerrainImporterCfg
+#from isaaclab.terrains import TerrainImporter, TerrainImporterCfg
 
 from .interactive_scene_cfg import InteractiveSceneCfg
 
@@ -641,6 +642,7 @@ class InteractiveScene:
             if hasattr(asset_cfg, "prim_path"):
                 asset_cfg.prim_path = asset_cfg.prim_path.format(ENV_REGEX_NS=self.env_regex_ns)
             # create asset
+            from moonbot_envs.custom_lab_envs.terrains import TerrainImporter, TerrainImporterCfg
             if isinstance(asset_cfg, TerrainImporterCfg):
                 # terrains are special entities since they define environment origins
                 asset_cfg.num_envs = self.cfg.num_envs

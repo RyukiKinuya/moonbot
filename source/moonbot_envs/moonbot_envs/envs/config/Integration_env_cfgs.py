@@ -10,7 +10,6 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 from isaaclab.assets import ArticulationCfg
-from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 from moonbot_envs.assets import *
 import moonbot_envs.envs.mdp as mdp
@@ -24,6 +23,7 @@ from isaaclab.managers import SceneEntityCfg
 from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
 
 from moonbot_envs.custom_lab_envs.terrains.config.wave_terrains_cfg import WAVE_TERRAINS_CFG
+from moonbot_envs.custom_lab_envs.terrains.terrain_importer_cfg import TerrainImporterCfg
 from M2oE.configs import morphology_configs
 
 @configclass

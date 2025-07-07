@@ -32,7 +32,7 @@ def reset_root_state_random(
         env_origins = env.scene.env_origins[env_ids]
 
         xy_rand = torch.empty((len(env_ids), 2), device=asset.device)
-        xy_rand.uniform_(-half_size, half_size)
+        xy_rand.uniform_(-0.9*half_size, 0.9*half_size)
 
         rot_range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["roll", "pitch", "yaw"]]
         rot_ranges = torch.tensor(rot_range_list, device=asset.device)

@@ -27,7 +27,7 @@ def reset_root_state_random(
         terrain_size = terrain.cfg.terrain_generator.size[0]
         half_size = terrain_size / 2
 
-        z_base_offset = list(np.arange(0, half_size * len(morphology_configs.morphology_list) + 1e-6, half_size))
+        z_base_offset = list(np.arange(-terrain_size, terrain_size * (len(morphology_configs.morphology_list) - 1) + 1e-6, terrain_size))
 
         env_origins = env.scene.env_origins[env_ids]
 

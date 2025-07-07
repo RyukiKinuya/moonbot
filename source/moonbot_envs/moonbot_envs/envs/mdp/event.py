@@ -27,12 +27,12 @@ def reset_root_state_random(
         terrain_size = terrain.cfg.terrain_generator.size[0]
         half_size = terrain_size / 2
 
-        z_base_offset = list(np.arange(0, half_size * len(morphology_configs.morphology_list) + 1e-6, half_size))
+        z_base_offset = list(np.arange(-terrain_size, terrain_size * (len(morphology_configs.morphology_list) - 2) + 1e-6, terrain_size))
 
         env_origins = env.scene.env_origins[env_ids]
 
         xy_rand = torch.empty((len(env_ids), 2), device=asset.device)
-        xy_rand.uniform_(-half_size, half_size)
+        xy_rand.uniform_(-0.9*half_size, 0.9*half_size)
 
         rot_range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["roll", "pitch", "yaw"]]
         rot_ranges = torch.tensor(rot_range_list, device=asset.device)

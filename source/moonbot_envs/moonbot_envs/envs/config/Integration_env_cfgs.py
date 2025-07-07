@@ -271,7 +271,7 @@ class IntegrationEventCfg:
             func=mdp.reset_root_state_random,
             mode="reset",
             params={
-            "pose_range": {"z": (0.2, 0,2),"yaw": (-3.14, 3.14)},
+            "pose_range": {"z": (0.1, 0,1),"yaw": (-3.14, 3.14)},
             "velocity_range": {
                 "x": (-0.5, 0.5),
                 "y": (-0.5, 0.5),

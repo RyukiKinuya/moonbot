@@ -2,7 +2,7 @@ from moonbot_envs.custom_lab_envs.terrains.terrain_generator_cfg import TerrainG
 from .hf_terrains_cfg import HfWaveTerrainCfg
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
-    size=(50.0, 50.0),
+    size=(50.0, 50.0, 15.0),
     border_width=00.0,
     num_rows=1,
     num_cols=1,

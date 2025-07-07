@@ -125,7 +125,7 @@ class TerrainGeneratorCfg:
     they are randomly generated.
     """
 
-    size: tuple[float, float] = MISSING
+    size: tuple[float, float, float] = MISSING
     """The width (along x) and length (along y) of each sub-terrain (in m).
 
     Note:

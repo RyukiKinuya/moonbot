@@ -304,9 +304,15 @@ class IntegrationEventCfg:
                 },
             ))
 
-
-
-
+            setattr(self, f"reset_joints_{asset_name}", EventTerm(
+                func=mdp.reset_joints_by_scale,
+                mode="reset",
+                params={
+                    "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
+                    "position_range": (-0.5, 0.5),
+                    "velocity_range": (-0.5, 0.5),
+                }
+            ))
 
 @configclass
 class IntegrationCurriculumCfg:

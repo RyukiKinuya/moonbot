@@ -141,7 +141,7 @@ class TerrainGenerator:
         # offset the entire terrain and origins so that it is centered
         # -- terrain mesh
         transform = np.eye(4)
-        transform[:3, -1] = -self.cfg.size[0] * self.cfg.num_rows * 0.5, -self.cfg.size[1] * self.cfg.num_cols * 0.5, -self.cfg.size[1] * self.cfg.num_height * 0.5
+        transform[:3, -1] = -self.cfg.size[0] * self.cfg.num_rows * 0.5, -self.cfg.size[1] * self.cfg.num_cols * 0.5, -self.cfg.size[2] * self.cfg.num_height * 0.5
         self.terrain_mesh.apply_transform(transform)
         # -- terrain origins
         self.terrain_origins += transform[:3, -1]

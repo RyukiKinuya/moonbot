@@ -267,7 +267,23 @@ class IntegrationTerminationCfg:
 @configclass
 class IntegrationEventCfg:
     def __init__(self):
-        for asset_name in ["moonbot_minimal", "moonbot_dragon", "moonbot_full"]:
+        setattr(self, "reset_base", EventTerm(
+            func=mdp.reset_root_state_random,
+            mode="reset",
+            params={
+            "pose_range": {"z": (0.2, 0,2),"yaw": (-3.14, 3.14)},
+            "velocity_range": {
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "z": (-0.5, 0.5),
+                "roll": (-0.5, 0.5),
+                "pitch": (-0.5, 0.5),
+                "yaw": (-0.5, 0.5),
+                },
+            },
+        ))
+
+        for asset_name in morphology_configs.morphology_list:
             setattr(self, f"base_mass_randomize_{asset_name}", EventTerm(
                 func=mdp.randomize_rigid_body_mass,
                 mode="startup",
@@ -276,28 +292,6 @@ class IntegrationEventCfg:
                     "mass_distribution_params": (-5.0, 5.0),
                     "operation": "add",
                 },
-            ))
-
-            setattr(self, f"reset_robots_{asset_name}", EventTerm(
-                func=mdp.reset_scene_to_default,
-                mode="reset",
-            ))
-
-            setattr(self, f"reset_positions_states_{asset_name}", EventTerm(
-                func=mdp.reset_root_state_random,
-                mode="reset",
-                params={
-                "asset_cfg": SceneEntityCfg(asset_name),
-                "pose_range": {"z": (0.2, 0,2),"yaw": (-3.14, 3.14)},
-                "velocity_range": {
-                    "x": (-0.5, 0.5),
-                    "y": (-0.5, 0.5),
-                    "z": (-0.5, 0.5),
-                    "roll": (-0.5, 0.5),
-                    "pitch": (-0.5, 0.5),
-                    "yaw": (-0.5, 0.5),
-            },
-        },
             ))
 
             setattr(self, f"base_external_force_{asset_name}", EventTerm(
@@ -309,6 +303,8 @@ class IntegrationEventCfg:
                     "torque_range": (-0.0, 0.0),
                 },
             ))
+
+
 
 
 

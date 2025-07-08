@@ -67,7 +67,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(-1.0, 1.0, 1.0),
+            pos=(-1.0, 1.0, 0.4),
             joint_pos={
                 ".*": 0.0,
             },
@@ -76,7 +76,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, -1.0, 1.0),
+            pos=(0.0, -1.0, 0.5),
             joint_pos={
                 ".*": 0.0,
             },
@@ -259,6 +259,13 @@ class IntegrationTerminationCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
     )
+    bad_orientation = DoneTerm(
+        func=mdp.bad_orientation,  
+        params={
+            "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),
+            "limit_angle": 0.1,
+        },
+    )
     base_contact_full = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base_link"), "threshold": 8.0}
@@ -271,7 +278,7 @@ class IntegrationEventCfg:
             func=mdp.reset_root_state_random,
             mode="reset",
             params={
-            "pose_range": {"z": (0.1, 0,1),"yaw": (-3.14, 3.14)},
+            "pose_range": {"z": (0.00, 0.00),"yaw": (-3.14, 3.14)},
             "velocity_range": {
                 "x": (-0.5, 0.5),
                 "y": (-0.5, 0.5),
@@ -289,7 +296,7 @@ class IntegrationEventCfg:
                 mode="startup",
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
-                    "mass_distribution_params": (-5.0, 5.0),
+                    "mass_distribution_params": (-3.0, 3.0),
                     "operation": "add",
                 },
             ))

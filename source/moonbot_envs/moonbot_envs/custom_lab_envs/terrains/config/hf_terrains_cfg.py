@@ -2,8 +2,27 @@ from dataclasses import MISSING
 
 from isaaclab.utils import configclass
 
-from isaaclab.terrains.height_field.hf_terrains_cfg import HfTerrainBaseCfg
+from moonbot_envs.custom_lab_envs.terrains.terrain_generator_cfg import SubTerrainBaseCfg
 from moonbot_envs.custom_lab_envs.terrains.height_field.hf_terrains import wave_terrain
+
+@configclass
+class HfTerrainBaseCfg(SubTerrainBaseCfg):
+    """The base configuration for height field terrains."""
+
+    border_width: float = 0.0
+    """The width of the border/padding around the terrain (in m). Defaults to 0.0.
+
+    The border width is subtracted from the :obj:`size` of the terrain. If non-zero, it must be
+    greater than or equal to the :obj:`horizontal scale`.
+    """
+    horizontal_scale: float = 0.1
+    """The discretization of the terrain along the x and y axes (in m). Defaults to 0.1."""
+    vertical_scale: float = 0.005
+    """The discretization of the terrain along the z axis (in m). Defaults to 0.005."""
+    slope_threshold: float | None = None
+    """The slope threshold above which surfaces are made vertical. Defaults to None,
+    in which case no correction is applied."""
+
 
 
 @configclass

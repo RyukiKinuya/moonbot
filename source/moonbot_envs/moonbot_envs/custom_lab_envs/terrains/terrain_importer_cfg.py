@@ -18,6 +18,49 @@ if TYPE_CHECKING:
 
 
 @configclass
+class SubTerrainBaseCfg:
+    """Base class for terrain configurations.
+
+    All the sub-terrain configurations must inherit from this class.
+
+    The :attr:`size` attribute is the size of the generated sub-terrain. Based on this, the terrain must
+    extend from :math:`(0, 0)` to :math:`(size[0], size[1])`.
+    """
+
+    function: Callable[[float, SubTerrainBaseCfg], tuple[list[trimesh.Trimesh], np.ndarray, np.ndarray]] = MISSING
+    """Function to generate the terrain.
+
+    This function must take as input the terrain difficulty and the configuration parameters and
+    return a tuple with a list of ``trimesh`` mesh objects and the terrain origin.
+    """
+
+    proportion: float = 1.0
+    """Proportion of the terrain to generate. Defaults to 1.0.
+
+    This is used to generate a mix of terrains. The proportion corresponds to the probability of sampling
+    the particular terrain. For example, if there are two terrains, A and B, with proportions 0.3 and 0.7,
+    respectively, then the probability of sampling terrain A is 0.3 and the probability of sampling terrain B
+    is 0.7.
+    """
+
+    size: tuple[float, float] = (10.0, 10.0)
+    """The width (along x) and length (along y) of the terrain (in m). Defaults to (10.0, 10.0).
+
+    In case the :class:`~isaaclab.terrains.TerrainImporterCfg` is used, this parameter gets overridden by
+    :attr:`isaaclab.scene.TerrainImporterCfg.size` attribute.
+    """
+
+    flat_patch_sampling: dict[str, FlatPatchSamplingCfg] | None = None
+    """Dictionary of configurations for sampling flat patches on the sub-terrain. Defaults to None,
+    in which case no flat patch sampling is performed.
+
+    The keys correspond to the name of the flat patch sampling configuration and the values are the
+    corresponding configurations.
+    """
+
+
+
+@configclass
 class TerrainImporterCfg:
     """Configuration for the terrain manager."""
 

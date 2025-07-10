@@ -26,11 +26,15 @@ def reset_root_state_random(
 
         terrain_size = terrain.cfg.terrain_generator.size[2]
         half_size = terrain_size / 2
+        z_map = terrain.terrain_generator.sub_terrain_heights[i]
+        
+        vertical_scale = terrain.cfg.terrain_generator.vertical_scale
 
         z_base_offset = list(np.arange(-terrain_size, terrain_size * (len(morphology_configs.morphology_list) - 2) + 1e-6, terrain_size))
 
-        env_origins = env.scene.env_origins[env_ids]
 
+        env_origins = env.scene.env_origins[env_ids]
+        
         xy_rand = torch.empty((len(env_ids), 2), device=asset.device)
         xy_rand.uniform_(-0.9*half_size, 0.9*half_size)
 
@@ -40,14 +44,11 @@ def reset_root_state_random(
             rot_ranges[:, 0], rot_ranges[:, 1], (len(env_ids), 3), device=asset.device
         )
 
-        z_range = pose_range.get("z", (0.0, 0.0))
-        z_rand = math_utils.sample_uniform(
-            z_range[0], z_range[1], (len(env_ids), 1), device=asset.device
-        )
         positions_xy = env_origins[:, :2] + xy_rand
 
-        positions_z = root_states[:, 2:3] + z_rand + z_base_offset[i % len(z_base_offset)]
+        z_query = query_terrain_heights(positions_xy, z_map, vertical_scale, terrain.cfg.terrain_generator)
 
+        positions_z = root_states[:, 2:3] + z_query + z_base_offset[i % len(z_base_offset)]
         positions = torch.cat([positions_xy, positions_z], dim=1)
 
         orientations_delta = math_utils.quat_from_euler_xyz(
@@ -63,3 +64,21 @@ def reset_root_state_random(
         # set into the physics simulation
         asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
         asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
+
+
+def query_terrain_heights(xy_tensor, z_map, vertical_scale, terrain_cfg) -> torch.Tensor:
+    z_map = torch.from_numpy(z_map).to(xy_tensor.device)
+
+    x_shift = terrain_cfg.size[0] / 2.0
+    y_shift = terrain_cfg.size[1] / 2.0
+
+    x_pix = ((xy_tensor[:, 0] + x_shift) / terrain_cfg.horizontal_scale)
+    y_pix = ((xy_tensor[:, 1] + y_shift) / terrain_cfg.horizontal_scale)
+
+    i = torch.clamp(x_pix.round().long(), 0, z_map.shape[0] - 1)
+    j = torch.clamp(y_pix.round().long(), 0, z_map.shape[1] - 1)
+
+    z_pixel = z_map[i, j]
+    z = z_pixel * vertical_scale
+    return z.unsqueeze(-1)  
+

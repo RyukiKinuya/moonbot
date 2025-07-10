@@ -84,12 +84,12 @@ class TerrainImporter:
             if self.cfg.terrain_generator is None:
                 raise ValueError("Input terrain type is 'generator' but no value provided for 'terrain_generator'.")
             # generate the terrain
-            terrain_generator = TerrainGenerator(cfg=self.cfg.terrain_generator, device=self.device)
-            self.import_mesh("terrain", terrain_generator.terrain_mesh)
+            self.terrain_generator = TerrainGenerator(cfg=self.cfg.terrain_generator, device=self.device)
+            self.import_mesh("terrain", self.terrain_generator.terrain_mesh)
             # configure the terrain origins based on the terrain generator
-            self.configure_env_origins(terrain_generator.terrain_origins)
+            self.configure_env_origins(self.terrain_generator.terrain_origins)
             # refer to the flat patches
-            self._terrain_flat_patches = terrain_generator.flat_patches
+            self._terrain_flat_patches = self.terrain_generator.flat_patches
         elif self.cfg.terrain_type == "usd":
             # check if config is provided
             if self.cfg.usd_path is None:

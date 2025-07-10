@@ -174,7 +174,7 @@ class TerrainGenerator:
         # create a list of all terrain configs
         sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
         # create a buffer to store sub-terrain height using list
-        self.sub_terrain_heights = dict()
+        self.sub_terrain_heights = [] 
 
         # randomly sample sub-terrains
         for index in range(self.cfg.num_rows * self.cfg.num_cols * self.cfg.num_height):
@@ -186,7 +186,7 @@ class TerrainGenerator:
             difficulty = self.np_rng.uniform(*self.cfg.difficulty_range)
             # generate terrain
             mesh, origin, heights= self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-            self.sub_terrain_heights[origin] = heights
+            self.sub_terrain_heights.append(heights)
             # add to sub-terrains
             self._add_sub_terrain(mesh, origin, sub_row, sub_col,sub_hig, sub_terrains_cfgs[sub_index])
 

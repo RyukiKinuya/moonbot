@@ -58,7 +58,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.0),
+            pos=(0.0, 0.0, 0.3),
             joint_pos={
                 ".*": 0.0,
             },
@@ -67,7 +67,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.0),
+            pos=(0.0, 0.0, 0.4),
             joint_pos={
                 ".*": 0.0,
             },
@@ -76,7 +76,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.0),
+            pos=(0.0, 0.0, 0.6),
             joint_pos={
                 ".*": 0.0,
             },

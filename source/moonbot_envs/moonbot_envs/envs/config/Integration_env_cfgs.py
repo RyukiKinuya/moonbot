@@ -266,6 +266,13 @@ class IntegrationRewardCfg:
             )
 
             self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.01, params={"asset_cfg": asset_cfg})
+
+            if asset_cfg.name == "moonbot_full":
+                self.base_height = RewTerm(
+                    func=mdp.base_height_l2,
+                    weight=-0.5,
+                    params={"asset_cfg": asset_cfg, "target_height": 0.5, "sensor_cfg": SceneEntityCfg(f"height_scanner_{asset_cfg.name}")},
+                )
             
             # self.bad_wheel_orientation = RewTerm(
             #     func=mdp.bad_wheel_orientation,

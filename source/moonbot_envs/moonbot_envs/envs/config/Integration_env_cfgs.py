@@ -7,7 +7,7 @@ from isaaclab.assets import AssetBaseCfg
 
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 from isaaclab.assets import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
@@ -28,64 +28,68 @@ from M2oE.configs import morphology_configs
 
 @configclass
 class IntegrationSceneCfg(InteractiveSceneCfg):
-    ground = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="generator",
-        terrain_generator=WAVE_TERRAINS_CFG,
-        max_init_terrain_level= 1,
-        collision_group=-1,
-        physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="multiply",
-            restitution_combine_mode="multiply",
-            static_friction=1.0,
-            dynamic_friction=1.0,
-        ),
-        visual_material=sim_utils.MdlFileCfg(
-            mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
-            project_uvw=True,
-            texture_scale=(0.25, 0.25),
-        ),
-        debug_vis=False,
-    )
+    def __init__(self, num_envs: int = 4096, env_spacing: float = 10.0):
+        super().__init__(num_envs=num_envs, env_spacing=env_spacing)
 
-    sky_light = AssetBaseCfg(
-        prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=750.0,
-            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
-        ),
-    )
+        # init ground and skey light
+        setattr(self, "ground", TerrainImporterCfg(
+            prim_path="/World/ground",
+            terrain_type="generator",
+            terrain_generator=WAVE_TERRAINS_CFG,
+            max_init_terrain_level= 1,
+            collision_group=-1,
+            physics_material=sim_utils.RigidBodyMaterialCfg(
+                friction_combine_mode="multiply",
+                restitution_combine_mode="multiply",
+                static_friction=1.0,
+                dynamic_friction=1.0,
+            ),
+            visual_material=sim_utils.MdlFileCfg(
+                mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
+                project_uvw=True,
+                texture_scale=(0.25, 0.25),
+            ),
+            debug_vis=False,
+        ))
 
-    moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal").replace(
-        init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.3),
-            joint_pos={
-                ".*": 0.0,
-            },
-        )
-    )
+        setattr(self, "light", AssetBaseCfg(
+            prim_path="/World/skyLight",
+            spawn=sim_utils.DomeLightCfg(
+                intensity=750.0,
+                texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+            ),
+        ))
 
-    moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon").replace(
-        init_state=ArticulationCfg.InitialStateCfg(
-            pos=(-1.0, 1.0, 0.4),
-            joint_pos={
-                ".*": 0.0,
-            },
-        )
-    )
+        for asset_name in morphology_configs.morphology_list:
+            # asset config
+            setattr(self, f"{asset_name}", morphology_configs.morphology_asset_cfg[asset_name]
+                .replace(prim_path="{ENV_REGEX_NS}/"+asset_name).replace(
+                    init_state= ArticulationCfg.InitialStateCfg(
+                        pos=morphology_configs.morphology_asset_init_state[asset_name]["base_position"],
+                        joint_pos={
+                            ".*": 0.0,
+                        },
+                )
+            ))
 
-    moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full").replace(
-        init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, -1.0, 0.5),
-            joint_pos={
-                ".*": 0.0,
-            },
-        )
-    )
+            # contact_sensor config
+            setattr(self, f"contact_forces_{asset_name}", ContactSensorCfg(
+                prim_path="{ENV_REGEX_NS}/" + asset_name + "/.*",
+                history_length=3,
+                track_air_time=True,
+            ))
 
-    contact_forces_moonbot_minimal = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/minimal/.*", history_length=3, track_air_time=True)
-    contact_forces_moonbot_dragon = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/dragon/.*", history_length=3, track_air_time=True)
-    contact_forces_moonbot_full = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/full/.*", history_length=3, track_air_time=True)
+            # height scanner
+            setattr(self, f"height_scanner_{asset_name}", RayCasterCfg(
+                prim_path="{ENV_REGEX_NS}/" + asset_name + "/" + morphology_configs.base_link_name_dict[asset_name],
+                offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+                attach_yaw_only=True,
+                pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[0.05, 0.05]),
+                debug_vis=False,
+                mesh_prim_paths=["/World/ground"],
+            ))
+
+
 
 @configclass
 class IntegrationObsCfg:
@@ -152,15 +156,15 @@ class IntegrationActCfg:
                     use_default_offset=True,)
                 setattr(self, wheel_action_name, wheel_action_term)
 
-    act_minimal: MoonbotActCfg = MoonbotActCfg(
+    act_moonbot_minimal: MoonbotActCfg = MoonbotActCfg(
         asset_name="moonbot_minimal",
         num_morphologies=1
     )
-    act_dragon: MoonbotActCfg = MoonbotActCfg(
+    act_moonbot_dragon: MoonbotActCfg = MoonbotActCfg(
         asset_name="moonbot_dragon",
         num_morphologies=2
     )
-    act_full: MoonbotActCfg = MoonbotActCfg(
+    act_moonbot_full: MoonbotActCfg = MoonbotActCfg(
         asset_name="moonbot_full",
         num_morphologies=3
     )
@@ -242,12 +246,12 @@ class IntegrationRewardCfg:
                 params={"asset_cfg": asset_cfg},
             )
             #------------------------------------------Negitive Rewards------------------------------------------
+
             self.undesired_contacts = RewTerm(
                 func=mdp.undesired_contacts,
                 weight=-0.5,
                 params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
             )
-
 
             # self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight = -2.0, params={"asset_cfg": asset_cfg})
             
@@ -258,8 +262,10 @@ class IntegrationRewardCfg:
             self.power = RewTerm(func=mdp.joint_power, weight = -2e-4, params={"asset_cfg": asset_cfg})
             
             self.dof_vel_l2 = RewTerm(
-            func=mdp.joint_vel_l2, weight = -0.005, params={"asset_cfg": asset_cfg}
+                func=mdp.joint_vel_l2, weight = -0.005, params={"asset_cfg": asset_cfg}
             )
+
+            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.01, params={"asset_cfg": asset_cfg})
             
             # self.bad_wheel_orientation = RewTerm(
             #     func=mdp.bad_wheel_orientation,

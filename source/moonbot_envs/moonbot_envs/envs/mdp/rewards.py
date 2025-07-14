@@ -13,6 +13,8 @@ from isaaclab.assets import Articulation
 from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, matrix_from_quat, quat_error_magnitude, combine_frame_transforms, quat_error_magnitude, quat_mul
 import numpy as np
 import math
+
+from moonbot_envs.custom_lab_envs.custom_rl_env import CustomManagerBasedRLEnv
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
@@ -655,3 +657,27 @@ def bad_wheel_orientation(
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
     return torch.acos(-asset.data.projected_gravity_b[:, 2]).abs()
+
+def joint_power(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Reward joint_power"""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # compute the reward
+    reward = torch.sum(
+        torch.abs(asset.data.joint_vel[:, asset_cfg.joint_ids] * asset.data.applied_torque[:, asset_cfg.joint_ids]),
+        dim=1,
+    )
+    return reward
+
+def action_rate_modular(env: CustomManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Reward action rate"""
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    group_key = "act_" + asset_cfg.name
+
+    action_dict_now = env.action_manager.action[group_key]
+    action_dict_prev = env.action_manager.prev_action[group_key]
+
+    reward = torch.sum(torch.square(action_dict_now - action_dict_prev), dim=1)
+
+    return reward

@@ -1,8 +1,32 @@
+from moonbot_envs.assets.moonbot import UNI_LEGGED_MOONBOT_CFG, DRAGON_MOONBOT_CFG, TRI_LEGGED_MOONBOT_CFG
+
 morphology_list = [
     "moonbot_minimal",
     "moonbot_dragon",
     "moonbot_full",
 ]
+
+morphology_asset_cfg = {
+    "moonbot_minimal": UNI_LEGGED_MOONBOT_CFG,
+    "moonbot_dragon": DRAGON_MOONBOT_CFG,
+    "moonbot_full": TRI_LEGGED_MOONBOT_CFG,
+}
+
+morphology_asset_init_state = {
+    "moonbot_minimal": {
+        "base_position": [0.0, 0.0, 0.4],
+        "base_orientation": [0.0, 0.0, 0.0, 1.0],
+    },
+    "moonbot_dragon": {
+        "base_position": [0.0, 0.0, 0.4],
+        "base_orientation": [0.0, 0.0, 0.0, 1.0],
+    },
+    "moonbot_full": {
+        "base_position": [0.0, 0.0, 0.5],
+        "base_orientation": [0.0, 0.0, 0.0, 1.0],
+    },
+}
+
 
 wheel_link_name_dict = {
     "moonbot_minimal": [

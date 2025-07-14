@@ -67,7 +67,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_dragon  = DRAGON_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/dragon").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.4),
+            pos=(-1.0, 1.0, 0.4),
             joint_pos={
                 ".*": 0.0,
             },
@@ -76,7 +76,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_full = TRI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/full").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(0.0, 0.0, 0.6),
+            pos=(0.0, -1.0, 0.5),
             joint_pos={
                 ".*": 0.0,
             },
@@ -176,7 +176,7 @@ class IntegrationCmdCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-3.14, 3.14), heading=(0.0, 0.0)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
         ),
     )
 
@@ -189,7 +189,7 @@ class IntegrationCmdCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-3.14, 3.14), heading=(0.0, 0.0)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
         ),
     )
 
@@ -202,7 +202,7 @@ class IntegrationCmdCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-3.14, 3.14), heading=(0.0, 0.0)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
         ),
     )
 
@@ -213,7 +213,7 @@ class IntegrationRewardCfg:
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
             self.track_lin_vel_xy_exp = RewTerm(
-                func=mdp.track_lin_vel_xy_exp, weight=3.5, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                func=mdp.track_lin_vel_xy_exp, weight=4.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.track_ang_vel_z_exp = RewTerm(
@@ -222,26 +222,49 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=1.0,
+                weight=1.5,
                 params={"asset_cfg": asset_cfg},
             )
 
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=1.0,
+                weight=2.5,
             )
+            
+            self.wheel_angular_vel = RewTerm( func = mdp.wheel_ang_velocity_reward,
+                weight = 3.0,
+                params={"asset_cfg": asset_cfg},)
 
-            self.undesired_contacts = RewTerm(
-                func=mdp.undesired_contacts,
-                weight=-0.5,
-                params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
-            )
 
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
                 weight=1.0,
                 params={"asset_cfg": asset_cfg},
             )
+            #------------------------------------------Negitive Rewards------------------------------------------
+            self.undesired_contacts = RewTerm(
+                func=mdp.undesired_contacts,
+                weight=-0.5,
+                params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
+            )
+
+
+            # self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight = -2.0, params={"asset_cfg": asset_cfg})
+            
+            self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight = -0.1, params={"asset_cfg": asset_cfg})
+            
+            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight = -3e-6, params={"asset_cfg": asset_cfg})
+            
+            self.power = RewTerm(func=mdp.joint_power, weight = -2e-4, params={"asset_cfg": asset_cfg})
+            
+            self.dof_vel_l2 = RewTerm(
+            func=mdp.joint_vel_l2, weight = -0.005, params={"asset_cfg": asset_cfg}
+            )
+            
+            # self.bad_wheel_orientation = RewTerm(
+            #     func=mdp.bad_wheel_orientation,
+            #     weight = -2.0, params={
+            #     "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),})
 
 
     reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
@@ -259,6 +282,13 @@ class IntegrationTerminationCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
     )
+    # bad_orientation = DoneTerm(
+    #     func=mdp.bad_orientation,  
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),
+    #         "limit_angle": 0.1,
+    #     },
+    # )
     base_contact_full = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base_link"), "threshold": 8.0}
@@ -271,7 +301,7 @@ class IntegrationEventCfg:
             func=mdp.reset_root_state_random,
             mode="reset",
             params={
-            "pose_range": {"z": (0.1, 0,1),"yaw": (-3.14, 3.14)},
+            "pose_range": {"z": (0.05, 0.10),"yaw": (-3.14, 3.14)},
             "velocity_range": {
                 "x": (-0.5, 0.5),
                 "y": (-0.5, 0.5),
@@ -289,7 +319,7 @@ class IntegrationEventCfg:
                 mode="startup",
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
-                    "mass_distribution_params": (-5.0, 5.0),
+                    "mass_distribution_params": (-3.0, 3.0),
                     "operation": "add",
                 },
             ))
@@ -335,7 +365,7 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
 
     def __post_init__(self):
         self.decimation = 4
-        self.episode_length_s = 10.0
+        self.episode_length_s = 20.0
         self.viewer.eye = (3.5, 3.5, 3.5)
 
         self.sim.dt = 0.005

@@ -11,7 +11,7 @@ class M2oE_Cfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_num_modules = 3
     max_iterations = 200000
-    save_interval = 200
+    save_interval = 100
     experiment_name = "MoonBot_locomotion"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(

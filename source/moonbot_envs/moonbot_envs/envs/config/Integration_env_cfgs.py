@@ -110,7 +110,7 @@ class IntegrationObsCfg:
     class GlobalCfg(ObsGroup):
         def __init__(self, asset_cfg: SceneEntityCfg = SceneEntityCfg("moonbot_minimal")):
             super().__init__()
-            self.base_height = ObsTerm(func=mdp.base_height, params={"asset_cfg": asset_cfg})
+            self.base_height = ObsTerm(func=mdp.height_scan, params={"sensor_cfg": SceneEntityCfg(f"height_scanner_{asset_cfg.name}")})
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
             self.velocity_commands = ObsTerm(

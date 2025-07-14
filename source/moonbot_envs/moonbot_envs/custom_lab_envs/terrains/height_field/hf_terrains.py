@@ -5,10 +5,10 @@ from scipy.ndimage import gaussian_filter
 import scipy.interpolate as interpolate
 from typing import TYPE_CHECKING
 
-from isaaclab.terrains.height_field.utils import height_field_to_mesh
+from moonbot_envs.custom_lab_envs.terrains.utils import height_field_to_mesh
 
 if TYPE_CHECKING:
-    from . import hf_terrains_cfg
+    from moonbot_envs.custom_lab_envs.terrains.config import hf_terrains_cfg
 
 
 @height_field_to_mesh

@@ -58,7 +58,7 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
     moonbot_minimal = UNI_LEGGED_MOONBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/minimal").replace(
         init_state=ArticulationCfg.InitialStateCfg(
-            pos=(1.0, 1.0, 0.4),
+            pos=(0.0, 0.0, 0.3),
             joint_pos={
                 ".*": 0.0,
             },

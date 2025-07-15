@@ -13,6 +13,7 @@ from isaaclab.assets import Articulation
 from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, matrix_from_quat, quat_error_magnitude, combine_frame_transforms, quat_error_magnitude, quat_mul
 import numpy as np
 import math
+from moonbot_envs.envs.mdp.utils import get_base_height
 
 from moonbot_envs.custom_lab_envs.custom_rl_env import CustomManagerBasedRLEnv
 if TYPE_CHECKING:
@@ -681,3 +682,9 @@ def action_rate_modular(env: CustomManagerBasedRLEnv, asset_cfg: SceneEntityCfg 
     reward = torch.sum(torch.square(action_dict_now - action_dict_prev), dim=1)
 
     return reward
+
+def base_height_reward(env: CustomManagerBasedRLEnv, target_height, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    # target_height: the desired height between base and terrain
+    base_height = get_base_height(env, asset_cfg)
+
+    return torch.square(base_height - target_height).squeeze(-1)

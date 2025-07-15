@@ -79,17 +79,6 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
                 track_air_time=True,
             ))
 
-            # height scanner
-            setattr(self, f"height_scanner_{asset_name}", RayCasterCfg(
-                prim_path="{ENV_REGEX_NS}/" + asset_name + "/" + morphology_configs.base_link_name_dict[asset_name],
-                offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-                attach_yaw_only=True,
-                pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[0.05, 0.05]),
-                debug_vis=False,
-                mesh_prim_paths=["/World/ground"],
-            ))
-
-
 
 @configclass
 class IntegrationObsCfg:
@@ -101,7 +90,6 @@ class IntegrationObsCfg:
                 module_name = f"module_{i}"
                 setattr(self, module_name, ObsTerm(func=mdp.module_obs, params={"asset_cfg": asset_cfg, "module_no": i}))
 
-
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
@@ -110,7 +98,7 @@ class IntegrationObsCfg:
     class GlobalCfg(ObsGroup):
         def __init__(self, asset_cfg: SceneEntityCfg = SceneEntityCfg("moonbot_minimal")):
             super().__init__()
-            self.base_height = ObsTerm(func=mdp.height_scan, params={"sensor_cfg": SceneEntityCfg(f"height_scanner_{asset_cfg.name}")})
+            self.base_height = ObsTerm(func=mdp.base_height_obs, params={"asset_cfg": asset_cfg})
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
             self.velocity_commands = ObsTerm(
@@ -269,9 +257,12 @@ class IntegrationRewardCfg:
 
             if asset_cfg.name == "moonbot_full":
                 self.base_height = RewTerm(
-                    func=mdp.base_height_l2,
+                    func=mdp.base_height_reward,
                     weight=-0.5,
-                    params={"asset_cfg": asset_cfg, "target_height": 0.5, "sensor_cfg": SceneEntityCfg(f"height_scanner_{asset_cfg.name}")},
+                    params={
+                        "asset_cfg": asset_cfg,
+                        "target_height": 0.5
+                    },
                 )
             
             # self.bad_wheel_orientation = RewTerm(

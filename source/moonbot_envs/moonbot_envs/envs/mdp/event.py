@@ -8,6 +8,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.assets import RigidObject, Articulation
 from isaaclab.managers import SceneEntityCfg
 from moonbot_envs.custom_lab_envs.terrains.terrain_importer import TerrainImporter
+from moonbot_envs.envs.mdp.utils import query_terrain_heights
 from M2oE.configs import morphology_configs
 
 if TYPE_CHECKING:
@@ -64,21 +65,4 @@ def reset_root_state_random(
         # set into the physics simulation
         asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
         asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
-
-
-def query_terrain_heights(xy_tensor, z_map, vertical_scale, terrain_cfg) -> torch.Tensor:
-    z_map = torch.from_numpy(z_map).to(xy_tensor.device)
-
-    x_shift = terrain_cfg.size[0] / 2.0
-    y_shift = terrain_cfg.size[1] / 2.0
-
-    x_pix = ((xy_tensor[:, 0] + x_shift) / terrain_cfg.horizontal_scale)
-    y_pix = ((xy_tensor[:, 1] + y_shift) / terrain_cfg.horizontal_scale)
-
-    i = torch.clamp(x_pix.round().long(), 0, z_map.shape[0] - 1)
-    j = torch.clamp(y_pix.round().long(), 0, z_map.shape[1] - 1)
-
-    z_pixel = z_map[i, j]
-    z = z_pixel * vertical_scale
-    return z.unsqueeze(-1)  
 

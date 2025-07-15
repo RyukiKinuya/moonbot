@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import torch
+import numpy as np
 from typing import TYPE_CHECKING
 
 import isaaclab.utils.math as math_utils
@@ -10,6 +11,7 @@ from isaaclab.sensors import RayCaster
 
 from isaaclab.envs import mdp
 from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
+from moonbot_envs.envs.mdp.utils import get_base_height
 
 
 
@@ -131,3 +133,7 @@ def module_obs(env: ManagerBasedEnv, module_no:int, asset_cfg: SceneEntityCfg = 
     return torch.cat([
         _joint_pos,  # Select only the leg joints
         _joint_vel], dim=-1)
+
+def base_height_obs(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    base_height = get_base_height(env, asset_cfg)
+    return base_height

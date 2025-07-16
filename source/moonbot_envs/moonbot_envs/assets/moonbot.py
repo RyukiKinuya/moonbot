@@ -39,6 +39,7 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
             stiffness=40.0,
             damping=4.0,
             effort_limit=87.0,
+            velocity_limit=1.0,
         ),
 
         "leg": ImplicitActuatorCfg(
@@ -46,12 +47,15 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
             stiffness=10000000000.0,
             damping=80000000.0,
             effort_limit=87.0,
+            velocity_limit=1.0,
         ),
 
         "wheel": ImplicitActuatorCfg(
             joint_names_expr=[".*wheel.*"],
             stiffness=10.0,
             damping=1.0,
+            effort_limit=87.0,
+            velocity_limit=5.0,
         ),
 
         "finger": ImplicitActuatorCfg(
@@ -86,8 +90,8 @@ UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True,
-            solver_position_iteration_count=10,
-            solver_velocity_iteration_count=4,
+            solver_position_iteration_count=2,
+            solver_velocity_iteration_count=1,
             fix_root_link=False,
         ),
         copy_from_source=False,
@@ -106,12 +110,15 @@ UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
             joint_names_expr=["joint.*"],
             stiffness=800.0,
             damping=20.0,
+            effort_limit=87.0,
+            velocity_limit=1.0,
         ),
 
         "wheel": ImplicitActuatorCfg(
             joint_names_expr=["Wheel.*"],
             stiffness=200.0,
             damping=20.0,
+            velocity_limit=5.0,
         ),
     },
 )
@@ -191,7 +198,7 @@ DRAGON_MOONBOT_CFG = ArticulationCfg(
             collision_enabled=True,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=4, solver_velocity_iteration_count=0
+            enabled_self_collisions=True, solver_position_iteration_count=2, solver_velocity_iteration_count=1
         ),
         copy_from_source=True,
     ),
@@ -204,12 +211,14 @@ DRAGON_MOONBOT_CFG = ArticulationCfg(
             stiffness=800.0,
             damping=40.0,
             effort_limit=87.0,
+            velocity_limit=1.0,
         ),
         "connect_link_free": ImplicitActuatorCfg(
             joint_names_expr=["leg4joint[1-7]"],
             stiffness=800.0,
             damping=40.0,
             effort_limit=87.0,
+            velocity_limit=1.0,
         ),
         # "connect_link": ImplicitActuatorCfg(
         #     joint_names_expr=["leg4joint[4-6]"],
@@ -221,6 +230,7 @@ DRAGON_MOONBOT_CFG = ArticulationCfg(
             joint_names_expr=["wheel.*joint"],
             stiffness=40.0,
             damping=4.0,
+            velocity_limit=5.0
         ),
     }
 )

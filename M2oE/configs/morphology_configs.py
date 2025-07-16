@@ -14,15 +14,15 @@ morphology_asset_cfg = {
 
 morphology_asset_init_state = {
     "moonbot_minimal": {
-        "base_position": [0.0, 0.0, 0.4],
+        "base_position": [0.0, 0.0, 0.5],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
     "moonbot_dragon": {
-        "base_position": [0.0, 0.0, 0.4],
+        "base_position": [0.0, 0.0, 0.5],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
     "moonbot_full": {
-        "base_position": [0.0, 0.0, 0.5],
+        "base_position": [0.0, 0.0, 0.7],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
 }
@@ -60,6 +60,12 @@ contact_undesired_dict = {
     "moonbot_minimal": ["base_link", "Arm_Link1", "Arm_Link2", "Arm_Link3", "Arm_Link4", "Arm_Link5", "Arm_Link6", "Arm_Link7"],
     "moonbot_dragon": ["leg4link3", "leg4link4", "leg3link3", "leg3link4"],
     "moonbot_full": ["base_link"],
+}
+
+contact_sensor_links = {
+    "moonbot_minimal": "base_link|Arm_Link1|Arm_Link2|Arm_Link3|Arm_Link4|Arm_Link5|Arm_Link6|Arm_Link7",
+    "moonbot_dragon": "leg3link3|leg3link4|leg4link3|leg4link4",
+    "moonbot_full": "base_link",
 }
 
 joint_names_dict = {

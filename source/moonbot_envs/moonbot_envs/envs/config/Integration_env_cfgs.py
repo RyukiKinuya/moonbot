@@ -74,9 +74,10 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
 
             # contact_sensor config
             setattr(self, f"contact_forces_{asset_name}", ContactSensorCfg(
-                prim_path="{ENV_REGEX_NS}/" + asset_name + "/.*",
-                history_length=3,
+                prim_path="{ENV_REGEX_NS}/" + asset_name + "/" + morphology_configs.contact_sensor_links[asset_name],
+                history_length=1,
                 track_air_time=True,
+                force_threshold=8.0,
             ))
 
 
@@ -236,7 +237,7 @@ class IntegrationRewardCfg:
             #------------------------------------------Negitive Rewards------------------------------------------
 
             self.undesired_contacts = RewTerm(
-                func=mdp.undesired_contacts,
+                func=mdp.undesired_contacts_moonbot,
                 weight=-0.5,
                 params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
             )
@@ -373,3 +374,4 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
         self.viewer.eye = (3.5, 3.5, 3.5)
 
         self.sim.dt = 0.005
+        self.sim.physx.gpu_collision_stack_size = 2 ** 31

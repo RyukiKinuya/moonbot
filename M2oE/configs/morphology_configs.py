@@ -18,7 +18,7 @@ morphology_asset_init_state = {
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
     "moonbot_dragon": {
-        "base_position": [0.0, 0.0, 0.5],
+        "base_position": [0.0, 0.0, 0.48],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
     "moonbot_full": {

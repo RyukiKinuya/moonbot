@@ -135,5 +135,5 @@ def module_obs(env: ManagerBasedEnv, module_no:int, asset_cfg: SceneEntityCfg = 
         _joint_vel], dim=-1)
 
 def base_height_obs(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
-    base_height = get_base_height(env, asset_cfg)
+    base_height = torch.max(torch.tensor(0), get_base_height(env, asset_cfg))
     return base_height

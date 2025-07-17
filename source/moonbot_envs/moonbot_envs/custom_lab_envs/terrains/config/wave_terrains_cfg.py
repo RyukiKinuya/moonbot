@@ -2,7 +2,7 @@ from moonbot_envs.custom_lab_envs.terrains.terrain_generator_cfg import TerrainG
 from .hf_terrains_cfg import HfWaveTerrainCfg
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
-    size=(50.0, 50.0, 50.0),
+    size=(200.0, 200.0, 50.0),
     border_width=00.0,
     num_rows=1,
     num_cols=1,
@@ -17,7 +17,7 @@ WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
         #     proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25
         # ),
         "wave": HfWaveTerrainCfg(
-            proportion=0.5, amplitude_range=(0.1, 0.5), num_waves=11,border_width=0.0
+            proportion=0.5, amplitude_range=(0.1, 0.5), num_waves=30,border_width=0.0,
         ), # type: ignore
         # "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
         #     proportion=0.0, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25

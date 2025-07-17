@@ -285,7 +285,7 @@ class IntegrationTerminationCfg:
     )
     base_contact_dragon = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="base_link"), "threshold": 8.0},
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
     )
     # bad_orientation = DoneTerm(
     #     func=mdp.bad_orientation,  

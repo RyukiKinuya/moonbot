@@ -12,21 +12,36 @@ morphology_asset_cfg = {
     "moonbot_full": TRI_LEGGED_MOONBOT_CFG,
 }
 
+# morphology_asset_init_state = {
+#     "moonbot_minimal": {
+#         "base_position": [0.0, 0.0, 0.6],
+#         "base_orientation": [0.0, 0.0, 0.0, 1.0],
+#     },
+#     "moonbot_dragon": {
+#         "base_position": [0.0, 0.0, 0.48],
+#         "base_orientation": [0.0, 0.0, 0.0, 1.0],
+#     },
+#     "moonbot_full": {
+#         "base_position": [0.0, 0.0, 0.7],
+#         "base_orientation": [0.0, 0.0, 0.0, 1.0],
+#     },
+# }
+
+# ------------------ for plane terrain ------------------
 morphology_asset_init_state = {
     "moonbot_minimal": {
-        "base_position": [0.0, 0.0, 0.6],
+        "base_position": [0.0, 0.0, 0.35],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
     "moonbot_dragon": {
-        "base_position": [0.0, 0.0, 0.48],
+        "base_position": [0.0, 0.0, 0.33],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
     "moonbot_full": {
-        "base_position": [0.0, 0.0, 0.7],
+        "base_position": [0.0, 0.0, 0.51],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
     },
 }
-
 
 wheel_link_name_dict = {
     "moonbot_minimal": [

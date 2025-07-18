@@ -72,7 +72,7 @@ class SubTerrainBaseCfg:
     extend from :math:`(0, 0)` to :math:`(size[0], size[1])`.
     """
 
-    function: Callable[[float, SubTerrainBaseCfg], tuple[list[trimesh.Trimesh], np.ndarray]] = MISSING
+    function: Callable[[float, SubTerrainBaseCfg], tuple[list[trimesh.Trimesh]]] = MISSING
     """Function to generate the terrain.
 
     This function must take as input the terrain difficulty and the configuration parameters and

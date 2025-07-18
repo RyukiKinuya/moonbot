@@ -28,7 +28,7 @@ def reset_root_state_random(
         z_terrain_size = terrain.cfg.terrain_generator.size[2]
         terrain_size = terrain.cfg.terrain_generator.size[0]
         half_size = terrain_size / 2
-        z_map = terrain.terrain_generator.sub_terrain_heights[i]
+        # z_map = terrain.terrain_generator.sub_terrain_heights[i]
         
         vertical_scale = terrain.cfg.terrain_generator.vertical_scale
 
@@ -47,9 +47,10 @@ def reset_root_state_random(
 
         positions_xy = env_origins[:, :2] + xy_rand
 
-        z_query = query_terrain_heights(positions_xy, z_map, vertical_scale, terrain.cfg.terrain_generator)
+        # z_query = query_terrain_heights(positions_xy, z_map, vertical_scale, terrain.cfg.terrain_generator)
 
-        positions_z = root_states[:, 2:3] + z_query + z_base_offset[i % len(z_base_offset)]
+        # positions_z = root_states[:, 2:3] + z_query + z_base_offset[i % len(z_base_offset)]
+        positions_z = root_states[:, 2:3] + z_base_offset[i]
         positions = torch.cat([positions_xy, positions_z], dim=1)
 
         orientations_delta = math_utils.quat_from_euler_xyz(

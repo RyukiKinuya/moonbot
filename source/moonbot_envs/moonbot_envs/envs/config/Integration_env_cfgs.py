@@ -219,7 +219,7 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=1.5,
+                weight=2.0,
                 params={"asset_cfg": asset_cfg},
             )
 
@@ -232,10 +232,9 @@ class IntegrationRewardCfg:
                 weight = 3.0,
                 params={"asset_cfg": asset_cfg},)
 
-
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
-                weight=1.0,
+                weight=-1.0,
                 params={"asset_cfg": asset_cfg},
             )
             #------------------------------------------Negitive Rewards------------------------------------------

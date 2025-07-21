@@ -1,6 +1,7 @@
 """Script to play a checkpoint from an M2oE agent."""
 
 import argparse
+
 from isaaclab.app import AppLauncher
 
 # local imports
@@ -36,13 +37,14 @@ import os
 import time
 import torch
 
+import moonbot_envs  # noqa: F401
+
+from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
+from isaaclab.utils.dict import print_dict
 from M2oE.models.modules.on_policy_runner import OnPolicyRunner
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
 from M2oE.utils.utils import process_observations
 
-import moonbot_envs  # noqa: F401
-from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
-from isaaclab.utils.dict import print_dict
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 

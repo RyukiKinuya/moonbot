@@ -30,19 +30,13 @@ def get_base_height(env, asset_cfg):
     terrain = env.scene.terrain
 
     # get index of the robot from morphology_configs
-    z_map = terrain.terrain_generator.sub_terrain_heights[morphology_configs.morphology_list.index(asset_cfg.name)]
-    vertical_scale = terrain.cfg.terrain_generator.vertical_scale
+    # z_map = terrain.terrain_generator.sub_terrain_heights[morphology_configs.morphology_list.index(asset_cfg.name)]
+    # vertical_scale = terrain.cfg.terrain_generator.vertical_scale
     z_size = terrain.cfg.terrain_generator.size[2]
 
     asset_height_z = asset.data.root_pos_w[:, 2].unsqueeze(-1)
 
-    xy = asset.data.root_pos_w[:, :2]
-
-    z_query = query_terrain_heights(
-        xy, z_map, vertical_scale, terrain.cfg.terrain_generator
-    )
-
     z_base_offset = list(np.arange(-z_size, z_size * (len(morphology_configs.morphology_list) - 2) + 1e-6, z_size))
 
-    base_height = asset_height_z - z_query - z_base_offset[morphology_configs.morphology_list.index(asset_cfg.name)]
+    base_height = asset_height_z - z_base_offset[morphology_configs.morphology_list.index(asset_cfg.name)]
     return base_height

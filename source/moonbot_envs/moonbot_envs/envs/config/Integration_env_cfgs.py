@@ -102,7 +102,7 @@ class IntegrationObsCfg:
     class GlobalCfg(ObsGroup):
         def __init__(self, asset_cfg: SceneEntityCfg = SceneEntityCfg("moonbot_minimal")):
             super().__init__()
-            #self.base_height = ObsTerm(func=mdp.base_height_obs, params={"asset_cfg": asset_cfg})
+            self.base_height = ObsTerm(func=mdp.base_height_obs, params={"asset_cfg": asset_cfg})
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
             self.velocity_commands = ObsTerm(
@@ -260,15 +260,15 @@ class IntegrationRewardCfg:
 
             self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.01, params={"asset_cfg": asset_cfg})
 
-            # if asset_cfg.name == "moonbot_full":
-                # self.base_height = RewTerm(
-                #     func=mdp.base_height_reward,
-                #     weight=-0.5,
-                #     params={
-                #         "asset_cfg": asset_cfg,
-                #         "target_height": 0.5
-                #     },
-                # )
+            if asset_cfg.name == "moonbot_full":
+                self.base_height = RewTerm(
+                    func=mdp.base_height_reward,
+                    weight=-0.5,
+                    params={
+                        "asset_cfg": asset_cfg,
+                        "target_height": 0.5
+                    },
+                )
             
             # self.bad_wheel_orientation = RewTerm(
             #     func=mdp.bad_wheel_orientation,
@@ -378,7 +378,7 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
         self.episode_length_s = 20.0
         self.viewer.eye = (3.5, 3.5, 3.5)
 
-        # self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         # self.sim.physx.gpu_max_rigid_contact_count = 2 ** 25
-        self.sim.physx.gpu_collision_stack_size = 2 ** 28 
+        # self.sim.physx.gpu_collision_stack_size = 2 ** 28 
         self.sim.dt = 0.005

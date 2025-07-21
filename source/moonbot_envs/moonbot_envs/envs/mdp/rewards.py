@@ -627,9 +627,9 @@ def base_balance(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """Reward the robot for keeping its base upright."""
-    if asset_cfg.name == "minimal":
+    if asset_cfg.name == "moonbot_minimal":
         return uni_leg_flat_orientation_l2(env, asset_cfg.replace(body_names="base_link"))
-    elif asset_cfg.name == "dragon":
+    elif asset_cfg.name == "moonbot_dragon":
         return dragon_flat_orientation_l2(env, asset_cfg)
     else:
         return mdp.flat_orientation_l2(env, asset_cfg)

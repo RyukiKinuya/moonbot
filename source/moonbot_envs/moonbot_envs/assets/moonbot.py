@@ -178,10 +178,9 @@ UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
 
 DRAGON_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
-    spawn=sim_utils.UrdfFileCfg(
-        asset_path="usd/ros2_m_hero_pkg/ros2_m_hero_pkg/urdf/hero_dragon.urdf",
+    spawn=sim_utils.UsdFileCfg(
+        usd_path="usd/hero_dragon.usd",
         activate_contact_sensors=True,
-        fix_base=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,

@@ -3,7 +3,7 @@ from dataclasses import MISSING
 from isaaclab.utils import configclass
 
 from moonbot_envs.custom_lab_envs.terrains.terrain_generator_cfg import SubTerrainBaseCfg
-from moonbot_envs.custom_lab_envs.terrains.height_field.hf_terrains import wave_terrain
+from moonbot_envs.custom_lab_envs.terrains.height_field import hf_terrains
 
 @configclass
 class HfTerrainBaseCfg(SubTerrainBaseCfg):
@@ -29,7 +29,7 @@ class HfTerrainBaseCfg(SubTerrainBaseCfg):
 class HfWaveTerrainCfg(HfTerrainBaseCfg):
     """Configuration for a wave height field terrain."""
 
-    function = wave_terrain
+    function = hf_terrains.wave_terrain
 
     amplitude_range: tuple[float, float] = MISSING
     """The minimum and maximum amplitude of the wave (in m)."""
@@ -59,3 +59,18 @@ class HfWaveTerrainCfg(HfTerrainBaseCfg):
     """Whether to apply Gaussian blur for additional smoothing"""
     blur_sigma_range: tuple[float, float] = (0.5, 3.0)
     """Sigma range (min, max) for Gaussian blur"""
+
+
+@configclass
+class HfOriginWaveTerrainCfg(HfTerrainBaseCfg):
+    """Configuration for a wave height field terrain."""
+
+    function =hf_terrains.origin_wave_terrain
+
+    amplitude_range: tuple[float, float] = MISSING
+    """The minimum and maximum amplitude of the wave (in m)."""
+    num_waves: int = 1.0
+    """The number of waves to generate. Defaults to 1.0."""
+
+
+

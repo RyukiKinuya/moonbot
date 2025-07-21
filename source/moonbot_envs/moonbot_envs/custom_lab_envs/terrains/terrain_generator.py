@@ -17,60 +17,6 @@ from isaaclab.terrains.utils import color_meshes_by_height, find_flat_patches
 
 
 class TerrainGenerator:
-    r"""Terrain generator to handle different terrain generation functions.
-
-    The terrains are represented as meshes. These are obtained either from height fields or by using the
-    `trimesh <https://trimsh.org/trimesh.html>`__ library. The height field representation is more
-    flexible, but it is less computationally and memory efficient than the trimesh representation.
-
-    All terrain generation functions take in the argument :obj:`difficulty` which determines the complexity
-    of the terrain. The difficulty is a number between 0 and 1, where 0 is the easiest and 1 is the hardest.
-    In most cases, the difficulty is used for linear interpolation between different terrain parameters.
-    For example, in a pyramid stairs terrain the step height is interpolated between the specified minimum
-    and maximum step height.
-
-    Each sub-terrain has a corresponding configuration class that can be used to specify the parameters
-    of the terrain. The configuration classes are inherited from the :class:`SubTerrainBaseCfg` class
-    which contains the common parameters for all terrains.
-
-    If a curriculum is used, the terrains are generated based on their difficulty parameter.
-    The difficulty is varied linearly over the number of rows (i.e. along x) with a small random value
-    added to the difficulty to ensure that the columns with the same sub-terrain type are not exactly
-    the same. The difficulty parameter for a sub-terrain at a given row is calculated as:
-
-    .. math::
-
-        \text{difficulty} = \frac{\text{row_id} + \eta}{\text{num_rows}} \times (\text{upper} - \text{lower}) + \text{lower}
-
-    where :math:`\eta\sim\mathcal{U}(0, 1)` is a random perturbation to the difficulty, and
-    :math:`(\text{lower}, \text{upper})` is the range of the difficulty parameter, specified using the
-    :attr:`~TerrainGeneratorCfg.difficulty_range` parameter.
-
-    If a curriculum is not used, the terrains are generated randomly. In this case, the difficulty parameter
-    is randomly sampled from the specified range, given by the :attr:`~TerrainGeneratorCfg.difficulty_range` parameter:
-
-    .. math::
-
-        \text{difficulty} \sim \mathcal{U}(\text{lower}, \text{upper})
-
-    If the :attr:`~TerrainGeneratorCfg.flat_patch_sampling` is specified for a sub-terrain, flat patches are sampled
-    on the terrain. These can be used for spawning robots, targets, etc. The sampled patches are stored
-    in the :obj:`flat_patches` dictionary. The key specifies the intention of the flat patches and the
-    value is a tensor containing the flat patches for each sub-terrain.
-
-    If the flag :attr:`~TerrainGeneratorCfg.use_cache` is set to True, the terrains are cached based on their
-    sub-terrain configurations. This means that if the same sub-terrain configuration is used
-    multiple times, the terrain is only generated once and then reused. This is useful when
-    generating complex sub-terrains that take a long time to generate.
-
-    .. attention::
-
-        The terrain generation has its own seed parameter. This is set using the :attr:`TerrainGeneratorCfg.seed`
-        parameter. If the seed is not set and the caching is disabled, the terrain generation may not be
-        completely reproducible.
-
-    """
-
     terrain_mesh: trimesh.Trimesh
     terrain_meshes: list[trimesh.Trimesh]
     """List of trimesh.Trimesh objects for all the generated sub-terrains."""
@@ -174,7 +120,7 @@ class TerrainGenerator:
         # create a list of all terrain configs
         sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
         # create a buffer to store sub-terrain height using list
-        # self.sub_terrain_heights = [] 
+        self.sub_terrain_heights = [] 
 
         # randomly sample sub-terrains
         for index in range(self.cfg.num_rows * self.cfg.num_cols * self.cfg.num_height):
@@ -185,9 +131,9 @@ class TerrainGenerator:
             # randomly sample difficulty parameter
             difficulty = self.np_rng.uniform(*self.cfg.difficulty_range)
             # generate terrain
-            # mesh, origin, heights= self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-            mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-            # self.sub_terrain_heights.append(heights)
+            mesh, origin, heights = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+            #mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+            self.sub_terrain_heights.append(heights)
             # add to sub-terrains
             self._add_sub_terrain(mesh, origin, sub_row, sub_col,sub_hig, sub_terrains_cfgs[sub_index])
 
@@ -301,25 +247,7 @@ class TerrainGenerator:
         self.terrain_origins[row, col, hig] = origin + transform[:3, -1]
 
 
-    # def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray, np.ndarray]:
-    def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray]:
-        """Generate a sub-terrain mesh based on the input difficulty parameter.
-
-        If caching is enabled, the sub-terrain is cached and loaded from the cache if it exists.
-        The cache is stored in the cache directory specified in the configuration.
-
-        .. Note:
-            This function centers the 2D center of the mesh and its specified origin such that the
-            2D center becomes :math:`(0, 0)` instead of :math:`(size[0] / 2, size[1] / 2).
-
-        Args:
-            difficulty: The difficulty parameter.
-            cfg: The configuration of the sub-terrain.
-
-        Returns:
-            The sub-terrain mesh and origin.
-        """
-        # copy the configuration
+    def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray, np.ndarray]:
         cfg = cfg.copy()
         cfg.difficulty = float(difficulty)
         cfg.seed = self.cfg.seed
@@ -338,8 +266,8 @@ class TerrainGenerator:
             origin = np.loadtxt(sub_terrain_csv_filename, delimiter=",")
             # return the generated mesh
             return mesh, origin
-        # meshes, origin, heights= cfg.function(difficulty, cfg) # type: ignore
-        meshes, origin = cfg.function(difficulty, cfg) # type: ignore
+        meshes, origin, heights= cfg.function(difficulty, cfg) # type: ignore
+        # meshes, origin = cfg.function(difficulty, cfg) # type: ignore
         mesh = trimesh.util.concatenate(meshes)
         # offset mesh such that they are in their center
         transform = np.eye(4)
@@ -356,8 +284,6 @@ class TerrainGenerator:
             mesh.export(sub_terrain_obj_filename)
             np.savetxt(sub_terrain_csv_filename, origin, delimiter=",", header="x,y,z")
             dump_yaml(sub_terrain_meta_filename, cfg)
-        # return the generated mesh
-        # return mesh, origin, heights
-        return mesh, origin
+        return mesh, origin, heights
 
 

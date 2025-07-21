@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from isaaclab.envs import ManagerBasedRLEnvCfg
 
 import math
@@ -24,12 +26,13 @@ from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, Action
 
 from moonbot_envs.custom_lab_envs.terrains.config.wave_terrains_cfg import WAVE_TERRAINS_CFG
 from moonbot_envs.custom_lab_envs.terrains.terrain_importer_cfg import TerrainImporterCfg
-from M2oE.configs import morphology_configs
+
 
 @configclass
 class IntegrationSceneCfg(InteractiveSceneCfg):
     def __init__(self, num_envs: int = 4096, env_spacing: float = 10.0):
         super().__init__(num_envs=num_envs, env_spacing=env_spacing)
+        import M2oE.configs.morphology_configs as morphology_configs
 
         # init ground and skey light
         setattr(self, "ground", TerrainImporterCfg(
@@ -128,6 +131,7 @@ class IntegrationActCfg:
     class MoonbotActCfg(ActionGroupCfg):
         def __init__(self, asset_name: str, num_morphologies: int = 1):
             super().__init__()
+            import M2oE.configs.morphology_configs as morphology_configs
             for i in range(num_morphologies):
                 leg_action_name = f"module_{i}_action_leg"
                 leg_action_term = mdp.JointPositionActionCfg(
@@ -317,6 +321,7 @@ class IntegrationEventCfg:
                 },
             },
         ))
+        import M2oE.configs.morphology_configs as morphology_configs
 
         for asset_name in morphology_configs.morphology_list:
             setattr(self, f"base_mass_randomize_{asset_name}", EventTerm(
@@ -375,5 +380,5 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
 
         # self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
         # self.sim.physx.gpu_max_rigid_contact_count = 2 ** 25
-        # self.sim.physx.gpu_collision_stack_size = 2 ** 28 
+        self.sim.physx.gpu_collision_stack_size = 2 ** 28 
         self.sim.dt = 0.005

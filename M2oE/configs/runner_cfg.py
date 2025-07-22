@@ -6,7 +6,10 @@ from dataclasses import MISSING
 from typing import Literal
 
 from isaaclab.utils import configclass
-from isaaclab_rl.rsl_rl.rl_cfg import RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg, RslRlDistillationStudentTeacherCfg, RslRlDistillationAlgorithmCfg
+
+from isaaclab_rl.rsl_rl.rl_cfg import (RslRlDistillationAlgorithmCfg, RslRlDistillationStudentTeacherCfg,
+                                       RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg)
+
 
 @configclass
 class M2oEOnPolicyRunnerCfg:
@@ -54,8 +57,8 @@ class M2oEOnPolicyRunnerCfg:
     ``{time-stamp}_{run_name}``.
     """
 
-    logger: Literal["tensorboard", "neptune", "wandb"] = "tensorboard"
-    """The logger to use. Default is tensorboard."""
+    logger: Literal["tensorboard", "neptune", "wandb"] = "wandb"
+    """The logger to use. Default is wandb."""
 
     neptune_project: str = "isaaclab"
     """The neptune project name. Default is "isaaclab"."""

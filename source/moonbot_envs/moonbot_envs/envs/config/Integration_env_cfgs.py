@@ -219,25 +219,25 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=2.0,
+                weight=5.0,
                 params={"asset_cfg": asset_cfg},
             )
 
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=2.5,
+                weight=5.0,
             )
             
             self.wheel_angular_vel = RewTerm( func = mdp.wheel_ang_velocity_reward,
                 weight = 3.0,
                 params={"asset_cfg": asset_cfg},)
 
+            #------------------------------------------Negitive Rewards------------------------------------------
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
-                weight=-1.0,
+                weight=-3.0,
                 params={"asset_cfg": asset_cfg},
             )
-            #------------------------------------------Negitive Rewards------------------------------------------
 
             self.undesired_contacts = RewTerm(
                 func=mdp.undesired_contacts_moonbot,
@@ -257,12 +257,12 @@ class IntegrationRewardCfg:
                 func=mdp.joint_vel_l2, weight = -0.005, params={"asset_cfg": asset_cfg}
             )
 
-            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.01, params={"asset_cfg": asset_cfg})
+            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.0001, params={"asset_cfg": asset_cfg})
 
             if asset_cfg.name == "moonbot_full":
                 self.base_height = RewTerm(
                     func=mdp.base_height_reward,
-                    weight=-0.5,
+                    weight=5,
                     params={
                         "asset_cfg": asset_cfg,
                         "target_height": 0.5

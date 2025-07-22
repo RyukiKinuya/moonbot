@@ -175,7 +175,7 @@ def diff_from_init_pose(
 ) -> torch.Tensor:
     robot: Articulation = env.scene[asset_cfg.name]
     diffenece = robot.data.joint_pos - robot.data.default_joint_pos
-    n_diff = torch.mean(diffenece, dim=-1) / 1.5708
+    n_diff = torch.mean(diffenece, dim=-1) / 1.0
 
     reward = torch.exp(-n_diff**2)
 
@@ -687,4 +687,7 @@ def base_height_reward(env: CustomManagerBasedRLEnv, target_height, asset_cfg: S
     # target_height: the desired height between base and terrain
     base_height = get_base_height(env, asset_cfg)
 
-    return torch.square(base_height - target_height).squeeze(-1)
+    dist_n = torch.norm(base_height - target_height, dim=-1)/0.2
+
+    return torch.exp(-dist_n**2)
+

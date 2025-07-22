@@ -80,6 +80,8 @@ class M2oEActorCritic(nn.Module):
         self.critic = nn.Sequential(
             nn.Linear(num_actor_obs + num_global_obs, hidden_dim),
             resolve_nn_activation("elu"),
+            nn.Linear(hidden_dim, hidden_dim),
+            resolve_nn_activation("elu"),
             nn.Linear(hidden_dim, 1)
         )
 

@@ -1,13 +1,11 @@
 from isaaclab.utils import configclass
 
-from isaaclab_rl.rsl_rl.rl_cfg import (
-    RslRlOnPolicyRunnerCfg,
-    RslRlPpoActorCriticCfg,
-    RslRlPpoAlgorithmCfg,
-)
+from M2oE.configs.runner_cfg import M2oEOnPolicyRunnerCfg
+from isaaclab_rl.rsl_rl.rl_cfg import (RslRlDistillationAlgorithmCfg, RslRlDistillationStudentTeacherCfg,
+                                       RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg)
 
 @configclass
-class M2oE_Cfg(RslRlOnPolicyRunnerCfg):
+class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_num_modules = 3
     max_iterations = 200000
@@ -15,16 +13,14 @@ class M2oE_Cfg(RslRlOnPolicyRunnerCfg):
     experiment_name = "MoonBot_locomotion"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
-        init_noise_std=1.0,
-        actor_hidden_dims=[512, 256, 128],
-        critic_hidden_dims=[512, 256, 128],
+        init_noise_std=3.0,
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,
         use_clipped_value_loss=True,
         clip_param=0.2,
-        entropy_coef=0.01,
+        entropy_coef=0.001,
         num_learning_epochs=5,
         num_mini_batches=4,
         learning_rate=1.0e-3,

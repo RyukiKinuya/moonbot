@@ -35,6 +35,7 @@ python M2oE/scripts/train.py --num_envs 16
 ```
 
 The script creates the corresponding Gym environment and uses `ModulerRobotEnvWrapper` to handle observation and action dimensions before training with `OnPolicyRunner`.
+By default, training logs metrics to Weights & Biases (`wandb`). You can switch to `tensorboard` or `neptune` by passing the `--logger` flag.
 
 ## Modular Robot Setup
 

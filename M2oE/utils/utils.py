@@ -1,10 +1,12 @@
 import torch
+
 from M2oE.configs import morphology_configs
+
 
 def process_observations(obs_dict, num_obs, num_global_obs, policy, num_envs):
     global_name_list = [f"global_obs_{i}" for i in morphology_configs.morphology_list]
     try:
-        global_obs = [obs for obs_name, obs in obs_dict.items() if obs_name in global_name_list]
+        global_obs = [obs_dict[name] for name in global_name_list]
     except KeyError as e:
         raise KeyError(f"Observation dictionary does not contain expected keys: {global_name_list}.") from e
 
@@ -15,7 +17,8 @@ def process_observations(obs_dict, num_obs, num_global_obs, policy, num_envs):
 
     padded_obs = []
     pad_vec = policy.padding
-    for key in sorted(obs_dict.keys()):
+    for morph in morphology_configs.morphology_list:
+        key = f"obs_{morph.replace('moonbot_', '')}"
         obs = obs_dict[key]
         diff = num_obs - obs.shape[1]
         if policy.padding_method == "concat":

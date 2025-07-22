@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.modules.linear import Linear
 
 
 class M2oE(nn.Module):
@@ -21,6 +22,8 @@ class M2oE(nn.Module):
             nn.Sequential(
                 nn.Linear(self.modular_obs_dim, hidden_dim),
                 self.activation,
+                nn.Linear(hidden_dim, hidden_dim),
+                self.activation,
                 nn.Linear(hidden_dim, self.modular_act_dim)
             ) for _ in range(num_experts)
         ])
@@ -29,16 +32,7 @@ class M2oE(nn.Module):
             self.global_feature_extractor = nn.Sequential(
                 nn.Linear(num_global_obs, hidden_dim),
                 self.activation,
-                nn.Linear(hidden_dim, hidden_dim)
-            )
-        elif global_encoder_type == "attention":
-            self.global_feature_extractor = nn.Sequential(
-                nn.TransformerEncoderLayer(
-                    d_model=num_global_obs + num_obs,
-                    nhead=8,
-                    dim_feedforward=hidden_dim,
-                    activation=self.activation.__name__
-                ),
+                nn.Linear(hidden_dim, hidden_dim),
                 self.activation,
                 nn.Linear(hidden_dim, hidden_dim)
             )

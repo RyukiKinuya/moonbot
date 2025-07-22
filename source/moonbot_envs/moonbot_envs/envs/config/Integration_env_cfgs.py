@@ -142,11 +142,10 @@ class IntegrationActCfg:
                 setattr(self, leg_action_name, leg_action_term)
 
                 wheel_action_name = f"module_{i}_action_wheel"
-                wheel_action_term = mdp.JointPositionActionCfg(
+                wheel_action_term = mdp.JointVelocityActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["wheel"],
-                    scale= 0.5,
-                    use_default_offset=True,)
+                    scale= 10,)
                 setattr(self, wheel_action_name, wheel_action_term)
 
     act_moonbot_minimal: MoonbotActCfg = MoonbotActCfg(

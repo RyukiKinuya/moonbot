@@ -3,7 +3,7 @@ from .hf_terrains_cfg import HfWaveTerrainCfg, HfOriginWaveTerrainCfg
 import isaaclab.terrains as terrain_gen
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
-    size=(100.0, 100.0, 50.0),
+    size=(150.0, 150.0, 50.0),
     border_width=00.0,
     num_rows=1,
     num_cols=1,

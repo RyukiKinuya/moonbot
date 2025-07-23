@@ -3,24 +3,27 @@
 
 from __future__ import annotations
 
+import math
+import numpy as np
 import torch
 from typing import TYPE_CHECKING
 
-from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensor
-from isaaclab.assets import RigidObject
-from isaaclab.assets import Articulation
-from isaaclab.utils.math import quat_rotate_inverse, yaw_quat, matrix_from_quat, quat_error_magnitude, combine_frame_transforms, quat_error_magnitude, quat_mul
-import numpy as np
-import math
+from moonbot_envs.custom_lab_envs.custom_rl_env import CustomManagerBasedRLEnv
 from moonbot_envs.envs.mdp.utils import get_base_height
 
-from moonbot_envs.custom_lab_envs.custom_rl_env import CustomManagerBasedRLEnv
+from isaaclab.assets import Articulation, RigidObject
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.sensors import ContactSensor
+from isaaclab.utils.math import (combine_frame_transforms, matrix_from_quat, quat_error_magnitude, quat_mul,
+                                 quat_rotate_inverse, yaw_quat)
+from M2oE.configs import morphology_configs
+
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
-from isaaclab.envs import mdp
 import re
+
+from isaaclab.envs import mdp
 
 
 def feet_air_time(
@@ -174,8 +177,18 @@ def diff_from_init_pose(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     robot: Articulation = env.scene[asset_cfg.name]
-    diffenece = robot.data.joint_pos - robot.data.default_joint_pos
-    n_diff = torch.mean(diffenece, dim=-1) / 1.0
+
+    # collect leg joint names from morphology configuration
+    leg_joint_names: list[str] = []
+    for module_joints in morphology_configs.joint_names_dict[asset_cfg.name]:
+        leg_joint_names += module_joints["leg"]
+
+    # find joint indices for the leg joints
+    leg_joint_ids = robot.find_joints(leg_joint_names)[0]
+
+    # compute difference from default pose only for the leg joints
+    difference = robot.data.joint_pos[:, leg_joint_ids] - robot.data.default_joint_pos[:, leg_joint_ids]
+    n_diff = torch.mean(difference, dim=-1) / 1.0
 
     reward = torch.exp(-n_diff**2)
 
@@ -596,6 +609,8 @@ def wheel_on_ground(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshol
 
 # Integration rewards
 from M2oE.configs import morphology_configs
+
+
 def wheel_ang_velocity_reward(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg
 ) -> torch.Tensor:

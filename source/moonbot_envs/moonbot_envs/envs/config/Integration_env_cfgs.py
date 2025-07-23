@@ -1,31 +1,27 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-from isaaclab.envs import ManagerBasedRLEnvCfg
 
 import math
-import isaaclab.sim as sim_utils
-from isaaclab.utils import configclass
-from isaaclab.assets import AssetBaseCfg
+from typing import TYPE_CHECKING
 
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+import moonbot_envs.envs.mdp as mdp
+from moonbot_envs.assets import *
+from moonbot_envs.custom_lab_envs.manager_term_cfg import ActionGroupCfg, RewardGroupCfg
+from moonbot_envs.custom_lab_envs.terrains.config.wave_terrains_cfg import WAVE_TERRAINS_CFG
+from moonbot_envs.custom_lab_envs.terrains.terrain_importer_cfg import TerrainImporterCfg
+
+import isaaclab.sim as sim_utils
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg
+from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import ObservationGroupCfg as ObsGroup
+from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
-from isaaclab.assets import ArticulationCfg
-from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
-from moonbot_envs.assets import *
-import moonbot_envs.envs.mdp as mdp
-
-from isaaclab.managers import ObservationGroupCfg as ObsGroup
-from isaaclab.managers import ObservationTermCfg as ObsTerm
-from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab.managers import EventTermCfg as EventTerm
-from isaaclab.managers import RewardTermCfg as RewTerm
-from isaaclab.managers import SceneEntityCfg
-from moonbot_envs.custom_lab_envs.manager_term_cfg import RewardGroupCfg, ActionGroupCfg
-
-from moonbot_envs.custom_lab_envs.terrains.config.wave_terrains_cfg import WAVE_TERRAINS_CFG
-from moonbot_envs.custom_lab_envs.terrains.terrain_importer_cfg import TerrainImporterCfg
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 
 
 @configclass
@@ -227,9 +223,11 @@ class IntegrationRewardCfg:
                 weight=5.0,
             )
             
-            self.5 = RewTerm( func = mdp.wheel_ang_velocity_reward,
-                weight = 8.0,
-                params={"asset_cfg": asset_cfg},)
+            self.5 = RewTerm(
+                func=mdp.wheel_joint_ang_velocity_reward,
+                weight=8.0,
+                params={"asset_cfg": asset_cfg},
+            )
             
             if asset_cfg.name == "moonbot_full":
                 self.base_height = RewTerm(

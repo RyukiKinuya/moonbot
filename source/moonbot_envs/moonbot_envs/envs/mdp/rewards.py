@@ -607,6 +607,31 @@ def wheel_ang_velocity_reward(
     total_reward /= len(wheel_bodies)
     return total_reward
 
+
+def wheel_joint_ang_velocity_reward(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg
+) -> torch.Tensor:
+    """Penalize wheel angular velocity using joint speeds.
+
+    This variant uses the wheel joints directly instead of the wheel links'
+    body angular velocities. High joint angular velocity results in lower
+    reward. The function averages the penalty over all wheel joints.
+    """
+    robot: Articulation = env.scene[asset_cfg.name]
+
+    # collect wheel joint names from morphology configuration
+    wheel_joint_names: list[str] = []
+    for module_joints in morphology_configs.joint_names_dict[asset_cfg.name]:
+        wheel_joint_names += module_joints["wheel"]
+
+    wheel_joint_idx = robot.find_joints(wheel_joint_names)[0]
+
+    joint_vel = robot.data.joint_vel[:, wheel_joint_idx]
+
+    penalty = torch.exp(-torch.abs(joint_vel))
+
+    return torch.mean(penalty, dim=1)
+
 def base_balance(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:

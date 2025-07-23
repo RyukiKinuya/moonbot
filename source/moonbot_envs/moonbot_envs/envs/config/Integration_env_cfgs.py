@@ -145,7 +145,7 @@ class IntegrationActCfg:
                 wheel_action_term = mdp.JointVelocityActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["wheel"],
-                    scale= 10,)
+                    scale= 50,)
                 setattr(self, wheel_action_name, wheel_action_term)
 
     act_moonbot_minimal: MoonbotActCfg = MoonbotActCfg(
@@ -218,7 +218,7 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=5.0,
+                weight = 2.0,
                 params={"asset_cfg": asset_cfg},
             )
 
@@ -228,9 +228,27 @@ class IntegrationRewardCfg:
             )
             
             self.wheel_angular_vel = RewTerm( func = mdp.wheel_ang_velocity_reward,
-                weight = 3.0,
+                weight = 8.0,
                 params={"asset_cfg": asset_cfg},)
-
+            
+            if asset_cfg.name == "moonbot_full":
+                self.base_height = RewTerm(
+                    func=mdp.base_height_reward,
+                    weight=2.0,
+                    params={
+                        "asset_cfg": asset_cfg,
+                        "target_height": 0.45
+                    },
+                )
+            
+            if asset_cfg.name == "moonbot_full":
+                self.wheel_distance = RewTerm(
+                    func=mdp.wheel_distances,
+                    weight= 2.0,
+                    params={
+                        "asset_cfg": asset_cfg,
+                    },
+                )
             #------------------------------------------Negitive Rewards------------------------------------------
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
@@ -244,30 +262,21 @@ class IntegrationRewardCfg:
                 params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
             )
 
-            # self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight = -2.0, params={"asset_cfg": asset_cfg})
+            self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight = -2.0, params={"asset_cfg": asset_cfg})
             
             self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight = -0.1, params={"asset_cfg": asset_cfg})
             
-            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight = -3e-6, params={"asset_cfg": asset_cfg})
+            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight = -1e-5, params={"asset_cfg": asset_cfg})
             
-            self.power = RewTerm(func=mdp.joint_power, weight = -2e-4, params={"asset_cfg": asset_cfg})
+            self.power = RewTerm(func=mdp.joint_power, weight = -3e-4, params={"asset_cfg": asset_cfg})
             
             self.dof_vel_l2 = RewTerm(
-                func=mdp.joint_vel_l2, weight = -0.005, params={"asset_cfg": asset_cfg}
+                func=mdp.joint_vel_l2, weight = -0.01, params={"asset_cfg": asset_cfg}
             )
 
             self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.0001, params={"asset_cfg": asset_cfg})
 
-            if asset_cfg.name == "moonbot_full":
-                self.base_height = RewTerm(
-                    func=mdp.base_height_reward,
-                    weight=5,
-                    params={
-                        "asset_cfg": asset_cfg,
-                        "target_height": 0.5
-                    },
-                )
-            
+
             # self.bad_wheel_orientation = RewTerm(
             #     func=mdp.bad_wheel_orientation,
             #     weight = -2.0, params={
@@ -343,12 +352,12 @@ class IntegrationEventCfg:
             ))
 
             setattr(self, f"reset_joints_{asset_name}", EventTerm(
-                func=mdp.reset_joints_by_scale,
+                func=mdp.reset_joints_by_offset,
                 mode="reset",
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
-                    "position_range": (-0.0, 0.0),
-                    "velocity_range": (-0.0, 0.0),
+                    "position_range": (-0.3, 0.3),
+                    "velocity_range": (-1.5, 1.5),
                 }
             ))
 

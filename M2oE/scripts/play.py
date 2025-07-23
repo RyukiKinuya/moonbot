@@ -26,7 +26,7 @@ args_cli = parser.parse_args()
 # always enable cameras to record video
 if args_cli.video:
     args_cli.enable_cameras = True
-args_cli.headless = True
+args_cli.headless = False
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -62,6 +62,10 @@ def main():
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
 
+    env_cfg.scene.ground.terrain_generator.num_height = 1
+    size_now = env_cfg.scene.ground.terrain_generator.size
+    env_cfg.scene.ground.terrain_generator.size = (size_now[0], size_now[1], 0.0001)
+    
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 

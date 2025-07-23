@@ -57,7 +57,7 @@ class M2oEOnPolicyRunnerCfg:
     ``{time-stamp}_{run_name}``.
     """
 
-    logger: Literal["tensorboard", "neptune", "wandb"] = "wandb"
+    logger: Literal["tensorboard", "neptune", "wandb"] = "tensorboard"
     """The logger to use. Default is wandb."""
 
     neptune_project: str = "isaaclab"

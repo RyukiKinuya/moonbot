@@ -223,9 +223,9 @@ class IntegrationRewardCfg:
                 weight=5.0,
             )
             
-            self.5 = RewTerm(
+            self.wheel_ang_vel = RewTerm(
                 func=mdp.wheel_joint_ang_velocity_reward,
-                weight=8.0,
+                weight=3.0,
                 params={"asset_cfg": asset_cfg},
             )
             

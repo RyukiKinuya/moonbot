@@ -283,37 +283,6 @@ def torque_rwd(
 
 #     return total_reward
 
-def wheel_ang_velocity_reward(
-    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-) -> torch.Tensor:
-    robot: Articulation = env.scene[asset_cfg.name]
-
-    wheel_bodies = [
-        "leg2_wheel_left",
-        "leg2_wheel_right",
-        "leg1_wheel_left",
-        "leg3_wheel_left",
-        "leg1_wheel_right",
-        "leg3_wheel_right",
-    ]
-
-    total_reward = torch.zeros(env.num_envs, device=env.device)
-
-    for wheel in wheel_bodies:
-        # from world frame to body frame
-        body_ang_vel_b = quat_rotate_inverse(robot.data.body_state_w[:, robot.find_bodies(wheel)[0], 3:7].squeeze(1), robot.data.body_ang_vel_w[:, robot.find_bodies(wheel)[0], :].squeeze(1))
-
-        reward_y = torch.exp(-torch.abs(body_ang_vel_b[:, 1]))
-        penalty_z = torch.exp(-torch.abs(body_ang_vel_b[:, 2]))
-
-        penalty_x = torch.exp(-torch.abs(body_ang_vel_b[:, 0]))
-
-        total_reward += reward_y - 0.5*penalty_x - 0.5*penalty_z
-
-    total_reward /= len(wheel_bodies)
-
-    return total_reward
-
 
 def wheel_joint_vel_reward(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), wheel_name_expr: str = ".*wheel.*joint"

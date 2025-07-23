@@ -218,7 +218,7 @@ class IntegrationRewardCfg:
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight = 2.0,
+                weight = 5.0,
                 params={"asset_cfg": asset_cfg},
             )
 
@@ -227,7 +227,7 @@ class IntegrationRewardCfg:
                 weight=5.0,
             )
             
-            self.wheel_angular_vel = RewTerm( func = mdp.wheel_ang_velocity_reward,
+            self.5 = RewTerm( func = mdp.wheel_ang_velocity_reward,
                 weight = 8.0,
                 params={"asset_cfg": asset_cfg},)
             
@@ -386,6 +386,6 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
         self.viewer.eye = (3.5, 3.5, 3.5)
 
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
-        # self.sim.physx.gpu_max_rigid_contact_count = 2 ** 25
+        # self.sie.physx.gpu_max_rigid_contact_count = 2 ** 25
         # self.sim.physx.gpu_collision_stack_size = 2 ** 28 
         self.sim.dt = 0.005

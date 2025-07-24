@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
+from M2oE.configs import morphology_configs
 import moonbot_envs.envs.mdp as mdp
 from moonbot_envs.assets import *
 from moonbot_envs.custom_lab_envs.manager_term_cfg import ActionGroupCfg, RewardGroupCfg
@@ -22,7 +23,7 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
-
+from isaaclab.envs.common import ViewerCfg
 
 @configclass
 class IntegrationSceneCfg(InteractiveSceneCfg):
@@ -205,7 +206,7 @@ class IntegrationRewardCfg:
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
             self.track_lin_vel_xy_exp = RewTerm(
-                func=mdp.track_lin_vel_xy_exp, weight=4.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                func=mdp.track_lin_vel_xy_exp, weight=5.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.track_ang_vel_z_exp = RewTerm(
@@ -220,7 +221,7 @@ class IntegrationRewardCfg:
 
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=5.0,
+                weight=10.0,
             )
             
             self.wheel_ang_vel = RewTerm(
@@ -229,7 +230,7 @@ class IntegrationRewardCfg:
                 params={"asset_cfg": asset_cfg},
             )
             
-            if asset_cfg.name == "moonbot_full":
+            if asset_cfg.name == " oonbot_full":
                 self.base_height = RewTerm(
                     func=mdp.base_height_reward,
                     weight=2.0,
@@ -263,7 +264,7 @@ class IntegrationRewardCfg:
             self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight = -2.0, params={"asset_cfg": asset_cfg})
             
             self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight = -0.1, params={"asset_cfg": asset_cfg})
-            
+
             self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight = -1e-5, params={"asset_cfg": asset_cfg})
             
             self.power = RewTerm(func=mdp.joint_power, weight = -3e-4, params={"asset_cfg": asset_cfg})
@@ -281,9 +282,9 @@ class IntegrationRewardCfg:
             #     "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),})
 
 
-    reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal"))
-    reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon"))
-    reward_full: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_full"))
+    reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal", joint_names=morphology_configs.joint_names_dict_flat["moonbot_minimal"]["leg"]))
+    reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon", joint_names=morphology_configs.joint_names_dict_flat["moonbot_dragon"]["leg"]))
+    reward_full: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_full", joint_names=morphology_configs.joint_names_dict_flat["moonbot_full"]["leg"]))
 
 @configclass
 class IntegrationTerminationCfg:
@@ -364,6 +365,16 @@ class IntegrationCurriculumCfg:
     pass
 
 @configclass
+class IntegrationViewerCfg(ViewerCfg):
+    eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
+    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    cam_prim_path: str = "/OmniverseKit_Persp"
+    resolution: tuple[int, int] = (1280, 720)
+    origin_type: str = "asset_root" # type: ignore
+    env_index: int = 0
+    asset_name: str = "moonbot_full" # type: ignore
+
+@configclass
 class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
     scene: IntegrationSceneCfg = IntegrationSceneCfg(num_envs=4096, env_spacing=5) # type: ignore
 
@@ -376,14 +387,13 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
 
     events: IntegrationEventCfg = IntegrationEventCfg() # type: ignore
     curriculum: IntegrationCurriculumCfg = IntegrationCurriculumCfg() # type: ignore
-
+    viewer: IntegrationViewerCfg = IntegrationViewerCfg() # type: ignore
 
     def __post_init__(self):
         self.decimation = 4
         self.episode_length_s = 20.0
-        self.viewer.eye = (3.5, 3.5, 3.5)
 
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
-        # self.sie.physx.gpu_max_rigid_contact_count = 2 ** 25
+        # selk.sie.physx.gpu_max_rigid_contact_count = 2 ** 25
         # self.sim.physx.gpu_collision_stack_size = 2 ** 28 
         self.sim.dt = 0.005

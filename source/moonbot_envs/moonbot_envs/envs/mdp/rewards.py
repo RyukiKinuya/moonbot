@@ -687,12 +687,6 @@ def action_rate_modular(
 
     group_key = "act_" + asset_cfg.name
 
-    if not hasattr(env.action_manager, "term_action"):
-        # fallback to full action difference if term information is missing
-        action_now = env.action_manager.action[group_key]
-        action_prev = env.action_manager.prev_action[group_key]
-        return torch.sum(torch.square(action_now - action_prev), dim=1)
-
     reward = torch.zeros(env.num_envs, device=env.device)
     for term_name, action_now in env.action_manager.term_action[group_key].items():
         if "leg" not in term_name:

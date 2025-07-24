@@ -27,10 +27,20 @@ class GroupActionManager(ManagerBase):
         # buffers for actions
         self._action = {}
         self._prev_action = {}
+        self._term_action = {}
+        self._prev_term_action = {}
         for group_name, dims in self._group_action_term_dim.items():
             dim = sum(dims)
             self._action[group_name] = torch.zeros((self.num_envs, dim), device=self.device)
             self._prev_action[group_name] = torch.zeros_like(self._action[group_name])
+
+            self._term_action[group_name] = {}
+            self._prev_term_action[group_name] = {}
+            for term_name, term_dim in zip(self._group_action_term_names[group_name], dims):
+                self._term_action[group_name][term_name] = torch.zeros((self.num_envs, term_dim), device=self.device)
+                self._prev_term_action[group_name][term_name] = torch.zeros_like(
+                    self._term_action[group_name][term_name]
+                )
 
     def __str__(self) -> str:
         num_terms = sum(len(n) for n in self._group_action_term_names.values())
@@ -71,12 +81,25 @@ class GroupActionManager(ManagerBase):
     def prev_action(self) -> dict[str, torch.Tensor]:
         return self._prev_action
 
+    @property
+    def term_action(self) -> dict[str, dict[str, torch.Tensor]]:
+        """Actions for each term within every group."""
+        return self._term_action
+
+    @property
+    def prev_term_action(self) -> dict[str, dict[str, torch.Tensor]]:
+        """Previous actions for each term within every group."""
+        return self._prev_term_action
+
     def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
         if env_ids is None:
             env_ids = slice(None)
         for group_name in self._group_action_term_names:
             self._action[group_name][env_ids] = 0.0
             self._prev_action[group_name][env_ids] = 0.0
+            for term_name in self._group_action_term_names[group_name]:
+                self._term_action[group_name][term_name][env_ids] = 0.0
+                self._prev_term_action[group_name][term_name][env_ids] = 0.0
             for term in self._group_action_terms[group_name]:
                 term.reset(env_ids=env_ids)
         return {}
@@ -96,8 +119,10 @@ class GroupActionManager(ManagerBase):
             self._action[group_name][:] = group_actions.to(self.device)
 
             idx = 0
-            for term in self._group_action_terms[group_name]:
+            for term_name, term in zip(self._group_action_term_names[group_name], self._group_action_terms[group_name]):
                 term_actions = group_actions[:, idx : idx + term.action_dim]
+                self._prev_term_action[group_name][term_name][:] = self._term_action[group_name][term_name]
+                self._term_action[group_name][term_name][:] = term_actions.to(self.device)
                 term.process_actions(term_actions)
                 idx += term.action_dim
 
@@ -117,11 +142,9 @@ class GroupActionManager(ManagerBase):
     def get_active_iterable_terms(self, env_idx: int) -> Sequence[tuple[str, Sequence[float]]]:
         terms = []
         for group_name, term_names in self._group_action_term_names.items():
-            idx = 0
-            for term_name, term in zip(term_names, self._group_action_terms[group_name]):
-                term_actions = self._action[group_name][env_idx, idx : idx + term.action_dim].cpu()
+            for term_name in term_names:
+                term_actions = self._term_action[group_name][term_name][env_idx].cpu()
                 terms.append((f"{group_name}/{term_name}", term_actions.tolist()))
-                idx += term.action_dim
         return terms
 
     #

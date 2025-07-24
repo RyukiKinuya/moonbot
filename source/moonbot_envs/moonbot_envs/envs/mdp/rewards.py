@@ -679,16 +679,26 @@ def joint_power(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityC
     )
     return reward
 
-def action_rate_modular(env: CustomManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    """Reward action rate"""
+def action_rate_modular(
+    env: CustomManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward action rate over leg joints only."""
     asset: Articulation = env.scene[asset_cfg.name]
 
     group_key = "act_" + asset_cfg.name
 
-    action_dict_now = env.action_manager.action[group_key]
-    action_dict_prev = env.action_manager.prev_action[group_key]
+    if not hasattr(env.action_manager, "term_action"):
+        # fallback to full action difference if term information is missing
+        action_now = env.action_manager.action[group_key]
+        action_prev = env.action_manager.prev_action[group_key]
+        return torch.sum(torch.square(action_now - action_prev), dim=1)
 
-    reward = torch.sum(torch.square(action_dict_now - action_dict_prev), dim=1)
+    reward = torch.zeros(env.num_envs, device=env.device)
+    for term_name, action_now in env.action_manager.term_action[group_key].items():
+        if "leg" not in term_name:
+            continue
+        action_prev = env.action_manager.prev_term_action[group_key][term_name]
+        reward += torch.sum(torch.square(action_now - action_prev), dim=1)
 
     return reward
 

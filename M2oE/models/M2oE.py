@@ -1,22 +1,25 @@
 import torch
 import torch.nn as nn
 from torch.nn.modules.linear import Linear
+from M2oE.utils.utils import djikstra_all_pairs
 
 class GraphAttention(nn.Module):
-    def __init__(self, num_nodes, parent_map):
+    def __init__(self, num_nodes, parent_map, num_heads, node_features, d_model):
         super(GraphAttention, self).__init__()
         self.parent_map = parent_map.to(self.device)
-        self.offset = offset.to(self.device)
-        self.num_nodes = args.joint_num
+        self.num_nodes = num_nodes
+        self.num_heads = num_heads
+        self.node_features = node_features.to(self.device)
+        self.d_model = d_model
 
         # init 
         self.spatial_encoding_raw = self.init_para().to(torch.int).to(self.device)
 
         # parameters
-        self.degree_embedding = nn.Embedding(self.num_degree, self.args.d_model, padding_idx=0)
+        self.degree_embedding = nn.Embedding(self.num_degree, self.d_model, padding_idx=0)
         self.degree_embedding = self.degree_embedding.to(self.device)
         num_spatial_encoding = len(set(self.spatial_encoding_raw.reshape(-1).tolist()))
-        self.spatial_embedding = nn.Embedding(num_spatial_encoding,  self.args.n_head, padding_idx=0)
+        self.spatial_embedding = nn.Embedding(num_spatial_encoding,  self.num_heads, padding_idx=0)
         self.spatial_embedding = self.spatial_embedding.to(self.device)
 
     def init_para(self):
@@ -39,8 +42,8 @@ class GraphAttention(nn.Module):
                 for end in range(start):
                     max_weight_num = max(max_weight_num, self.SPD[start][end][1])
 
-            self.offset_weight = nn.Parameter(torch.zeros(self.num_nodes, self.joint_num, self.args.n_head, max_weight_num * 3)).to(self.device)
-            self.offset_bias = nn.Parameter(torch.zeros(self.num_nodes, self.joint_num, self.args.n_head, 1)).to(self.device)
+            self.offset_weight = nn.Parameter(torch.zeros(self.num_nodes, self.num_nodes, self.num_heads, max_weight_num * 3)).to(self.device)
+            self.offset_bias = nn.Parameter(torch.zeros(self.num_nodes, self.num_nodes, self.num_heads, 1)).to(self.device)
 
         return spatial_encoding_raw
 
@@ -55,7 +58,7 @@ class GraphAttention(nn.Module):
         spatial_encoding.to(self.device)
 
         # offset encoding
-        offset_encoding = torch.zeros(self.num_nodes, self.joint_num, self.args.n_head).to(self.device)
+        offset_encoding = torch.zeros(self.num_nodes, self.num_nodes, self.num_heads).to(self.device)
         for start in range(self.num_nodes):
             for end in range(self.num_nodes):
                 if start == end:
@@ -74,10 +77,10 @@ class GraphAttention(nn.Module):
 
         
     def compute_degree_and_adjancency(self):
-        degree = torch.zeros(self.args.joint_num)
-        adjacency = torch.zeros(self.args.joint_num, self.args.joint_num)
+        degree = torch.zeros(self.num_nodes)
+        adjacency = torch.zeros(self.num_nodes, self.num_nodes)
 
-        for i in range(self.args.joint_num):
+        for i in range(self.num_nodes):
             if self.parent_map[i] == -1:
                 continue
             degree[i] += 1

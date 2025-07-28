@@ -25,7 +25,7 @@ class GraphAttention(nn.Module):
 
     def init_para(self):
         with torch.no_grad():
-            self.degree, self.adjacency = self.compute_degree_and_adjancency()
+            self.degree, self.adjacency = self.compute_degree_and_adjacency()
             self.degree = self.degree.to(torch.int).to(self.device)
             self.num_degree = int(torch.max(self.degree).item()) + 1
 
@@ -77,7 +77,7 @@ class GraphAttention(nn.Module):
         return degree_encoding, spatial_encoding, feature_encoding
 
         
-    def compute_degree_and_adjancency(self):
+    def compute_degree_and_adjacency(self):
         degree = torch.zeros(self.num_nodes)
         adjacency = torch.zeros(self.num_nodes, self.num_nodes)
 

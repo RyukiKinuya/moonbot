@@ -4,13 +4,14 @@ from torch.nn.modules.linear import Linear
 from M2oE.utils.utils import djikstra_all_pairs
 
 class GraphAttention(nn.Module):
-    def __init__(self, num_nodes, parent_map, num_heads, node_features, d_model):
+    def __init__(self, num_nodes, parent_map, num_heads, node_features, d_model, device):
         super(GraphAttention, self).__init__()
         self.parent_map = parent_map.to(self.device)
         self.num_nodes = num_nodes
         self.num_heads = num_heads
         self.node_features = node_features.to(self.device)
         self.d_model = d_model
+        self.device = device
 
         # init 
         self.spatial_encoding_raw = self.init_para().to(torch.int).to(self.device)
@@ -42,8 +43,8 @@ class GraphAttention(nn.Module):
                 for end in range(start):
                     max_weight_num = max(max_weight_num, self.SPD[start][end][1])
 
-            self.offset_weight = nn.Parameter(torch.zeros(self.num_nodes, self.num_nodes, self.num_heads, max_weight_num * 3)).to(self.device)
-            self.offset_bias = nn.Parameter(torch.zeros(self.num_nodes, self.num_nodes, self.num_heads, 1)).to(self.device)
+            self.feature_weight = nn.Parameter(torch.zeros(self.num_nodes, self.num_nodes, self.num_heads, max_weight_num * 3)).to(self.device)
+            self.feature_bias = nn.Parameter(torch.zeros(self.num_nodes, self.num_nodes, self.num_heads, 1)).to(self.device)
 
         return spatial_encoding_raw
 
@@ -57,8 +58,8 @@ class GraphAttention(nn.Module):
         spatial_encoding = spatial_encoding.permute(2, 0, 1)
         spatial_encoding.to(self.device)
 
-        # offset encoding
-        offset_encoding = torch.zeros(self.num_nodes, self.num_nodes, self.num_heads).to(self.device)
+        # feature encoding
+        feature_encoding = torch.zeros(self.num_nodes, self.num_nodes, self.num_heads).to(self.device)
         for start in range(self.num_nodes):
             for end in range(self.num_nodes):
                 if start == end:
@@ -66,14 +67,14 @@ class GraphAttention(nn.Module):
                 weight_num = self.SPD[start][end][1]
                 path = self.SPD[start][end][0]
                 
-                weight = self.offset_weight[start, end, :, :weight_num * 3]
-                bias = self.offset_bias[start, end, :, 0]
+                weight = self.feature_weight[start, end, :, :weight_num * 3]
+                bias = self.feature_bias[start, end, :, 0]
                 path_feature = torch.cat([self.offset[path[i], path[i+1]] for i in range(len(path) - 1)], dim=0)
                 
-                offset_encoding[start, end] = torch.matmul(weight, path_feature) + bias / weight_num
+                feature_encoding[start, end] = torch.matmul(weight, path_feature) + bias / weight_num
 
-        offset_encoding = offset_encoding.permute(2, 0, 1)
-        return degree_encoding, spatial_encoding, offset_encoding
+        feature_encoding = feature_encoding.permute(2, 0, 1)
+        return degree_encoding, spatial_encoding, feature_encoding
 
         
     def compute_degree_and_adjancency(self):

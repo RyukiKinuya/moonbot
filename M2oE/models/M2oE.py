@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn.modules.linear import Linear
 from M2oE.utils.utils import djikstra_all_pairs
 
 class GraphAttention(nn.Module):
@@ -10,7 +9,6 @@ class GraphAttention(nn.Module):
         self.parent_map = parent_map.to(self.device)
         self.num_nodes = num_nodes
         self.num_heads = num_heads
-        self.node_features = node_features.to(self.device)
         self.d_model = d_model
 
         # init 

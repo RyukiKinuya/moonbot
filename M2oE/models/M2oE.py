@@ -6,12 +6,12 @@ from M2oE.utils.utils import djikstra_all_pairs
 class GraphAttention(nn.Module):
     def __init__(self, num_nodes, parent_map, num_heads, node_features, d_model, device):
         super(GraphAttention, self).__init__()
+        self.device = device
         self.parent_map = parent_map.to(self.device)
         self.num_nodes = num_nodes
         self.num_heads = num_heads
         self.node_features = node_features.to(self.device)
         self.d_model = d_model
-        self.device = device
 
         # init 
         self.spatial_encoding_raw = self.init_para().to(torch.int).to(self.device)
@@ -69,7 +69,7 @@ class GraphAttention(nn.Module):
                 
                 weight = self.feature_weight[start, end, :, :weight_num * 3]
                 bias = self.feature_bias[start, end, :, 0]
-                path_feature = torch.cat([self.offset[path[i], path[i+1]] for i in range(len(path) - 1)], dim=0)
+                path_feature = torch.cat([self.node_features[path[i], path[i+1]] for i in range(len(path) - 1)], dim=0)
                 
                 feature_encoding[start, end] = torch.matmul(weight, path_feature) + bias / weight_num
 

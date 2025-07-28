@@ -169,7 +169,7 @@ class IntegrationCmdCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
+            lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
         ),
     )
 
@@ -182,7 +182,7 @@ class IntegrationCmdCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
+            lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
         ),
     )
 
@@ -195,7 +195,7 @@ class IntegrationCmdCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
+            lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
         ),
     )
 
@@ -229,8 +229,14 @@ class IntegrationRewardCfg:
                 weight=3.0,
                 params={"asset_cfg": asset_cfg},
             )
+
+            self.wheel_same_act = RewTerm(
+                func=mdp.wheel_same_act,
+                weight=3.0,
+                params={"asset_cfg": asset_cfg},
+            )
             
-            if asset_cfg.name == " oonbot_full":
+            if asset_cfg.name == "moonbot_full":
                 self.base_height = RewTerm(
                     func=mdp.base_height_reward,
                     weight=2.0,

@@ -187,7 +187,7 @@ def diff_from_init_pose(
     leg_joint_ids = robot.find_joints(leg_joint_names)[0]
 
     # compute difference from default pose only for the leg joints
-    difference = robot.data.joint_pos[:, leg_joint_ids] - robot.data.default_joint_pos[:, leg_joint_ids]
+    difference = torch.abs(robot.data.joint_pos[:, leg_joint_ids] - robot.data.default_joint_pos[:, leg_joint_ids])
     n_diff = torch.mean(difference, dim=-1) / 1.0
 
     reward = torch.exp(-n_diff**2)
@@ -554,16 +554,6 @@ def dragon_flat_orientation_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg
     return torch.sum(torch.square(vec1[:, :2]) + torch.square(vec2[:, :2]), dim=1)
 
 
-def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    asset: Articulation = env.scene[asset_cfg.name]
-
-    wheel1_vel = asset.data.joint_vel[:, asset.find_joints("wheel12.*joint")[0]]
-    wheel2_vel = asset.data.joint_vel[:, asset.find_joints("wheel14.*joint")[0]]
-
-    error1 = torch.norm(wheel1_vel[:, 0] - wheel1_vel[:, 1])
-    error2 = torch.norm(wheel2_vel[:, 0] - wheel2_vel[:, 1])
-
-    return (error1 + error2) / 10
 
 def wheel_on_ground(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshold) -> torch.Tensor:
     """Penalize undesired contacts as the number of violations that are above a threshold."""
@@ -703,4 +693,24 @@ def base_height_reward(env: CustomManagerBasedRLEnv, target_height, asset_cfg: S
     dist_n = torch.norm(base_height - target_height, dim=-1)/0.2
 
     return torch.exp(-dist_n**2)
+
+def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    joint_names_dict = morphology_configs.joint_names_dict[asset_cfg.name]
+
+    error = torch.zeros(env.num_envs, device=env.device)
+
+    for module in joint_names_dict:
+        wheel_joint_names = module["wheel"]
+        wheel_joint_ids = asset.find_joints(wheel_joint_names)[0]
+        wheel_joint_vels = asset.data.joint_vel[:, wheel_joint_ids]
+        error += torch.abs(torch.abs(wheel_joint_vels[:, 0]) - torch.abs(wheel_joint_vels[:, 1]))
+
+    n_error = error / 5.0
+
+    reward = torch.exp(-n_error**2)
+
+    return reward
+
 

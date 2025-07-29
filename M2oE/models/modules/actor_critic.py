@@ -30,6 +30,7 @@ class M2oEActorCritic(nn.Module):
         noise_std_type: str = "scalar",
         padding_mode: str = "learnable",
         padding_method: str = "concat",
+        device: str = "cpu",
         **kwargs,
     ):
         if kwargs:
@@ -63,6 +64,8 @@ class M2oEActorCritic(nn.Module):
 
         self.padding_method = padding_method
 
+        self.device = device
+
         # store observation dimension
         self.num_actor_obs = num_actor_obs
 
@@ -75,6 +78,7 @@ class M2oEActorCritic(nn.Module):
             num_experts=8,
             activation=resolve_nn_activation("elu"),
             global_encoder_type="linear",
+            device=self.device,
         )
 
         self.critic = nn.Sequential(

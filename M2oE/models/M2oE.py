@@ -6,35 +6,34 @@ from M2oE.utils.utils import djikstra_all_pairs
 
 
 class GraphAttention(nn.Module):
-    def __init__(self, num_nodes, parent_map, num_heads,  d_model, device):
-        super(GraphAttention, self).__init__()
+    """Graph attention encoder for module relations."""
+
+    def __init__(self, adjacency: torch.Tensor, num_heads: int, d_model: int, device: str) -> None:
+        super().__init__()
         self.device = device
-        self.parent_map = parent_map.to(self.device)
-        self.num_nodes = num_nodes
+        self.adjacency = adjacency.to(self.device)
+        self.num_nodes = self.adjacency.shape[0]
         self.num_heads = num_heads
         self.d_model = d_model
 
-        # init 
-        self.spatial_encoding_raw = self.init_para().to(torch.int).to(self.device)
+        # initialize encodings
+        self.spatial_encoding_raw = self._init_parameters().to(torch.int)
 
         # parameters
-        self.degree_embedding = nn.Embedding(self.num_degree, self.d_model, padding_idx=0)
-        self.degree_embedding = self.degree_embedding.to(self.device)
-        num_spatial_encoding = len(set(self.spatial_encoding_raw.reshape(-1).tolist()))
-        self.spatial_embedding = nn.Embedding(num_spatial_encoding,  self.num_heads, padding_idx=0)
-        self.spatial_embedding = self.spatial_embedding.to(self.device)
+        self.degree_embedding = nn.Embedding(self.num_degree, self.d_model, padding_idx=0).to(self.device)
+        num_spatial_encoding = len(torch.unique(self.spatial_encoding_raw))
+        self.spatial_embedding = nn.Embedding(num_spatial_encoding, self.num_heads, padding_idx=0).to(self.device)
 
-    def init_para(self):
+    def _init_parameters(self):
         with torch.no_grad():
-            self.degree, self.adjacency = self.compute_degree_and_adjacency()
-            self.degree = self.degree.to(torch.int).to(self.device)
+            self.degree = self.adjacency.sum(dim=1)
+            self.degree = self.degree.to(torch.int)
             self.num_degree = int(torch.max(self.degree).item()) + 1
 
-            self.adjacency = self.adjacency.to(self.device)
             self.SPD = djikstra_all_pairs(self.adjacency)
-            spatial_encoding_raw = torch.zeros( self.parent_map.shape[0],  self.parent_map.shape[0])
-            for i in range( self.parent_map.shape[0]):
-                for j in range( self.parent_map.shape[0]):
+            spatial_encoding_raw = torch.zeros(self.num_nodes, self.num_nodes)
+            for i in range(self.num_nodes):
+                for j in range(self.num_nodes):
                     if i == j:
                         continue
                     spatial_encoding_raw[i, j] = self.SPD[i][j][1]
@@ -65,30 +64,12 @@ class GraphAttention(nn.Module):
                 if start == end:
                     continue
                 weight_num = self.SPD[start][end][1]
-                path = self.SPD[start][end][0]
-                
                 weight = self.feature_weight[start, end, :, :weight_num]
-                
                 feature_encoding[start, end] = torch.sum(weight, dim=-1)
 
         feature_encoding = feature_encoding.permute(2, 0, 1)
         return degree_encoding, spatial_encoding, feature_encoding
 
-        
-    def compute_degree_and_adjacency(self):
-        degree = torch.zeros(self.num_nodes)
-        adjacency = torch.zeros(self.num_nodes, self.num_nodes)
-
-        for i in range(self.num_nodes):
-            if self.parent_map[i] == -1:
-                continue
-            degree[i] += 1
-            degree[self.parent_map[i]] += 1
-            adjacency[i, self.parent_map[i]] = 1
-            adjacency[self.parent_map[i], i] = 1
-
-        return degree, adjacency
-    
 
 class M2oEGate(nn.Module):
     def __init__(
@@ -101,6 +82,7 @@ class M2oEGate(nn.Module):
         d_model,
         dim_feedforward,
         dropout,
+        num_experts,
         device="cpu",
     ):
         super().__init__()
@@ -109,39 +91,61 @@ class M2oEGate(nn.Module):
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
         self.d_model = d_model
+        self.num_experts = num_experts
         self.device = device
 
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
-        
-        self.layer = nn.TransformerEncoderLayer(
-                d_model=d_model,
-                nhead=num_heads,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout,
-                batch_first=True,
-        )
 
+        self.layer = nn.TransformerEncoderLayer(
+            d_model=d_model,
+            nhead=num_heads,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            batch_first=True,
+        )
+        self.transformer = nn.TransformerEncoder(self.layer, num_layers=1)
+
+        base_adj = torch.tensor(
+            morphology_configs.adjacency_mat_dict[morphology_configs.morphology_list[-1]],
+            dtype=torch.int,
+        )
+        full_adj = torch.zeros(max_num_modulars + 1, max_num_modulars + 1, dtype=torch.int)
+        full_adj[1:, 1:] = base_adj
+        full_adj[0, 1:] = 1
+        full_adj[1:, 0] = 1
         self.graph_attention = GraphAttention(
-            num_nodes=max_num_modulars,
-            parent_map=morphology_configs.adjacency_mat_dict,
+            adjacency=full_adj,
             num_heads=num_heads,
             d_model=d_model,
             device=self.device,
         ).to(self.device)
 
-    def forward(self, modular_obs, global_obs):
-        self.degree_encoding, self.spatial_encoding, self.feature_encoding = self.graph_attention()
+        self.gate_layer = nn.Linear(d_model, num_experts)
 
-        self.attn_encoding = self.spatial_encoding + self.feature_encoding
+    def forward(self, modular_obs, global_obs):
+        degree_encoding, spatial_encoding, feature_encoding = self.graph_attention()
+        attn_encoding = spatial_encoding + feature_encoding
 
         batch_size = modular_obs.shape[0]
 
-        # embedding
         modular_obs = self.input_projection_modular(modular_obs)
-        global_obs = self.input_projection_global(global_obs)
+        global_obs = self.input_projection_global(global_obs).unsqueeze(1)
 
-        global_obs = global_obs.unsqueeze(1).expand(-1, self.max_num_modulars, -1)
+        x = torch.cat([global_obs, modular_obs], dim=1)
+        x = x + degree_encoding.unsqueeze(0)
+        attn_mask = (
+            attn_encoding.unsqueeze(0)
+            .repeat(batch_size, 1, 1, 1)
+            .reshape(-1, self.graph_attention.num_nodes, self.graph_attention.num_nodes)
+        )
+
+        x = self.transformer(x, mask=attn_mask)
+
+        gate_logits = self.gate_layer(x[:, 1:, :])
+        gate = torch.softmax(gate_logits, dim=-1)
+
+        return gate
 
 
 class M2oE(nn.Module):
@@ -178,6 +182,7 @@ class M2oE(nn.Module):
             d_model=hidden_dim,
             dim_feedforward=hidden_dim * 4,  # Example value, can be adjusted
             dropout=0.1,  # Example value, can be adjusted
+            num_experts=num_experts,
             device=self.device,
         )
 
@@ -201,7 +206,8 @@ class M2oE(nn.Module):
                 nn.Linear(hidden_dim, hidden_dim)
             )
         else:
-            raise ValueError(f"Unknown global encoder type: {global_encoder_type}. Should be 'linear' or 'attention'."
+            raise ValueError(
+                f"Unknown global encoder type: {global_encoder_type}. Should be 'linear' or 'attention'."
             )
 
         self.gate = nn.Sequential(
@@ -228,7 +234,7 @@ class M2oE(nn.Module):
 
         # global feature extraction
         # [batch_size, num_global]
-        # global_obs 
+        # global_obs
         # global_features = self.global_feature_extractor(global_obs).reshape(batch_size, -1)
 
         # gate compute

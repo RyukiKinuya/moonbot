@@ -61,6 +61,7 @@ class OnPolicyRunner:
             self.num_global_obs,
             self.env.num_actions,
             self.cfg["max_num_modules"],
+            device=self.device,
             **self.policy_cfg,
         ).to(self.device)
 

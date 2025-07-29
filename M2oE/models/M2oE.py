@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from M2oE.utils.utils import djikstra_all_pairs
+
 from M2oE.configs import morphology_configs
+from M2oE.utils.utils import djikstra_all_pairs
+
 
 class GraphAttention(nn.Module):
     def __init__(self, num_nodes, parent_map, num_heads,  d_model, device):
@@ -89,14 +91,25 @@ class GraphAttention(nn.Module):
     
 
 class M2oEGate(nn.Module):
-    def __init__(self, modular_obs_dim, global_obs_dim, max_num_modulars, embedding_dim, num_heads, d_model, dim_feedforward, 
-                 dropout, device='cpu'):
+    def __init__(
+        self,
+        modular_obs_dim,
+        global_obs_dim,
+        max_num_modulars,
+        embedding_dim,
+        num_heads,
+        d_model,
+        dim_feedforward,
+        dropout,
+        device="cpu",
+    ):
         super().__init__()
         self.modular_obs_dim = modular_obs_dim
         self.max_num_modulars = max_num_modulars
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
         self.d_model = d_model
+        self.device = device
 
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
@@ -114,7 +127,8 @@ class M2oEGate(nn.Module):
             parent_map=morphology_configs.adjacency_mat_dict,
             num_heads=num_heads,
             d_model=d_model,
-            device=device).to(device)
+            device=self.device,
+        ).to(self.device)
 
     def forward(self, modular_obs, global_obs):
         self.degree_encoding, self.spatial_encoding, self.feature_encoding = self.graph_attention()
@@ -131,9 +145,21 @@ class M2oEGate(nn.Module):
 
 
 class M2oE(nn.Module):
-    def __init__(self, num_obs, num_global_obs, hidden_dim, max_num_modules,
-                 num_actions, num_experts, activation, global_encoder_type="linear"):
+    def __init__(
+        self,
+        num_obs,
+        num_global_obs,
+        hidden_dim,
+        max_num_modules,
+        num_actions,
+        num_experts,
+        activation,
+        global_encoder_type="linear",
+        device="cpu",
+    ):
         super().__init__()
+
+        self.device = device
 
         self.num_obs = num_obs
         self.num_global_obs = num_global_obs
@@ -152,6 +178,7 @@ class M2oE(nn.Module):
             d_model=hidden_dim,
             dim_feedforward=hidden_dim * 4,  # Example value, can be adjusted
             dropout=0.1,  # Example value, can be adjusted
+            device=self.device,
         )
 
         # initialize

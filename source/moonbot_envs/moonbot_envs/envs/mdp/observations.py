@@ -1,23 +1,16 @@
 from __future__ import annotations
 
 import torch
-import numpy as np
 from typing import TYPE_CHECKING
 
-import isaaclab.utils.math as math_utils
-from isaaclab.assets import Articulation, RigidObject
-from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import RayCaster
-
-from isaaclab.envs import mdp
 from moonbot_envs.custom_lab_envs import CustomManagerBasedRLEnv
 from moonbot_envs.envs.mdp.utils import get_base_height
 
-
+from isaaclab.assets import Articulation, RigidObject
+from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
-
 
 
 def body_ang_vel(env: ManagerBasedRLEnv) -> torch.Tensor:
@@ -66,8 +59,9 @@ def body_ang_vel(env: ManagerBasedRLEnv) -> torch.Tensor:
 
 #     # 将所有旋转数据的列表转换为张量，并展平为一维张量
 #     parallelism_tensor = torch.cat(parallelism).view(-1)
-
+#
 #     return parallelism_tensor
+
 
 def ee_pose(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), ee_name="gripper_palm"):
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -76,13 +70,14 @@ def ee_pose(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("
     curr_posi_b = curr_pos_w[:, :3] - asset.data.root_pos_w[:, :3]
     curr_quat_b = curr_pos_w[:, 3:7]
 
-
     return torch.cat([curr_posi_b, curr_quat_b], dim=-1)
+
 
 def base_height(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     asset: Articulation = env.scene[asset_cfg.name]
     obs = asset.data.root_pos_w[:, 2].unsqueeze(-1)
     return obs
+
 
 def ee_pose_command(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """The generated command from command term in the command manager with the given name."""
@@ -95,12 +90,17 @@ def ee_pose_command(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneE
     return torch.cat([des_posi_b, des_quat_b], dim=-1)
 
 
-def last_action(env: CustomManagerBasedRLEnv, module_no:init, asset_cfg= SceneEntityCfg("robot"), ) -> torch.Tensor:
-    """The last action taken by the robot."""
+def last_action(
+    env: CustomManagerBasedRLEnv,
+    module_no: int,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Return the previous action for the given module."""
+
     group_name = "act_" + asset_cfg.name
     term_name = f"module_{module_no}_action"
 
-    return action
+    return env.action_manager.get_last_action(group_name, term_name)
 
 
 # Integration Env Observation
@@ -108,12 +108,16 @@ def joint_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[i
     asset: Articulation = env.scene[asset_cfg.name]
     return asset.data.joint_vel[:, joint_ids]
 
+
 def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[int]) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     return asset.data.joint_pos[:, joint_ids]
 
+
 from M2oE.configs import morphology_configs
-def module_obs(env: CustomManagerBasedRLEnv, module_no:int, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+
+
+def module_obs(env: CustomManagerBasedRLEnv, module_no: int, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     robot_name = asset_cfg.name
 
     joint_names = morphology_configs.joint_names_dict[robot_name][module_no]
@@ -126,9 +130,9 @@ def module_obs(env: CustomManagerBasedRLEnv, module_no:int, asset_cfg: SceneEnti
     wheel_ids = env.scene[robot_name].find_joints(wheel_joint_names)[0]
 
     # observation terms
-    _joint_pos = joint_pos(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids+wheel_ids)
-    _joint_vel = joint_vel(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids+wheel_ids)
-    _last_action = last_action(env, asset_cfg=new_asset_cfg)
+    _joint_pos = joint_pos(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids + wheel_ids)
+    _joint_vel = joint_vel(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids + wheel_ids)
+    _last_action = last_action(env, module_no=module_no, asset_cfg=new_asset_cfg)
 
     return torch.cat([
         _joint_pos,  # Select only the leg joints
@@ -137,7 +141,7 @@ def module_obs(env: CustomManagerBasedRLEnv, module_no:int, asset_cfg: SceneEnti
 
     ], dim=-1)
 
+
 def base_height_obs(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     base_height = torch.max(torch.tensor(0), get_base_height(env, asset_cfg))
     return base_height
-

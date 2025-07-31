@@ -139,6 +139,20 @@ class GroupActionManager(ManagerBase):
         idx = self._group_action_term_names[group_name].index(term_name)
         return self._group_action_terms[group_name][idx]
 
+    def get_last_action(self, group_name: str, term_name: str | None = None) -> torch.Tensor:
+        """Return the previous action for a group or a specific term."""
+
+        if group_name not in self._group_action_term_names:
+            raise ValueError(f"Action group '{group_name}' not found.")
+
+        if term_name is None:
+            return self._prev_action[group_name]
+
+        if term_name not in self._group_action_term_names[group_name]:
+            raise ValueError(f"Action term '{term_name}' not found in group '{group_name}'.")
+
+        return self._prev_term_action[group_name][term_name]
+
     def get_active_iterable_terms(self, env_idx: int) -> Sequence[tuple[str, Sequence[float]]]:
         terms = []
         for group_name, term_names in self._group_action_term_names.items():

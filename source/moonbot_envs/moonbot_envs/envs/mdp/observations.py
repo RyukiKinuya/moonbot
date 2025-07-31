@@ -95,14 +95,13 @@ def ee_pose_command(env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneE
     return torch.cat([des_posi_b, des_quat_b], dim=-1)
 
 
-def _last_action(env: CustomManagerBasedRLEnv, group_name: str | None = None, action_name: str | None = None):
-    if group_name is None:
-        return env.action_manager.action
-    else:
-        if action_name is None:
-            return env.action_manager.get_group_action(group_name)
-        else:
-            return env.action_manager.get_term(group_name, action_name).action
+def last_action(env: CustomManagerBasedRLEnv, module_no:init, asset_cfg= SceneEntityCfg("robot"), ) -> torch.Tensor:
+    """The last action taken by the robot."""
+    group_name = "act_" + asset_cfg.name
+    term_name = f"module_{module_no}_action"
+
+    return action
+
 
 # Integration Env Observation
 def joint_vel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[int]):
@@ -114,7 +113,7 @@ def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[i
     return asset.data.joint_pos[:, joint_ids]
 
 from M2oE.configs import morphology_configs
-def module_obs(env: ManagerBasedEnv, module_no:int, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+def module_obs(env: CustomManagerBasedRLEnv, module_no:int, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     robot_name = asset_cfg.name
 
     joint_names = morphology_configs.joint_names_dict[robot_name][module_no]
@@ -129,11 +128,16 @@ def module_obs(env: ManagerBasedEnv, module_no:int, asset_cfg: SceneEntityCfg = 
     # observation terms
     _joint_pos = joint_pos(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids+wheel_ids)
     _joint_vel = joint_vel(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids+wheel_ids)
+    _last_action = last_action(env, asset_cfg=new_asset_cfg)
 
     return torch.cat([
         _joint_pos,  # Select only the leg joints
-        _joint_vel], dim=-1)
+        _joint_vel,
+        _last_action,
+
+    ], dim=-1)
 
 def base_height_obs(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     base_height = torch.max(torch.tensor(0), get_base_height(env, asset_cfg))
     return base_height
+

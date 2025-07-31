@@ -246,7 +246,6 @@ class IntegrationRewardCfg:
                     },
                 )
             
-            if asset_cfg.name == "moonbot_full":
                 self.wheel_distance = RewTerm(
                     func=mdp.wheel_distances,
                     weight= 2.0,
@@ -254,6 +253,8 @@ class IntegrationRewardCfg:
                         "asset_cfg": asset_cfg,
                     },
                 )
+
+                self.diff_from_init_pose.weight = 10.0
             #------------------------------------------Negitive Rewards------------------------------------------
             self.base_balance = RewTerm(
                 func=mdp.base_balance,

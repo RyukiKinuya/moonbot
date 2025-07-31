@@ -77,7 +77,7 @@ class M2oEActorCritic(nn.Module):
             num_actions=num_actions,
             num_experts=8,
             activation=resolve_nn_activation("elu"),
-            global_encoder_type="linear",
+            gate_type="attention",
             device=self.device,
         )
 

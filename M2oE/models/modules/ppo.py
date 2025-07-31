@@ -2,7 +2,7 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-#
+
 # Modified by LIU CHANG, 2025-06
 
 from __future__ import annotations

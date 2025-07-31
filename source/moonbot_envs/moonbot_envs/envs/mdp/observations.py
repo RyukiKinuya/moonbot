@@ -99,8 +99,13 @@ def last_action(
 
     group_name = "act_" + asset_cfg.name
     term_name = f"module_{module_no}_action"
+    leg_term_name = term_name + "_leg"
+    wheel_term_name = term_name + "_wheel"
 
-    return env.action_manager.get_last_action(group_name, term_name)
+    leg_act = env.action_manager.get_last_action(group_name, leg_term_name)
+    wheel_act = env.action_manager.get_last_action(group_name, wheel_term_name)
+
+    return torch.cat([leg_act, wheel_act], dim=-1)
 
 
 # Integration Env Observation
@@ -138,7 +143,6 @@ def module_obs(env: CustomManagerBasedRLEnv, module_no: int, asset_cfg: SceneEnt
         _joint_pos,  # Select only the leg joints
         _joint_vel,
         _last_action,
-
     ], dim=-1)
 
 

@@ -206,11 +206,11 @@ class IntegrationRewardCfg:
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
             self.track_lin_vel_xy_exp = RewTerm(
-                func=mdp.track_lin_vel_xy_exp, weight=5.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                func=mdp.track_lin_vel_xy_exp, weight=6.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.track_ang_vel_z_exp = RewTerm(
-                func=mdp.track_ang_vel_z_exp, weight=1.5, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                func=mdp.track_ang_vel_z_exp, weight=3.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.diff_from_init_pose = RewTerm(
@@ -224,11 +224,11 @@ class IntegrationRewardCfg:
                 weight=10.0,
             )
             
-            self.wheel_ang_vel = RewTerm(
-                func=mdp.wheel_joint_ang_velocity_reward,
-                weight=3.0,
-                params={"asset_cfg": asset_cfg},
-            )
+            # self.wheel_ang_vel = RewTerm(
+            #     func=mdp.wheel_joint_ang_velocity_reward,
+            #     weight=3.0,
+            #     params={"asset_cfg": asset_cfg},
+            # )
 
             self.wheel_same_act = RewTerm(
                 func=mdp.wheel_same_act,

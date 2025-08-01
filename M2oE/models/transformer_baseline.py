@@ -12,6 +12,7 @@ class TransformerBaseline(nn.Module):
         max_num_modules: int,
         num_actions: int,
         embedding_dim: int,
+
         num_heads: int,
         dropout: float,
         device: torch.device,

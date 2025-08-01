@@ -14,9 +14,8 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.utils import store_code_state
+from rsl_rl.utils import EmpiricalNormalization, store_code_state
 
-from M2oE.configs import morphology_configs
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
@@ -56,11 +55,13 @@ class OnPolicyRunner:
         else:
             num_privileged_obs = self.num_obs
 
+        self.policy_cfg.pop("class_name", None)
         policy = M2oEActorCritic(
             self.num_obs,
             self.num_global_obs,
             self.env.num_actions,
             self.cfg["max_num_modules"],
+            m2oe_cfg=self.cfg["m2oe"],
             device=self.device,
             **self.policy_cfg,
         ).to(self.device)
@@ -88,7 +89,7 @@ class OnPolicyRunner:
         self.save_interval = self.cfg["save_interval"]
         self.empirical_normalization = self.cfg["empirical_normalization"]
         if self.empirical_normalization:
-            self.obs_normalizer = EmpiricalNormalization(shape=[num_obs], until=1.0e8).to(self.device)
+            self.obs_normalizer = EmpiricalNormalization(shape=[self.num_obs], until=1.0e8).to(self.device)
             self.privileged_obs_normalizer = EmpiricalNormalization(shape=[num_privileged_obs], until=1.0e8).to(
                 self.device
             )

@@ -8,7 +8,56 @@ from typing import Literal
 from isaaclab.utils import configclass
 
 from isaaclab_rl.rsl_rl.rl_cfg import (RslRlDistillationAlgorithmCfg, RslRlDistillationStudentTeacherCfg,
-                                       RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg)
+                                       RslRlPpoAlgorithmCfg)
+
+
+@configclass
+class M2oECfg:
+    """Configuration of the M2oE model."""
+
+    class_name: str = "M2oE"
+    """Name of the model class. Default is ``M2oE``."""
+
+    hidden_dim: int = MISSING
+    """Hidden dimension of expert networks and critic."""
+
+    num_experts: int = MISSING
+    """Number of expert networks."""
+
+    activation: str = MISSING
+    """Activation function used in experts and critic."""
+
+    gate_type: Literal["linear", "attention"] = "attention"
+    """Type of gating network. Default is ``"attention"``."""
+
+    gate_embedding_dim: int = 64
+    """Embedding dimension for the attention gate."""
+
+    gate_num_heads: int = 4
+    """Number of attention heads in the gate."""
+
+    gate_dropout: float = 0.1
+    """Dropout probability for the attention gate."""
+
+
+@configclass
+class M2oEActorCriticCfg:
+    """Configuration of the M2oE actor-critic policy."""
+
+    class_name: str = "M2oEActorCritic"
+    """Policy class name. Default is ``M2oEActorCritic``."""
+
+    init_noise_std: float = MISSING
+    """Initial standard deviation for action sampling."""
+
+    noise_std_type: Literal["scalar", "log"] = "scalar"
+    """Parameterization of the action noise. Default is ``"scalar"``."""
+
+    padding_mode: str = "learnable"
+    """Method for generating padding vectors. Default is ``"learnable"``."""
+
+    padding_method: str = "concat"
+    """Strategy for combining observation padding. Default is ``"concat"``."""
 
 
 @configclass
@@ -30,8 +79,14 @@ class M2oEOnPolicyRunnerCfg:
     empirical_normalization: bool = MISSING
     """Whether to use empirical normalization."""
 
-    policy: RslRlPpoActorCriticCfg | RslRlDistillationStudentTeacherCfg = MISSING
+    max_num_modules: int = MISSING
+    """Maximum number of modules in modular observations."""
+
+    policy: M2oEActorCriticCfg | RslRlDistillationStudentTeacherCfg = MISSING
     """The policy configuration."""
+
+    m2oe: M2oECfg = MISSING
+    """The M2oE model configuration."""
 
     algorithm: RslRlPpoAlgorithmCfg | RslRlDistillationAlgorithmCfg = MISSING
     """The algorithm configuration."""

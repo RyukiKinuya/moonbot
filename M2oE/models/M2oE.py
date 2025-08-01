@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
 
-from M2oE.configs import morphology_configs
-from M2oE.utils.utils import djikstra_all_pairs
-
 
 class M2oEGate(nn.Module):
     def __init__(
@@ -52,8 +49,8 @@ class M2oEGate(nn.Module):
         # modular_obs: [batch_size, max_num_modules, modular_obs_dim]
         # global_obs: [batch_size, global_obs_dim]
         feature_modular = self.input_projection_modular(modular_obs)  # [batch_size, max_num_modules, embedding_dim]
-        feature_global = self.input_projection_global(global_obs) # [batch_size, embedding_dim]
-        
+        feature_global = self.input_projection_global(global_obs)  # [batch_size, embedding_dim]
+
         feature_integration = torch.cat([
             feature_global.unsqueeze(1),
             feature_modular,
@@ -78,13 +75,16 @@ class M2oE(nn.Module):
         self,
         num_obs,
         num_global_obs,
-        hidden_dim,
         max_num_modules,
         num_actions,
+        hidden_dim,
         num_experts,
         activation,
+        gate_type,
+        gate_embedding_dim,
+        gate_num_heads,
+        gate_dropout,
         device,
-        gate_type="attention",
     ):
         super().__init__()
 
@@ -123,14 +123,14 @@ class M2oE(nn.Module):
                 modular_obs_dim=self.modular_obs_dim,
                 global_obs_dim=num_global_obs,
                 max_num_modulars=max_num_modules,
-                embedding_dim=64,
-                num_heads=4,  
-                dropout=0.1,  
+                embedding_dim=gate_embedding_dim,
+                num_heads=gate_num_heads,
+                dropout=gate_dropout,
                 num_experts=num_experts,
                 device=self.device,
             )
         else:
-           raise ValueError(
+            raise ValueError(
                 f"Unknown global encoder type: {gate_type}. Should be 'linear' or 'attention'."
             )
 

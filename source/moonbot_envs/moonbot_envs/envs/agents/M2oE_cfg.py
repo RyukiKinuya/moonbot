@@ -1,8 +1,8 @@
 from isaaclab.utils import configclass
+from M2oE.configs.runner_cfg import M2oEActorCriticCfg, M2oECfg, M2oEOnPolicyRunnerCfg
 
-from M2oE.configs.runner_cfg import M2oEOnPolicyRunnerCfg
-from isaaclab_rl.rsl_rl.rl_cfg import (RslRlDistillationAlgorithmCfg, RslRlDistillationStudentTeacherCfg,
-                                       RslRlPpoActorCriticCfg, RslRlPpoAlgorithmCfg)
+from isaaclab_rl.rsl_rl.rl_cfg import RslRlPpoAlgorithmCfg
+
 
 @configclass
 class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
@@ -12,9 +12,17 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     save_interval = 100
     experiment_name = "MoonBot_locomotion"
     empirical_normalization = False
-    policy = RslRlPpoActorCriticCfg(
+    policy = M2oEActorCriticCfg(
         init_noise_std=3.0,
+    )
+    m2oe = M2oECfg(
+        hidden_dim=128,
+        num_experts=8,
         activation="elu",
+        gate_type="attention",
+        gate_embedding_dim=64,
+        gate_num_heads=4,
+        gate_dropout=0.1,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

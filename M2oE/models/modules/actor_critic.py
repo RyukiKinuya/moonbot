@@ -25,7 +25,7 @@ class M2oEActorCritic(nn.Module):
         num_global_obs,
         num_actions,
         max_num_modules,
-        hidden_dim=128,
+        m2oe_cfg: dict,
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
         padding_mode: str = "learnable",
@@ -69,24 +69,30 @@ class M2oEActorCritic(nn.Module):
         # store observation dimension
         self.num_actor_obs = num_actor_obs
 
+        hidden_dim = m2oe_cfg["hidden_dim"]
+        activation = m2oe_cfg["activation"]
+
         self.actor = M2oE(
             num_obs=num_actor_obs,
             num_global_obs=num_global_obs,
-            hidden_dim=hidden_dim,
             max_num_modules=max_num_modules,
             num_actions=num_actions,
-            num_experts=8,
-            activation=resolve_nn_activation("elu"),
-            gate_type="attention",
+            hidden_dim=hidden_dim,
+            num_experts=m2oe_cfg["num_experts"],
+            activation=resolve_nn_activation(activation),
+            gate_type=m2oe_cfg["gate_type"],
+            gate_embedding_dim=m2oe_cfg["gate_embedding_dim"],
+            gate_num_heads=m2oe_cfg["gate_num_heads"],
+            gate_dropout=m2oe_cfg["gate_dropout"],
             device=self.device,
         )
 
         self.critic = nn.Sequential(
             nn.Linear(num_actor_obs + num_global_obs, hidden_dim),
-            resolve_nn_activation("elu"),
+            resolve_nn_activation(activation),
             nn.Linear(hidden_dim, hidden_dim),
-            resolve_nn_activation("elu"),
-            nn.Linear(hidden_dim, 1)
+            resolve_nn_activation(activation),
+            nn.Linear(hidden_dim, 1),
         )
 
     def reset(self, dones=None):

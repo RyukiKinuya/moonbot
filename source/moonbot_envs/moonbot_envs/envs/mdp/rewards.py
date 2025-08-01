@@ -348,7 +348,8 @@ def wheel_distances(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnt
         (dist_base_3 - mean_distance) ** 2
     ) / 6.0
 
-    reward = torch.exp(-variance**2)
+    alpha = 30
+    reward = torch.exp(-alpha * variance**2)
 
 
     return reward.squeeze(-1)
@@ -616,11 +617,15 @@ def wheel_joint_ang_velocity_reward(
 
     wheel_joint_idx = robot.find_joints(wheel_joint_names)[0]
 
-    joint_vel = robot.data.joint_vel[:, wheel_joint_idx]
+    joint_vel = torch.abs(robot.data.joint_vel[:, wheel_joint_idx])
 
-    penalty = torch.exp(-torch.abs(joint_vel))
+    norm_joint_vel = torch.norm(joint_vel, dim=-1)
 
-    return torch.mean(penalty, dim=1)
+    reward = torch.exp(-norm_joint_vel / 3.14)  # normalize by a factor of 3.14
+
+    return reward
+
+
 
 def base_balance(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")

@@ -209,7 +209,7 @@ class IntegrationRewardCfg:
             # stage1 1: standing
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=5.0,
+                weight=1.0,
             )
 
             self.diff_from_init_pose = RewTerm(
@@ -376,7 +376,7 @@ class IntegrationCurriculumCfg:
         for asset_name in morphology_configs.morphology_list:
             # stage 2:  moving
             term_name_list = [ "track_lin_vel_xy_exp", "track_ang_vel_z_exp", "lin_vel_z_l2", "ang_vel_xy_l2", "wheel_ang_vel", "wheel_same_act" ]
-            weight_list = [ 6.0, 3.0, -2.0, -0.1, 3.0, 3.0 ]
+            weight_list = [ 10.0, 5.0, -2.0, -0.1, -3.0, 3.0 ]
             for term_name, weight in zip(term_name_list, weight_list):
                 setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
                     func=mdp.modify_reward_weight_group,

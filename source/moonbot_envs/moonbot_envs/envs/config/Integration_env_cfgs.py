@@ -221,7 +221,7 @@ class IntegrationRewardCfg:
 
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=10.0,
+                weight=5.0,
             )
             
             # self.wheel_ang_vel = RewTerm(

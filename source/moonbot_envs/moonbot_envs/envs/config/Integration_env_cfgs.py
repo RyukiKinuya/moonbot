@@ -382,14 +382,14 @@ class IntegrationCurriculumCfg:
                     func=mdp.modify_reward_weight_group,
                     params={
                         "group_name": f"reward_{asset_name}",
-                        "term_name": "track_lin_vel_xy_exp",
+                        "term_name": term_name,
                         "weight": weight,
-                        "num_steps": 10000,
+                        "num_steps": 7500,
                     },
                 ))
             # stage 3: polishing action
             term_name_list = [ "dof_acc_l2", "power", "dof_vel_l2", "action_rate" ]
-            weight_list = [ -1e-5, -3e-4, -0.01, -0.0001 ]
+            weight_list = [ -1e-7, -3e-5, -1e-4, -0.0001 ]
             for term_name, weight in zip(term_name_list, weight_list):
                 setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
                     func=mdp.modify_reward_weight_group,
@@ -397,7 +397,7 @@ class IntegrationCurriculumCfg:
                         "group_name": f"reward_{asset_name}",
                         "term_name": term_name,
                         "weight": weight,
-                        "num_steps": 20000,
+                        "num_steps": 15000,
                     },
                 ))
 

@@ -4,6 +4,7 @@ import math
 from typing import TYPE_CHECKING
 
 from M2oE.configs import morphology_configs
+from isaaclab.managers.manager_term_cfg import CurriculumTermCfg
 import moonbot_envs.envs.mdp as mdp
 from moonbot_envs.assets import *
 from moonbot_envs.custom_lab_envs.manager_term_cfg import ActionGroupCfg, RewardGroupCfg
@@ -205,12 +206,10 @@ class IntegrationRewardCfg:
     @configclass
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
-            self.track_lin_vel_xy_exp = RewTerm(
-                func=mdp.track_lin_vel_xy_exp, weight=6.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
-            )
-
-            self.track_ang_vel_z_exp = RewTerm(
-                func=mdp.track_ang_vel_z_exp, weight=3.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+            # stage1 1: standing
+            self.is_alive = RewTerm(
+                func=mdp.is_alive,
+                weight=5.0,
             )
 
             self.diff_from_init_pose = RewTerm(
@@ -219,23 +218,18 @@ class IntegrationRewardCfg:
                 params={"asset_cfg": asset_cfg},
             )
 
-            self.is_alive = RewTerm(
-                func=mdp.is_alive,
-                weight=5.0,
-            )
-            
-            # self.wheel_ang_vel = RewTerm(
-            #     func=mdp.wheel_joint_ang_velocity_reward,
-            #     weight=3.0,
-            #     params={"asset_cfg": asset_cfg},
-            # )
-
-            self.wheel_same_act = RewTerm(
-                func=mdp.wheel_same_act,
-                weight=3.0,
+            self.base_balance = RewTerm(
+                func=mdp.base_balance,
+                weight=-3.0,
                 params={"asset_cfg": asset_cfg},
             )
-            
+
+            self.undesired_contacts = RewTerm(
+                func=mdp.undesired_contacts_moonbot,
+                weight=-0.5,
+                params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
+            )
+
             if asset_cfg.name == "moonbot_full":
                 self.base_height = RewTerm(
                     func=mdp.base_height_reward,
@@ -255,43 +249,50 @@ class IntegrationRewardCfg:
                 )
 
                 self.diff_from_init_pose.weight = 10.0
-            #------------------------------------------Negitive Rewards------------------------------------------
-            self.base_balance = RewTerm(
-                func=mdp.base_balance,
-                weight=-3.0,
+
+
+            # staget 2: moving
+            self.track_lin_vel_xy_exp = RewTerm(
+                func=mdp.track_lin_vel_xy_exp, 
+                weight=0.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+            )
+
+            self.track_ang_vel_z_exp = RewTerm(
+                func=mdp.track_ang_vel_z_exp, 
+                weight=0.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+            )
+
+            self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=0.0, params={"asset_cfg": asset_cfg})
+            
+            self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=0.0, params={"asset_cfg": asset_cfg})
+            
+            self.wheel_ang_vel = RewTerm(
+                func=mdp.wheel_joint_ang_velocity_reward,
+                weight=0.0,
                 params={"asset_cfg": asset_cfg},
             )
 
-            self.undesired_contacts = RewTerm(
-                func=mdp.undesired_contacts_moonbot,
-                weight=-0.5,
-                params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
+            self.wheel_same_act = RewTerm(
+                func=mdp.wheel_same_act,
+                weight=0.0,
+                params={"asset_cfg": asset_cfg},
             )
-
-            self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight = -2.0, params={"asset_cfg": asset_cfg})
             
-            self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight = -0.1, params={"asset_cfg": asset_cfg})
-
-            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight = -1e-5, params={"asset_cfg": asset_cfg})
+            # stage 3: polishing action
+            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=0.0, params={"asset_cfg": asset_cfg})
             
-            self.power = RewTerm(func=mdp.joint_power, weight = -3e-4, params={"asset_cfg": asset_cfg})
+            self.power = RewTerm(func=mdp.joint_power, weight=0.0, params={"asset_cfg": asset_cfg})
             
             self.dof_vel_l2 = RewTerm(
-                func=mdp.joint_vel_l2, weight = -0.01, params={"asset_cfg": asset_cfg}
+                func=mdp.joint_vel_l2, weight=0.0, params={"asset_cfg": asset_cfg}
             )
 
-            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.0001, params={"asset_cfg": asset_cfg})
+            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=0.0, params={"asset_cfg": asset_cfg})
 
 
-            # self.bad_wheel_orientation = RewTerm(
-            #     func=mdp.bad_wheel_orientation,
-            #     weight = -2.0, params={
-            #     "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),})
-
-
-    reward_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal", joint_names=morphology_configs.joint_names_dict_flat["moonbot_minimal"]["leg"]))
-    reward_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon", joint_names=morphology_configs.joint_names_dict_flat["moonbot_dragon"]["leg"]))
-    reward_full: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_full", joint_names=morphology_configs.joint_names_dict_flat["moonbot_full"]["leg"]))
+    reward_moonbot_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal", joint_names=morphology_configs.joint_names_dict_flat["moonbot_minimal"]["leg"]))
+    reward_moonbot_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon", joint_names=morphology_configs.joint_names_dict_flat["moonbot_dragon"]["leg"]))
+    reward_moonbot_full: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_full", joint_names=morphology_configs.joint_names_dict_flat["moonbot_full"]["leg"]))
 
 @configclass
 class IntegrationTerminationCfg:
@@ -369,17 +370,46 @@ class IntegrationEventCfg:
 
 @configclass
 class IntegrationCurriculumCfg:
-    pass
+    def __init__(self):
+        import M2oE.configs.morphology_configs as morphology_configs
 
-@configclass
-class IntegrationViewerCfg(ViewerCfg):
-    eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
-    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    cam_prim_path: str = "/OmniverseKit_Persp"
-    resolution: tuple[int, int] = (1280, 720)
-    origin_type: str = "asset_root" # type: ignore
-    env_index: int = 0
-    asset_name: str = "moonbot_full" # type: ignore
+        for asset_name in morphology_configs.morphology_list:
+            # stage 2:  moving
+            term_name_list = [ "track_lin_vel_xy_exp", "track_ang_vel_z_exp", "lin_vel_z_l2", "ang_vel_xy_l2", "wheel_ang_vel", "wheel_same_act" ]
+            weight_list = [ 6.0, 3.0, -2.0, -0.1, 3.0, 3.0 ]
+            for term_name, weight in zip(term_name_list, weight_list):
+                setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
+                    func=mdp.modify_reward_weight_group,
+                    params={
+                        "group_name": f"reward_{asset_name}",
+                        "term_name": term_name,
+                        "weight": weight,
+                        "num_steps": 7500,
+                    },
+                ))
+            # stage 3: polishing action
+            term_name_list = [ "dof_acc_l2", "power", "dof_vel_l2", "action_rate" ]
+            weight_list = [ -1e-7, -3e-5, -1e-4, -0.0001 ]
+            for term_name, weight in zip(term_name_list, weight_list):
+                setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
+                    func=mdp.modify_reward_weight_group,
+                    params={
+                        "group_name": f"reward_{asset_name}",
+                        "term_name": term_name,
+                        "weight": weight,
+                        "num_steps": 15000,
+                    },
+                ))
+
+# @configclass
+# class IntegrationViewerCfg(ViewerCfg):
+#     eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
+#     lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
+#     cam_prim_path: str = "/OmniverseKit_Persp"
+#     resolution: tuple[int, int] = (1280, 720)
+#     origin_type: str = "asset_root" # type: ignore
+#     env_index: int = 0
+#     asset_name: str = "moonbot_full" # type: ignore
 
 @configclass
 class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
@@ -394,13 +424,13 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
 
     events: IntegrationEventCfg = IntegrationEventCfg() # type: ignore
     curriculum: IntegrationCurriculumCfg = IntegrationCurriculumCfg() # type: ignore
-    viewer: IntegrationViewerCfg = IntegrationViewerCfg() # type: ignore
+    # viewer: IntegrationViewerCfg = IntegrationViewerCfg() # type: ignore
 
     def __post_init__(self):
         self.decimation = 4
         self.episode_length_s = 20.0
 
-        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2 ** 15
         # selk.sie.physx.gpu_max_rigid_contact_count = 2 ** 25
         # self.sim.physx.gpu_collision_stack_size = 2 ** 28 
         self.sim.dt = 0.005

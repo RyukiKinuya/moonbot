@@ -16,6 +16,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import carb
+from moonbot_envs.custom_lab_envs.custom_rl_env import CustomManagerBasedRLEnv
 import omni.physics.tensors.impl.api as physx
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
@@ -89,3 +90,16 @@ def modify_scene_gravity(
         # set the gravity into the physics simulation
         physics_sim_view: physx.SimulationView = sim_utils.SimulationContext.instance().physics_sim_view
         physics_sim_view.set_gravity(carb.Float3(*gravity))
+
+def modify_reward_weight_group(
+    env: CustomManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    group_name: str,
+    term_name: str,
+    weight: float,
+    num_steps: int = 3000,
+):
+    if env.common_step_counter > num_steps:
+        term_cfg = env.reward_manager.get_term_cfg(group_name, term_name)
+        term_cfg.weight = weight
+        env.reward_manager.set_term_cfg(group_name, term_name, term_cfg)

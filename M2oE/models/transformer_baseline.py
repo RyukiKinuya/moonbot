@@ -12,11 +12,12 @@ class TransformerBaseline(nn.Module):
         max_num_modules: int,
         num_actions: int,
         embedding_dim: int,
-        num_layers: int,
+
         num_heads: int,
         dropout: float,
         device: torch.device,
         activation: str = "relu",
+        num_layers: int = 4,
     ) -> None:
         super().__init__()
         self.device = device

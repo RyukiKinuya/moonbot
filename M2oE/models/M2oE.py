@@ -108,7 +108,7 @@ class M2oE(nn.Module):
         # initialize
         self.act_experts = nn.ModuleList([
             nn.Sequential(
-                nn.Linear(self.modular_obs_dim, hidden_dim),
+                nn.Linear(self.modular_obs_dim + self.num_global_obs, hidden_dim),
                 self.activation,
                 nn.Linear(hidden_dim, hidden_dim),
                 self.activation,
@@ -152,10 +152,13 @@ class M2oE(nn.Module):
         batch_size = obs.shape[0]   # batch_size = num_envs * num_morphologies
         # obs: [batch_size, num_obs_padded] -> [batch_size, max_num_modules, modular_obs_dim]
         obs = obs.reshape(batch_size, self.max_num_modules, -1)
+        # global_obs: [batch_size, num_global_obs] -> [batch_size, self.max_num_modules, num_global_obs]
+        expert_global_obs = global_obs.unsqueeze(1).expand(-1, self.max_num_modules, -1)
+        expert_input = torch.cat((obs, expert_global_obs), dim=-1)
 
         expert_outputs = []
         for i in range(self.num_experts):
-            expert_output = self.act_experts[i](obs)
+            expert_output = self.act_experts[i](expert_input)
             expert_outputs.append(expert_output)
         # expert_outputs: [batch_size, max_num_modules, num_experts, modular_act_dim]
         expert_outputs = torch.stack(expert_outputs, dim=2)

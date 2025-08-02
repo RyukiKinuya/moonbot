@@ -13,11 +13,11 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     experiment_name = "MoonBot_locomotion"
     empirical_normalization = False
     policy = M2oEActorCriticCfg(
-        init_noise_std=5.0,
+        init_noise_std=1.0,
     )
     m2oe = M2oECfg(
-        hidden_dim=128,
-        num_experts=8,
+        hidden_dim=64,
+        num_experts=6,
         activation="elu",
         gate_type="attention",
         gate_embedding_dim=64,
@@ -28,7 +28,7 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
         value_loss_coef=1.0,
         use_clipped_value_loss=True,
         clip_param=0.2,
-        entropy_coef=0.01,
+        entropy_coef=0.0001,
         num_learning_epochs=5,
         num_mini_batches=4,
         learning_rate=1.0e-3,

@@ -76,7 +76,7 @@ class M2oE(nn.Module):
         num_obs,
         num_global_obs,
         max_num_modules,
-        num_actions,
+        num_outputs,
         hidden_dim,
         num_experts,
         activation,
@@ -92,12 +92,18 @@ class M2oE(nn.Module):
 
         self.num_obs = num_obs
         self.num_global_obs = num_global_obs
-        self.num_actions = num_actions
+        self.num_outputs = num_outputs
         self.num_experts = num_experts
         self.activation = activation
         self.max_num_modules = max_num_modules
         self.modular_obs_dim = num_obs // max_num_modules
-        self.modular_act_dim = num_actions // max_num_modules
+        if num_outputs == 1:
+            self.modular_act_dim = 1
+        else:
+            assert (
+                num_outputs % max_num_modules == 0
+            ), "num_outputs must be divisible by max_num_modules"
+            self.modular_act_dim = num_outputs // max_num_modules
 
         # initialize
         self.act_experts = nn.ModuleList([
@@ -149,11 +155,9 @@ class M2oE(nn.Module):
 
         expert_outputs = []
         for i in range(self.num_experts):
-            # export_output: [batch_size, max_num_modules, num_actions]
             expert_output = self.act_experts[i](obs)
-            expert_outputs.append(expert_output.squeeze(2))
-        # expert_outputs: list len:num_experts
-        # expert_outputs: [batch_size, max_num_modules, num_experts, num_actions]
+            expert_outputs.append(expert_output)
+        # expert_outputs: [batch_size, max_num_modules, num_experts, modular_act_dim]
         expert_outputs = torch.stack(expert_outputs, dim=2)
 
         # global feature extraction
@@ -171,10 +175,12 @@ class M2oE(nn.Module):
         gate = self.gate(obs, global_obs)
         # gate: [batch_size, max_num_modules, num_experts]
 
-        # contruct action
-        # action: [batch_size, max_num_modules, num_actions] -> [batch_size, num_actions]
-        action = torch.einsum('bmn, bmnk -> bmk', gate, expert_outputs)
-        action = action.flatten(start_dim=1)
-        # action: [batch_size, num_actions]
+        # construct output
+        # output: [batch_size, max_num_modules, modular_act_dim]
+        output = torch.einsum('bmn, bmnk -> bmk', gate, expert_outputs)
+        if self.num_outputs == 1:
+            output = output.mean(dim=1)
+        else:
+            output = output.flatten(start_dim=1)
 
-        return action
+        return output

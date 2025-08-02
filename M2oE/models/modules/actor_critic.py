@@ -76,7 +76,7 @@ class M2oEActorCritic(nn.Module):
             num_obs=num_actor_obs,
             num_global_obs=num_global_obs,
             max_num_modules=max_num_modules,
-            num_actions=num_actions,
+            num_outputs=num_actions,
             hidden_dim=hidden_dim,
             num_experts=m2oe_cfg["num_experts"],
             activation=resolve_nn_activation(activation),
@@ -87,12 +87,19 @@ class M2oEActorCritic(nn.Module):
             device=self.device,
         )
 
-        self.critic = nn.Sequential(
-            nn.Linear(num_actor_obs + num_global_obs, hidden_dim),
-            resolve_nn_activation(activation),
-            nn.Linear(hidden_dim, hidden_dim),
-            resolve_nn_activation(activation),
-            nn.Linear(hidden_dim, 1),
+        self.critic = M2oE(
+            num_obs=num_actor_obs,
+            num_global_obs=num_global_obs,
+            max_num_modules=max_num_modules,
+            num_outputs=1,
+            hidden_dim=hidden_dim,
+            num_experts=m2oe_cfg["num_experts"],
+            activation=resolve_nn_activation(activation),
+            gate_type=m2oe_cfg["gate_type"],
+            gate_embedding_dim=m2oe_cfg["gate_embedding_dim"],
+            gate_num_heads=m2oe_cfg["gate_num_heads"],
+            gate_dropout=m2oe_cfg["gate_dropout"],
+            device=self.device,
         )
 
     def reset(self, dones=None):
@@ -140,8 +147,7 @@ class M2oEActorCritic(nn.Module):
     def evaluate(self, critic_observations, obs_global, **kwargs):
         # critic_observations: [batch_size, num_obs_padded]
         # obs_global: [batch_size, num_global_obs]
-        critic_input = torch.cat((critic_observations, obs_global), dim=-1)
-        value = self.critic(critic_input)
+        value = self.critic(critic_observations, obs_global)
         return value
 
     def load_state_dict(self, state_dict, strict=True):

@@ -135,7 +135,7 @@ class IntegrationActCfg:
                 leg_action_term = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["leg"],
-                    scale= 0.5,
+                    scale= 0.25,
                     use_default_offset=True,)
                 setattr(self, leg_action_name, leg_action_term)
 
@@ -143,7 +143,7 @@ class IntegrationActCfg:
                 wheel_action_term = mdp.JointVelocityActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["wheel"],
-                    scale= 50,)
+                    scale= 20,)
                 setattr(self, wheel_action_name, wheel_action_term)
 
     act_moonbot_minimal: MoonbotActCfg = MoonbotActCfg(
@@ -206,21 +206,67 @@ class IntegrationRewardCfg:
     @configclass
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
-            # stage1 1: standing
+            
+            self.track_lin_vel_xy_exp = RewTerm(
+                func=mdp.track_lin_vel_xy_exp, 
+                weight=6.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+            )
+
+            self.track_ang_vel_z_exp = RewTerm(
+                func=mdp.track_ang_vel_z_exp, 
+                weight=3.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+            )            
+            
+            
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=1.0,
+                weight=10.0,
             )
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight = 5.0,
+                weight=10.0,
                 params={"asset_cfg": asset_cfg},
             )
 
+            self.wheel_ang_vel = RewTerm(
+                func=mdp.wheel_ang_velocity_reward,
+                weight=1.0,
+                params={"asset_cfg": asset_cfg},
+            )
+            
+            self.wheel_same_act = RewTerm(
+                func=mdp.wheel_same_act,
+                weight=2.0,
+                params={"asset_cfg": asset_cfg},
+            )            
+            
+            if asset_cfg.name == "moonbot_full":
+                self.base_height = RewTerm(
+                    func=mdp.base_height_reward,
+                    weight=2.0,
+                    params={
+                        "asset_cfg": asset_cfg,
+                        "target_height": 0.5,
+                    },
+                )
+            
+                self.wheel_distance = RewTerm(
+                    func=mdp.wheel_distances,
+                    weight= 1.0,
+                    params={
+                        "asset_cfg": asset_cfg,
+                    },
+                )
+                self.diff_from_init_pose.weight = 100.0
+
+
+
+            # staget 2: moving
+
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
-                weight=-3.0,
+                weight=-5.0,
                 params={"asset_cfg": asset_cfg},
             )
 
@@ -229,65 +275,20 @@ class IntegrationRewardCfg:
                 weight=-0.5,
                 params={"sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
             )
-
-            if asset_cfg.name == "moonbot_full":
-                self.base_height = RewTerm(
-                    func=mdp.base_height_reward,
-                    weight=2.0,
-                    params={
-                        "asset_cfg": asset_cfg,
-                        "target_height": 0.45
-                    },
-                )
+            self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0, params={"asset_cfg": asset_cfg})
             
-                self.wheel_distance = RewTerm(
-                    func=mdp.wheel_distances,
-                    weight= 2.0,
-                    params={
-                        "asset_cfg": asset_cfg,
-                    },
-                )
-
-                self.diff_from_init_pose.weight = 10.0
-
-
-            # staget 2: moving
-            self.track_lin_vel_xy_exp = RewTerm(
-                func=mdp.track_lin_vel_xy_exp, 
-                weight=0.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
-            )
-
-            self.track_ang_vel_z_exp = RewTerm(
-                func=mdp.track_ang_vel_z_exp, 
-                weight=0.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
-            )
-
-            self.lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=0.0, params={"asset_cfg": asset_cfg})
-            
-            self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=0.0, params={"asset_cfg": asset_cfg})
-            
-            self.wheel_ang_vel = RewTerm(
-                func=mdp.wheel_joint_ang_velocity_reward,
-                weight=0.0,
-                params={"asset_cfg": asset_cfg},
-            )
-
-            self.wheel_same_act = RewTerm(
-                func=mdp.wheel_same_act,
-                weight=0.0,
-                params={"asset_cfg": asset_cfg},
-            )
-            
+            self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.1, params={"asset_cfg": asset_cfg})
+        
             # stage 3: polishing action
-            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=0.0, params={"asset_cfg": asset_cfg})
+            self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2e-5, params={"asset_cfg": asset_cfg})
             
-            self.power = RewTerm(func=mdp.joint_power, weight=0.0, params={"asset_cfg": asset_cfg})
+            self.power = RewTerm(func=mdp.joint_power, weight=-5e-4, params={"asset_cfg": asset_cfg})
             
             self.dof_vel_l2 = RewTerm(
-                func=mdp.joint_vel_l2, weight=0.0, params={"asset_cfg": asset_cfg}
+                func=mdp.joint_vel_l2, weight=-0.02, params={"asset_cfg": asset_cfg}
             )
 
-            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=0.0, params={"asset_cfg": asset_cfg})
+            self.action_rate = RewTerm(func=mdp.action_rate_modular, weight=-0.01, params={"asset_cfg": asset_cfg})
 
 
     reward_moonbot_minimal: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_minimal", joint_names=morphology_configs.joint_names_dict_flat["moonbot_minimal"]["leg"]))
@@ -305,17 +306,24 @@ class IntegrationTerminationCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
     )
-    # bad_orientation = DoneTerm(
-    #     func=mdp.bad_orientation,  
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),
-    #         "limit_angle": 0.1,
-    #     },
-    # )
+    bad_orientation_dragon = DoneTerm(
+        func=mdp.bad_orientation,  
+        params={
+            "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),
+            "limit_angle": 0.1,
+        },
+    )
     base_contact_full = DoneTerm(
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base_link"), "threshold": 8.0}
     )
+    # bad_orientation_full = DoneTerm(
+    #     func=mdp.bad_orientation,  
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("moonbot_full", body_names=["^leg[1-3]_wheel_body$"]),
+    #         "limit_angle": 0.1,
+    #     },
+    # )
 
 @configclass
 class IntegrationEventCfg:
@@ -370,13 +378,13 @@ class IntegrationEventCfg:
 
 @configclass
 class IntegrationCurriculumCfg:
+    # pass
+    
     def __init__(self):
         import M2oE.configs.morphology_configs as morphology_configs
-
         for asset_name in morphology_configs.morphology_list:
-            # stage 2:  moving
-            term_name_list = [ "track_lin_vel_xy_exp", "track_ang_vel_z_exp", "lin_vel_z_l2", "ang_vel_xy_l2", "wheel_ang_vel", "wheel_same_act" ]
-            weight_list = [ 10.0, 5.0, -2.0, -0.1, -3.0, 3.0 ]
+            term_name_list = [ "is_alive", "diff_from_init_pose"]
+            weight_list = [ 1.0, 5.0 ]
             for term_name, weight in zip(term_name_list, weight_list):
                 setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
                     func=mdp.modify_reward_weight_group,
@@ -384,22 +392,37 @@ class IntegrationCurriculumCfg:
                         "group_name": f"reward_{asset_name}",
                         "term_name": term_name,
                         "weight": weight,
-                        "num_steps": 7500,
+                        "num_steps": 8000, #20000 yue
                     },
                 ))
-            # stage 3: polishing action
-            term_name_list = [ "dof_acc_l2", "power", "dof_vel_l2", "action_rate" ]
-            weight_list = [ -1e-7, -3e-5, -1e-4, -0.0001 ]
-            for term_name, weight in zip(term_name_list, weight_list):
-                setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
-                    func=mdp.modify_reward_weight_group,
-                    params={
-                        "group_name": f"reward_{asset_name}",
-                        "term_name": term_name,
-                        "weight": weight,
-                        "num_steps": 15000,
-                    },
-                ))
+                
+    #     for asset_name in morphology_configs.morphology_list:
+    #         # stage 2:  moving
+    #         term_name_list = [ "track_lin_vel_xy_exp", "track_ang_vel_z_exp", "lin_vel_z_l2", "ang_vel_xy_l2", "wheel_ang_vel", "wheel_same_act" ]
+    #         weight_list = [ 6.0, 3.0, -2.0, -0.1, 3.0, 3.0 ]
+    #         for term_name, weight in zip(term_name_list, weight_list):
+    #             setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
+    #                 func=mdp.modify_reward_weight_group,
+    #                 params={
+    #                     "group_name": f"reward_{asset_name}",
+    #                     "term_name": "track_lin_vel_xy_exp",
+    #                     "weight": weight,
+    #                     "num_steps": 10000,
+    #                 },
+    #             ))
+    #         # stage 3: polishing action
+    #         term_name_list = [ "dof_acc_l2", "power", "dof_vel_l2", "action_rate" ]
+    #         weight_list = [ -1e-5, -3e-4, -0.01, -0.0001 ]
+    #         for term_name, weight in zip(term_name_list, weight_list):
+    #             setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
+    #                 func=mdp.modify_reward_weight_group,
+    #                 params={
+    #                     "group_name": f"reward_{asset_name}",
+    #                     "term_name": term_name,
+    #                     "weight": weight,
+    #                     "num_steps": 15000,
+    #                 },
+    #             ))
 
 # @configclass
 # class IntegrationViewerCfg(ViewerCfg):

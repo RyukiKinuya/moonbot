@@ -12,7 +12,8 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": IntegrationEnvCfg,
-        "M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg
+        # "M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg
+        "M2oE_entry_point": agents.Transformer_cfg.Transformer_Cfg
     }
 )
 

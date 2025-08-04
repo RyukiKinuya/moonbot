@@ -14,7 +14,7 @@ import torch
 from collections import deque
 
 import rsl_rl
-from rsl_rl.utils import EmpiricalNormalization, store_code_state
+from rsl_rl.utils import store_code_state
 
 from M2oE.models.modules.actor_critic import M2oEActorCritic
 from M2oE.models.modules.ppo import PPO
@@ -87,15 +87,8 @@ class OnPolicyRunner:
         # store training configuration
         self.num_steps_per_env = self.cfg["num_steps_per_env"]
         self.save_interval = self.cfg["save_interval"]
-        self.empirical_normalization = self.cfg["empirical_normalization"]
-        if self.empirical_normalization:
-            self.obs_normalizer = EmpiricalNormalization(shape=[self.num_obs], until=1.0e8).to(self.device)
-            self.privileged_obs_normalizer = EmpiricalNormalization(shape=[num_privileged_obs], until=1.0e8).to(
-                self.device
-            )
-        else:
-            self.obs_normalizer = torch.nn.Identity().to(self.device)  # no normalization
-            self.privileged_obs_normalizer = torch.nn.Identity().to(self.device)  # no normalization
+        self.obs_normalizer = torch.nn.Identity().to(self.device)  # no normalization
+        self.privileged_obs_normalizer = torch.nn.Identity().to(self.device)  # no normalization
 
         # init storage and model
         self.alg.init_storage(
@@ -425,9 +418,6 @@ class OnPolicyRunner:
             saved_dict["rnd_state_dict"] = self.alg.rnd.state_dict()
             saved_dict["rnd_optimizer_state_dict"] = self.alg.rnd_optimizer.state_dict()
         # -- Save observation normalizer if used
-        if self.empirical_normalization:
-            saved_dict["obs_norm_state_dict"] = self.obs_normalizer.state_dict()
-            saved_dict["privileged_obs_norm_state_dict"] = self.privileged_obs_normalizer.state_dict()
 
         # save model
         torch.save(saved_dict, path)
@@ -443,18 +433,6 @@ class OnPolicyRunner:
         # -- Load RND model if used
         if self.alg.rnd:
             self.alg.rnd.load_state_dict(loaded_dict["rnd_state_dict"])
-        # -- Load observation normalizer if used
-        if self.empirical_normalization:
-            if resumed_training:
-                # if a previous training is resumed, the actor/student normalizer is loaded for the actor/student
-                # and the critic/teacher normalizer is loaded for the critic/teacher
-                self.obs_normalizer.load_state_dict(loaded_dict["obs_norm_state_dict"])
-                self.privileged_obs_normalizer.load_state_dict(loaded_dict["privileged_obs_norm_state_dict"])
-            else:
-                # if the training is not resumed but a model is loaded, this run must be distillation training following
-                # an rl training. Thus the actor normalizer is loaded for the teacher model. The student's normalizer
-                # is not loaded, as the observation space could differ from the previous rl training.
-                self.privileged_obs_normalizer.load_state_dict(loaded_dict["obs_norm_state_dict"])
         # -- load optimizer if used
         if load_optimizer and resumed_training:
             # -- algorithm optimizer
@@ -472,10 +450,6 @@ class OnPolicyRunner:
         if device is not None:
             self.alg.policy.to(device)
         policy = self.alg.policy.act_inference
-        if self.cfg["empirical_normalization"]:
-            if device is not None:
-                self.obs_normalizer.to(device)
-            policy = lambda x: self.alg.policy.act_inference(self.obs_normalizer(x))  # noqa: E731
         return policy
 
     def train_mode(self):
@@ -485,9 +459,6 @@ class OnPolicyRunner:
         if self.alg.rnd:
             self.alg.rnd.train()
         # -- Normalization
-        if self.empirical_normalization:
-            self.obs_normalizer.train()
-            self.privileged_obs_normalizer.train()
 
     def eval_mode(self):
         # -- PPO
@@ -495,10 +466,6 @@ class OnPolicyRunner:
         # -- RND
         if self.alg.rnd:
             self.alg.rnd.eval()
-        # -- Normalization
-        if self.empirical_normalization:
-            self.obs_normalizer.eval()
-            self.privileged_obs_normalizer.eval()
 
     def add_git_repo_to_log(self, repo_file_path):
         self.git_status_repos.append(repo_file_path)

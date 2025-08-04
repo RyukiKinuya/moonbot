@@ -50,12 +50,15 @@ class TransformerBaseline(nn.Module):
         """Compute actions from modular and global observations.
 
         Args:
-            modular_obs: Tensor of shape ``[batch_size, max_num_modules, modular_obs_dim]``.
+            modular_obs: Tensor of shape ``[batch_size, num_obs]`` containing all modular
+                observations concatenated.
             global_obs: Tensor of shape ``[batch_size, num_global_obs]``.
 
         Returns:
             Tensor of shape ``[batch_size, num_outputs]`` containing outputs for all modules.
         """
+        batch_size = modular_obs.shape[0]
+        modular_obs = modular_obs.view(batch_size, self.max_num_modules, self.modular_obs_dim)
         feature_modular = self.input_projection_modular(modular_obs)
         feature_global = self.input_projection_global(global_obs).unsqueeze(1)
         tokens = torch.cat([feature_global, feature_modular], dim=1)

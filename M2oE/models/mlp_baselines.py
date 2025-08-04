@@ -88,10 +88,21 @@ class SharedModuleMLPBaseline(nn.Module):
         self.mlp = nn.Sequential(*layers)
 
     def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor) -> torch.Tensor:
+        """Compute outputs from modular and global observations.
+
+        Args:
+            modular_obs: Tensor of shape ``[batch_size, num_obs]`` containing all modular
+                observations concatenated.
+            global_obs: Tensor of shape ``[batch_size, num_global_obs]``.
+
+        Returns:
+            Tensor of shape ``[batch_size, num_outputs]``.
+        """
         batch_size = modular_obs.shape[0]
+        modular_obs = modular_obs.view(batch_size, self.max_num_modules, self.modular_obs_dim)
         global_expanded = global_obs.unsqueeze(1).expand(-1, self.max_num_modules, -1)
         x = torch.cat([modular_obs, global_expanded], dim=-1)
-        x = x.reshape(batch_size * self.max_num_modules, -1)
+        x = x.view(batch_size * self.max_num_modules, -1)
         actions = self.mlp(x)
         actions = actions.view(batch_size, self.max_num_modules, self.modular_act_dim)
         if self.aggregate:

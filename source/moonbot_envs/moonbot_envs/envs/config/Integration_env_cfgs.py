@@ -220,18 +220,18 @@ class IntegrationRewardCfg:
             
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=10.0,
+                weight=1.0,
             )
 
             self.diff_from_init_pose = RewTerm(
                 func=mdp.diff_from_init_pose,
-                weight=10.0,
+                weight=5.0,
                 params={"asset_cfg": asset_cfg},
             )
 
             self.wheel_ang_vel = RewTerm(
-                func=mdp.wheel_ang_velocity_reward,
-                weight=1.0,
+                func=mdp.wheel_joint_ang_velocity_reward,
+                weight=-1.0,
                 params={"asset_cfg": asset_cfg},
             )
             
@@ -258,7 +258,7 @@ class IntegrationRewardCfg:
                         "asset_cfg": asset_cfg,
                     },
                 )
-                self.diff_from_init_pose.weight = 100.0
+                # self.diff_from_init_pose.weight = 100.0
 
 
 
@@ -378,23 +378,22 @@ class IntegrationEventCfg:
 
 @configclass
 class IntegrationCurriculumCfg:
-    # pass
-    
-    def __init__(self):
-        import M2oE.configs.morphology_configs as morphology_configs
-        for asset_name in morphology_configs.morphology_list:
-            term_name_list = [ "is_alive", "diff_from_init_pose"]
-            weight_list = [ 1.0, 5.0 ]
-            for term_name, weight in zip(term_name_list, weight_list):
-                setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
-                    func=mdp.modify_reward_weight_group,
-                    params={
-                        "group_name": f"reward_{asset_name}",
-                        "term_name": term_name,
-                        "weight": weight,
-                        "num_steps": 8000, #20000 yue
-                    },
-                ))
+    pass
+    # def __init__(self):
+    #     import M2oE.configs.morphology_configs as morphology_configs
+    #     for asset_name in morphology_configs.morphology_list:
+    #         term_name_list = [ "is_alive", "diff_from_init_pose"]
+    #         weight_list = [ 1.0, 5.0 ]
+    #         for term_name, weight in zip(term_name_list, weight_list):
+    #             setattr(self, term_name + f"_{asset_name}", CurriculumTermCfg(
+    #                 func=mdp.modify_reward_weight_group,
+    #                 params={
+    #                     "group_name": f"reward_{asset_name}",
+    #                     "term_name": term_name,
+    #                     "weight": weight,
+    #                     "num_steps": 8000, #20000 yue
+    #                 },
+    #             ))
                 
     #     for asset_name in morphology_configs.morphology_list:
     #         # stage 2:  moving
@@ -424,15 +423,15 @@ class IntegrationCurriculumCfg:
     #                 },
     #             ))
 
-# @configclass
-# class IntegrationViewerCfg(ViewerCfg):
-#     eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
-#     lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
-#     cam_prim_path: str = "/OmniverseKit_Persp"
-#     resolution: tuple[int, int] = (1280, 720)
-#     origin_type: str = "asset_root" # type: ignore
-#     env_index: int = 0
-#     asset_name: str = "moonbot_full" # type: ignore
+@configclass
+class IntegrationViewerCfg(ViewerCfg):
+    eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
+    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    cam_prim_path: str = "/OmniverseKit_Persp"
+    resolution: tuple[int, int] = (1280, 720)
+    origin_type: str = "asset_root" # type: ignore
+    env_index: int = 0
+    asset_name: str = "moonbot_full" # type: ignore
 
 @configclass
 class IntegrationEnvCfg(ManagerBasedRLEnvCfg):

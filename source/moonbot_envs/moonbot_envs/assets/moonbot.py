@@ -8,7 +8,7 @@ from isaaclab.assets import ArticulationCfg
 TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/saka/usd/moonbot_hero.usd",
+        usd_path="usd/moonbot_hero.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
@@ -69,7 +69,7 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
 UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/saka/usd/moonbothm_urdf_v8.usd",
+        usd_path="usd/moonbothm_urdf_v8.usd",
         collision_props=sim_utils.CollisionPropertiesCfg(
             collision_enabled=True,
             contact_offset=0.1,
@@ -126,7 +126,7 @@ UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
 UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UrdfFileCfg(
-        asset_path="/home/saka/usd/moonbothm_urdf_v8/moonbothm_urdf_v8/urdf/moonbothm_urdf_v8.urdf",
+        asset_path="usd/moonbothm_urdf_v8/moonbothm_urdf_v8/urdf/moonbothm_urdf_v8.urdf",
         fix_base=False,
         merge_fixed_joints=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -169,8 +169,8 @@ UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
 
         "wheel": ImplicitActuatorCfg(
             joint_names_expr=["Wheel.*"],
-            stiffness=0.0,
-            damping=100.0,
+            stiffness=200.0,
+            damping=20.0,
         ),
     },
 )
@@ -178,7 +178,7 @@ UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
 DRAGON_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/saka/usd/hero_dragon.usd",
+        usd_path="usd/hero_dragon.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

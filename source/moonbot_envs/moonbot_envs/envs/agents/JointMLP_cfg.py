@@ -1,11 +1,11 @@
 from isaaclab.utils import configclass
-from M2oE.configs.runner_cfg import M2oEActorCriticCfg, M2oECfg, M2oEOnPolicyRunnerCfg
+from M2oE.configs.runner_cfg import M2oEActorCriticCfg, M2oEOnPolicyRunnerCfg, MLPBaselineCfg
 
 from isaaclab_rl.rsl_rl.rl_cfg import RslRlPpoAlgorithmCfg
 
 
 @configclass
-class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
+class JointMLP_Cfg(M2oEOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_num_modules = 3
     max_iterations = 2000
@@ -15,14 +15,10 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
     )
-    model = M2oECfg(
-        hidden_dim=64,
-        num_experts=6,
+    model = MLPBaselineCfg(
+        class_name="JointMLPBaseline",
+        hidden_dims=(64, 64),
         activation="elu",
-        gate_type="attention",
-        gate_embedding_dim=64,
-        gate_num_heads=4,
-        gate_dropout=0.1,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

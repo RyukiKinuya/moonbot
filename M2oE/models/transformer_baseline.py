@@ -3,14 +3,14 @@ import torch.nn as nn
 
 
 class TransformerBaseline(nn.Module):
-    """Transformer-based baseline that maps modular and global observations to actions."""
+    """Transformer-based baseline that maps modular and global observations to outputs."""
 
     def __init__(
         self,
         num_obs: int,
         num_global_obs: int,
         max_num_modules: int,
-        num_actions: int,
+        num_outputs: int,
         embedding_dim: int,
 
         num_heads: int,
@@ -23,7 +23,14 @@ class TransformerBaseline(nn.Module):
         self.device = device
         self.max_num_modules = max_num_modules
         self.modular_obs_dim = num_obs // max_num_modules
-        self.modular_act_dim = num_actions // max_num_modules
+        if num_outputs == 1:
+            self.modular_act_dim = 1
+            self.aggregate = True
+        else:
+            if num_outputs % max_num_modules != 0:
+                raise ValueError("num_outputs must be divisible by max_num_modules")
+            self.modular_act_dim = num_outputs // max_num_modules
+            self.aggregate = False
 
         self.input_projection_modular = nn.Linear(self.modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(num_global_obs, embedding_dim)
@@ -43,12 +50,15 @@ class TransformerBaseline(nn.Module):
         """Compute actions from modular and global observations.
 
         Args:
-            modular_obs: Tensor of shape ``[batch_size, max_num_modules, modular_obs_dim]``.
+            modular_obs: Tensor of shape ``[batch_size, num_obs]`` containing all modular
+                observations concatenated.
             global_obs: Tensor of shape ``[batch_size, num_global_obs]``.
 
         Returns:
-            Tensor of shape ``[batch_size, num_actions]`` containing actions for all modules.
+            Tensor of shape ``[batch_size, num_outputs]`` containing outputs for all modules.
         """
+        batch_size = modular_obs.shape[0]
+        modular_obs = modular_obs.view(batch_size, self.max_num_modules, self.modular_obs_dim)
         feature_modular = self.input_projection_modular(modular_obs)
         feature_global = self.input_projection_global(global_obs).unsqueeze(1)
         tokens = torch.cat([feature_global, feature_modular], dim=1)
@@ -56,5 +66,6 @@ class TransformerBaseline(nn.Module):
         encoded = self.transformer(tokens)
         action_tokens = encoded[:, 1:, :]
         actions = self.action_head(action_tokens)
-        actions = actions.flatten(start_dim=1)
-        return actions
+        if self.aggregate:
+            return actions.mean(dim=1)
+        return actions.flatten(start_dim=1)

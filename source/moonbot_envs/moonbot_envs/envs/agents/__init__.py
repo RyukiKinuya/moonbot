@@ -1,2 +1,1 @@
-from . import rsl_rl_cfg
-from . import M2oE_cfg
+from . import JointMLP_cfg, M2oE_cfg, SharedMLP_cfg, Transformer_cfg, rsl_rl_cfg

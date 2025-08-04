@@ -41,6 +41,43 @@ class M2oECfg:
 
 
 @configclass
+class MLPBaselineCfg:
+    """Configuration of MLP-based baselines."""
+
+    class_name: Literal["JointMLPBaseline", "SharedModuleMLPBaseline"] = "JointMLPBaseline"
+    """Name of the model class."""
+
+    hidden_dims: tuple[int, ...] = (64, 64)
+    """Hidden dimensions of the MLP layers."""
+
+    activation: str = "elu"
+    """Activation function used in the MLP."""
+
+
+@configclass
+class TransformerBaselineCfg:
+    """Configuration of the transformer baseline."""
+
+    class_name: str = "TransformerBaseline"
+    """Name of the model class."""
+
+    embedding_dim: int = 64
+    """Token embedding dimension."""
+
+    num_heads: int = 4
+    """Number of attention heads."""
+
+    dropout: float = 0.1
+    """Dropout probability in the transformer."""
+
+    activation: str = "relu"
+    """Activation function used in transformer layers."""
+
+    num_layers: int = 4
+    """Number of transformer encoder layers."""
+
+
+@configclass
 class M2oEActorCriticCfg:
     """Configuration of the M2oE actor-critic policy."""
 
@@ -85,8 +122,8 @@ class M2oEOnPolicyRunnerCfg:
     policy: M2oEActorCriticCfg | RslRlDistillationStudentTeacherCfg = MISSING
     """The policy configuration."""
 
-    m2oe: M2oECfg = MISSING
-    """The M2oE model configuration."""
+    model: M2oECfg | MLPBaselineCfg | TransformerBaselineCfg = MISSING
+    """The model configuration."""
 
     algorithm: RslRlPpoAlgorithmCfg | RslRlDistillationAlgorithmCfg = MISSING
     """The algorithm configuration."""

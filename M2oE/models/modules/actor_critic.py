@@ -14,6 +14,8 @@ from torch.distributions import Normal
 from rsl_rl.utils import resolve_nn_activation
 
 from M2oE.models.M2oE import M2oE
+from M2oE.models.mlp_baselines import JointMLPBaseline, SharedModuleMLPBaseline
+from M2oE.models.transformer_baseline import TransformerBaseline
 
 
 class M2oEActorCritic(nn.Module):
@@ -25,7 +27,7 @@ class M2oEActorCritic(nn.Module):
         num_global_obs,
         num_actions,
         max_num_modules,
-        m2oe_cfg: dict,
+        model_cfg: dict,
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
         padding_mode: str = "learnable",
@@ -69,38 +71,40 @@ class M2oEActorCritic(nn.Module):
         # store observation dimension
         self.num_actor_obs = num_actor_obs
 
-        hidden_dim = m2oe_cfg["hidden_dim"]
-        activation = m2oe_cfg["activation"]
+        model_cfg = model_cfg.copy()
+        model_name = model_cfg.pop("class_name")
+        model_map = {
+            "M2oE": M2oE,
+            "JointMLPBaseline": JointMLPBaseline,
+            "SharedModuleMLPBaseline": SharedModuleMLPBaseline,
+            "TransformerBaseline": TransformerBaseline,
+        }
+        if model_name not in model_map:
+            raise ValueError(f"Unknown model class '{model_name}'.")
+        if model_name == "M2oE":
+            model_cfg["activation"] = resolve_nn_activation(model_cfg["activation"])
+        model_cls = model_map[model_name]
 
-        self.actor = M2oE(
+        self.actor = model_cls(
             num_obs=num_actor_obs,
             num_global_obs=num_global_obs,
             max_num_modules=max_num_modules,
             num_outputs=num_actions,
-            hidden_dim=hidden_dim,
-            num_experts=m2oe_cfg["num_experts"],
-            activation=resolve_nn_activation(activation),
-            gate_type=m2oe_cfg["gate_type"],
-            gate_embedding_dim=m2oe_cfg["gate_embedding_dim"],
-            gate_num_heads=m2oe_cfg["gate_num_heads"],
-            gate_dropout=m2oe_cfg["gate_dropout"],
             device=self.device,
+            **model_cfg,
         )
 
-        self.critic = M2oE(
+        self.critic = model_cls(
             num_obs=num_actor_obs,
             num_global_obs=num_global_obs,
             max_num_modules=max_num_modules,
             num_outputs=1,
-            hidden_dim=hidden_dim,
-            num_experts=m2oe_cfg["num_experts"],
-            activation=resolve_nn_activation(activation),
-            gate_type=m2oe_cfg["gate_type"],
-            gate_embedding_dim=m2oe_cfg["gate_embedding_dim"],
-            gate_num_heads=m2oe_cfg["gate_num_heads"],
-            gate_dropout=m2oe_cfg["gate_dropout"],
             device=self.device,
+            **model_cfg,
         )
+
+        total_params = sum(p.numel() for p in self.parameters())
+        print(f"M2oEActorCritic initialized with {total_params} parameters")
 
     def reset(self, dones=None):
         pass

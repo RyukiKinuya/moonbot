@@ -10,14 +10,14 @@ _ACTIVATIONS = {
 
 
 class JointMLPBaseline(nn.Module):
-    """Baseline that predicts all actions jointly from concatenated observations."""
+    """Baseline that predicts outputs jointly from concatenated observations."""
 
     def __init__(
         self,
         num_obs: int,
         num_global_obs: int,
         max_num_modules: int,
-        num_actions: int,
+        num_outputs: int,
         hidden_dims: Sequence[int],
         activation: str,
         device: torch.device,
@@ -25,8 +25,6 @@ class JointMLPBaseline(nn.Module):
         super().__init__()
         self.device = device
         self.max_num_modules = max_num_modules
-        self.modular_obs_dim = num_obs // max_num_modules
-        self.modular_act_dim = num_actions // max_num_modules
 
         act_cls = _ACTIVATIONS.get(activation.lower())
         if act_cls is None:
@@ -39,7 +37,7 @@ class JointMLPBaseline(nn.Module):
             layers.append(nn.Linear(prev_dim, hidden_dim))
             layers.append(act_cls())
             prev_dim = hidden_dim
-        layers.append(nn.Linear(prev_dim, num_actions))
+        layers.append(nn.Linear(prev_dim, num_outputs))
         self.mlp = nn.Sequential(*layers)
 
     def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor) -> torch.Tensor:
@@ -57,7 +55,7 @@ class SharedModuleMLPBaseline(nn.Module):
         num_obs: int,
         num_global_obs: int,
         max_num_modules: int,
-        num_actions: int,
+        num_outputs: int,
         hidden_dims: Sequence[int],
         activation: str,
         device: torch.device,
@@ -66,7 +64,14 @@ class SharedModuleMLPBaseline(nn.Module):
         self.device = device
         self.max_num_modules = max_num_modules
         self.modular_obs_dim = num_obs // max_num_modules
-        self.modular_act_dim = num_actions // max_num_modules
+        if num_outputs == 1:
+            self.modular_act_dim = 1
+            self.aggregate = True
+        else:
+            if num_outputs % max_num_modules != 0:
+                raise ValueError("num_outputs must be divisible by max_num_modules")
+            self.modular_act_dim = num_outputs // max_num_modules
+            self.aggregate = False
 
         act_cls = _ACTIVATIONS.get(activation.lower())
         if act_cls is None:
@@ -89,4 +94,6 @@ class SharedModuleMLPBaseline(nn.Module):
         x = x.reshape(batch_size * self.max_num_modules, -1)
         actions = self.mlp(x)
         actions = actions.view(batch_size, self.max_num_modules, self.modular_act_dim)
+        if self.aggregate:
+            return actions.mean(dim=1)
         return actions.flatten(start_dim=1)

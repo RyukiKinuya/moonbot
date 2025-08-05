@@ -119,11 +119,15 @@ class M2oE(nn.Module):
         self.gate_type = gate_type
         if gate_type == "linear":
             self.gate = nn.Sequential(
-                nn.Linear(max_num_modules + num_obs + num_global_obs, hidden_dim),
+                nn.Linear(
+                    max_num_modules + self.modular_obs_dim + num_global_obs,
+                    hidden_dim,
+                ),
                 self.activation,
                 nn.Linear(hidden_dim, hidden_dim),
                 self.activation,
                 nn.Linear(hidden_dim, num_experts),
+                nn.Softmax(dim=-1),
             )
         elif gate_type == "attention":
             self.gate = M2oEGate(
@@ -177,8 +181,9 @@ class M2oE(nn.Module):
         # gate: [batch_size, max_num_modules, num_experts]
         # gate = self.gate(gate_input)
         if self.gate_type == "linear":
-            module_no_onehot = torch.eye(self.max_num_modules, device=self.device).unsqueeze(0).expand(batch_size/self.max_num_modules, -1, -1)
-            gate_input = torch.cat((module_no_onehot, obs, expert_global_obs), dim=-1)
+            module_onehot = torch.eye(self.max_num_modules, device=self.device)
+            module_onehot = module_onehot.unsqueeze(0).expand(batch_size, -1, -1)
+            gate_input = torch.cat((module_onehot, obs, expert_global_obs), dim=-1)
             gate = self.gate(gate_input)
         elif self.gate_type == "attention":
             gate = self.gate(obs, global_obs)

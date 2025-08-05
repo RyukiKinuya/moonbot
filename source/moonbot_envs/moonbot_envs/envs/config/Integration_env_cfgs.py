@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING
 
 from M2oE.configs import morphology_configs
 from isaaclab.managers.manager_term_cfg import CurriculumTermCfg
+from isaaclab.terrains import terrain_generator
 import moonbot_envs.envs.mdp as mdp
 from moonbot_envs.assets import *
 from moonbot_envs.custom_lab_envs.manager_term_cfg import ActionGroupCfg, RewardGroupCfg
 from moonbot_envs.custom_lab_envs.terrains.config.wave_terrains_cfg import WAVE_TERRAINS_CFG
 from moonbot_envs.custom_lab_envs.terrains.terrain_importer_cfg import TerrainImporterCfg
+# from isaaclab.terrains import TerrainImporterCfg
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
@@ -100,7 +102,7 @@ class IntegrationObsCfg:
     class GlobalCfg(ObsGroup):
         def __init__(self, asset_cfg: SceneEntityCfg = SceneEntityCfg("moonbot_minimal")):
             super().__init__()
-            self.base_height = ObsTerm(func=mdp.base_height_obs, params={"asset_cfg": asset_cfg})
+            # self.base_height = ObsTerm(func=mdp.base_height_obs, params={"asset_cfg": asset_cfg})
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, params={"asset_cfg": asset_cfg})
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, params={"asset_cfg": asset_cfg})
             self.velocity_commands = ObsTerm(
@@ -161,44 +163,20 @@ class IntegrationActCfg:
 
 @configclass
 class IntegrationCmdCfg:
-    base_velocity_moonbot_minimal = mdp.UniformVelocityCommandCfg(
-        asset_name="moonbot_minimal",
-        resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.02,
-        rel_heading_envs=1.0,
-        heading_command=False,
-        heading_control_stiffness=0.5,
-        debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
-        ),
-    )
-
-    base_velocity_moonbot_dragon = mdp.UniformVelocityCommandCfg(
-        asset_name="moonbot_dragon",
-        resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.02,
-        rel_heading_envs=1.0,
-        heading_command=False,
-        heading_control_stiffness=0.5,
-        debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
-        ),
-    )
-
-    base_velocity_moonbot_full = mdp.UniformVelocityCommandCfg(
-        asset_name="moonbot_full",
-        resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.02,
-        rel_heading_envs=1.0,
-        heading_command=False,
-        heading_control_stiffness=0.5,
-        debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
-        ),
-    )
+    def __init__(self):
+        for asset_name in morphology_configs.morphology_list:
+            setattr(self, f"base_velocity_{asset_name}", mdp.UniformVelocityCommandCfg(
+                asset_name=asset_name,
+                resampling_time_range=(10.0, 10.0),
+                rel_standing_envs=0.02,
+                rel_heading_envs=1.0,
+                heading_command=False,
+                heading_control_stiffness=0.5,
+                debug_vis=True,
+                ranges=mdp.UniformVelocityCommandCfg.Ranges(
+                    lin_vel_x=(-1.8, 1.8), lin_vel_y=(-0.5, 0.5), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
+                ),
+            ))
 
 
 @configclass
@@ -242,14 +220,14 @@ class IntegrationRewardCfg:
             )            
             
             if asset_cfg.name == "moonbot_full":
-                self.base_height = RewTerm(
-                    func=mdp.base_height_reward,
-                    weight=2.0,
-                    params={
-                        "asset_cfg": asset_cfg,
-                        "target_height": 0.5,
-                    },
-                )
+                # self.base_height = RewTerm(
+                #     func=mdp.base_height_reward,
+                #     weight=2.0,
+                #     params={
+                #         "asset_cfg": asset_cfg,
+                #         "target_height": 0.5,
+                #     },
+                # )
             
                 self.wheel_distance = RewTerm(
                     func=mdp.wheel_distances,
@@ -423,15 +401,15 @@ class IntegrationCurriculumCfg:
     #                 },
     #             ))
 
-@configclass
-class IntegrationViewerCfg(ViewerCfg):
-    eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
-    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    cam_prim_path: str = "/OmniverseKit_Persp"
-    resolution: tuple[int, int] = (1280, 720)
-    origin_type: str = "asset_root" # type: ignore
-    env_index: int = 0
-    asset_name: str = "moonbot_full" # type: ignore
+# @configclass
+# class IntegrationViewerCfg(ViewerCfg):
+#     eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
+#     lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
+#     cam_prim_path: str = "/OmniverseKit_Persp"
+#     resolution: tuple[int, int] = (1280, 720)
+#     origin_type: str = "asset_root" # type: ignore
+#     env_index: int = 0
+#     asset_name: str = "moonbot_full" # type: ignore
 
 @configclass
 class IntegrationEnvCfg(ManagerBasedRLEnvCfg):

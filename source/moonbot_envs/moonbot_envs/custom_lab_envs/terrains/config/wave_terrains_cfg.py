@@ -3,10 +3,10 @@ from .hf_terrains_cfg import HfWaveTerrainCfg, HfOriginWaveTerrainCfg, HfRandomU
 import isaaclab.terrains as terrain_gen
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
-    size=(5.0, 5.0, 50.0),
+    size=(150.0, 150.0, 50.0),
     border_width=00.0,
-    num_rows=10,
-    num_cols=10,
+    num_rows=1,
+    num_cols=1,
     num_height=3,
     horizontal_scale=0.1,
     vertical_scale=0.005,
@@ -14,10 +14,10 @@ WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
     use_cache=False,
     curriculum=False,
     sub_terrains={
-        # "plane": MeshPlaneTerrainCfg(), # type: ignore
-        "random_rough": HfRandomUniformTerrainCfg(
-            proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25
-        ), # type: ignore
+        "plane": MeshPlaneTerrainCfg(), # type: ignore
+        # "random_rough": HfRandomUniformTerrainCfg(
+        #     proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25
+        # ), # type: ignore
         # "wave": HfOriginWaveTerrainCfg(
         #    proportion=1.0, amplitude_range=(0.1, 0.5), num_waves=1, border_width=0.5,
         #), # type: ignore

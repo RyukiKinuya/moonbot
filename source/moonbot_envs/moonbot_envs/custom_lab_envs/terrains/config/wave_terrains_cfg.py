@@ -1,24 +1,24 @@
 from moonbot_envs.custom_lab_envs.terrains.terrain_generator_cfg import TerrainGeneratorCfg
-from .hf_terrains_cfg import HfWaveTerrainCfg, HfOriginWaveTerrainCfg
+from .hf_terrains_cfg import HfWaveTerrainCfg, HfOriginWaveTerrainCfg, HfRandomUniformTerrainCfg, MeshPlaneTerrainCfg
 import isaaclab.terrains as terrain_gen
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
-    size=(150.0, 150.0, 50.0),
+    size=(5.0, 5.0, 50.0),
     border_width=00.0,
-    num_rows=1,
-    num_cols=1,
+    num_rows=10,
+    num_cols=10,
     num_height=3,
     horizontal_scale=0.1,
-    vertical_scale=0.05,
+    vertical_scale=0.005,
     slope_threshold=0.75,
     use_cache=False,
     curriculum=False,
     sub_terrains={
-        "plane": terrain_gen.MeshPlaneTerrainCfg(), # type: ignore
-        #"random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-        #     proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25
-        #), # type: ignore
-        #"wave": HfOriginWaveTerrainCfg(
+        # "plane": MeshPlaneTerrainCfg(), # type: ignore
+        "random_rough": HfRandomUniformTerrainCfg(
+            proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25
+        ), # type: ignore
+        # "wave": HfOriginWaveTerrainCfg(
         #    proportion=1.0, amplitude_range=(0.1, 0.5), num_waves=1, border_width=0.5,
         #), # type: ignore
         # "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(

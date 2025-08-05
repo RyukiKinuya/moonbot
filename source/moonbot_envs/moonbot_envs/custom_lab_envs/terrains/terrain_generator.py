@@ -120,7 +120,7 @@ class TerrainGenerator:
         # create a list of all terrain configs
         sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
         # create a buffer to store sub-terrain height using list
-        #self.sub_terrain_heights = [] 
+        self.sub_terrain_heights = [] 
 
         # randomly sample sub-terrains
         for index in range(self.cfg.num_rows * self.cfg.num_cols * self.cfg.num_height):
@@ -131,9 +131,9 @@ class TerrainGenerator:
             # randomly sample difficulty parameter
             difficulty = self.np_rng.uniform(*self.cfg.difficulty_range)
             # generate terrain
-            #mesh, origin, heights = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-            mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-            #self.sub_terrain_heights.append(heights)
+            mesh, origin, heights = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+            # mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+            self.sub_terrain_heights.append(heights)
             # add to sub-terrains
             self._add_sub_terrain(mesh, origin, sub_row, sub_col,sub_hig, sub_terrains_cfgs[sub_index])
 
@@ -247,8 +247,8 @@ class TerrainGenerator:
         self.terrain_origins[row, col, hig] = origin + transform[:3, -1]
 
 
-    #def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray, np.ndarray]:
-    def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray]:
+    def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray, np.ndarray]:
+    # def _get_terrain_mesh(self, difficulty: float, cfg: SubTerrainBaseCfg) -> tuple[trimesh.Trimesh, np.ndarray]:
         cfg = cfg.copy()
         cfg.difficulty = float(difficulty)
         cfg.seed = self.cfg.seed
@@ -267,7 +267,8 @@ class TerrainGenerator:
             origin = np.loadtxt(sub_terrain_csv_filename, delimiter=",")
             # return the generated mesh
             return mesh, origin
-        meshes, origin = cfg.function(difficulty, cfg) # type: ignore
+        # meshes, origin = cfg.function(difficulty, cfg) # type: ignore
+        meshes, origin, heights = cfg.function(difficulty, cfg) # type: ignore
         # meshes, origin = cfg.function(difficulty, cfg) # type: ignore
         mesh = trimesh.util.concatenate(meshes)
         # offset mesh such that they are in their center
@@ -285,7 +286,7 @@ class TerrainGenerator:
             mesh.export(sub_terrain_obj_filename)
             np.savetxt(sub_terrain_csv_filename, origin, delimiter=",", header="x,y,z")
             dump_yaml(sub_terrain_meta_filename, cfg)
-        return mesh, origin 
-        # return mesh, origin, heights
+        # return mesh, origin 
+        return mesh, origin, heights
 
 

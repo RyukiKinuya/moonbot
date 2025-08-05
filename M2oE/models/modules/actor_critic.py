@@ -62,7 +62,7 @@ class M2oEActorCritic(nn.Module):
             self.padding = nn.Parameter(torch.zeros(num_actor_obs))
         else:
             self.padding_mode = padding_mode
-            self.padding = torch.zeros(num_actor_obs)
+            self.padding = torch.zeros(num_actor_obs).to(device)
 
         self.padding_method = padding_method
 

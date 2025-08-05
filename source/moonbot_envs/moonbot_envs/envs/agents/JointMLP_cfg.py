@@ -14,6 +14,7 @@ class JointMLP_Cfg(M2oEOnPolicyRunnerCfg):
     empirical_normalization = False
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
+        padding_mode="zero",
     )
     model = MLPBaselineCfg(
         class_name="JointMLPBaseline",

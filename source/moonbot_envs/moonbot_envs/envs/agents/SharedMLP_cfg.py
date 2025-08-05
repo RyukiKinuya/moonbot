@@ -14,10 +14,11 @@ class SharedMLP_Cfg(M2oEOnPolicyRunnerCfg):
     empirical_normalization = False
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
+        padding_mode="zero",
     )
     model = MLPBaselineCfg(
         class_name="SharedModuleMLPBaseline",
-        hidden_dims=(64, 64),
+        hidden_dims=(64, 128, 64),
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

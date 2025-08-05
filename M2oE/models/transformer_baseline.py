@@ -59,13 +59,13 @@ class TransformerBaseline(nn.Module):
         """
         batch_size = modular_obs.shape[0]
         modular_obs = modular_obs.view(batch_size, self.max_num_modules, self.modular_obs_dim)
-        feature_modular = self.input_projection_modular(modular_obs)
-        feature_global = self.input_projection_global(global_obs).unsqueeze(1)
+        feature_modular = self.input_projection_modular(modular_obs) # [batch_size, max_num_modules, embedding_dim]
+        feature_global = self.input_projection_global(global_obs).unsqueeze(1) # [batch_size, 1, embedding_dim]
         tokens = torch.cat([feature_global, feature_modular], dim=1)
 
         encoded = self.transformer(tokens)
         action_tokens = encoded[:, 1:, :]
-        actions = self.action_head(action_tokens)
+        actions = self.action_head(action_tokens) # [batch_size, max_num_modules, modular_act_dim]
         if self.aggregate:
             return actions.mean(dim=1)
         return actions.flatten(start_dim=1)

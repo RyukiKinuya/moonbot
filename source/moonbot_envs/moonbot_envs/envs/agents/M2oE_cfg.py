@@ -16,11 +16,11 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
         init_noise_std=1.0,
     )
     model = M2oECfg(
-        hidden_dim=64,
-        num_experts=6,
+        hidden_dim=48,
+        num_experts=4,
         activation="elu",
         gate_type="attention",
-        gate_embedding_dim=64,
+        gate_embedding_dim=48,
         gate_num_heads=4,
         gate_dropout=0.1,
     )

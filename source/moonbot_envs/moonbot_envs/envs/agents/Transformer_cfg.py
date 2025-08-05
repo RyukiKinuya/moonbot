@@ -18,9 +18,9 @@ class Transformer_Cfg(M2oEOnPolicyRunnerCfg):
     model = TransformerBaselineCfg(
         embedding_dim=64,
         num_heads=4,
-        dropout=0.1,
+        dropout=0.0,
         activation="relu",
-        num_layers=4,
+        num_layers=3,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

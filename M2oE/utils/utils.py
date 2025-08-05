@@ -34,7 +34,6 @@ def process_observations(obs_dict, num_obs, num_global_obs, policy, num_envs):
         padded_obs.append(obs.unsqueeze(1))
 
     obs = torch.cat(padded_obs, dim=1).reshape(num_envs, num_obs)
-    # obs: [num_envs * num_morphologies, num_obs]
     return obs, global_obs
 
 

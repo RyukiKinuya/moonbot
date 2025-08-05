@@ -3,6 +3,7 @@ import torch.nn as nn
 from typing import Sequence
 
 _ACTIVATIONS = {
+    "elu": nn.ELU,
     "relu": nn.ReLU,
     "tanh": nn.Tanh,
     "gelu": nn.GELU,

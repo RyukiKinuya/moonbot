@@ -83,9 +83,14 @@ class TransformerBaseline(nn.Module):
         else:
             key_padding_mask = None
 
-        encoded = self.transformer(tokens, src_key_padding_mask=key_padding_mask) 
+        encoded = self.transformer(tokens, src_key_padding_mask=key_padding_mask)
         action_tokens = encoded[:, 1:, :]
-        actions = self.action_head(action_tokens) # [batch_size, max_num_modules, modular_act_dim]
+        actions = self.action_head(action_tokens)  # [batch_size, max_num_modules, modular_act_dim]
+        if module_masks is not None:
+            actions = actions * module_masks.unsqueeze(-1)
         if self.aggregate:
+            if module_masks is not None:
+                denom = module_masks.sum(dim=1, keepdim=True).clamp(min=1)
+                return actions.sum(dim=1) / denom
             return actions.mean(dim=1)
         return actions.flatten(start_dim=1)

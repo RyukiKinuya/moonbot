@@ -43,6 +43,11 @@ class OnPolicyRunner:
         self.num_obs = self.env.num_obs
         self.num_global_obs = self.env.num_global_obs
 
+        # names of reward groups for morphology-specific logging
+        reward_manager = self.env.unwrapped.reward_manager  # type: ignore[attr-defined]
+        self.reward_group_names = list(reward_manager._group_reward_term_names.keys())
+        self.reward_group_labels = [name.replace("reward_", "") for name in self.reward_group_names]
+
         # resolve type of privileged observations
         if "critic" in extras["observations"]:
             self.privileged_obs_type = "critic"  # actor-critic reinforcement learnig, e.g., PPO
@@ -160,6 +165,9 @@ class OnPolicyRunner:
         cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
         cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
 
+        # buffers for reward per morphology
+        rewbuffer_groups = {name: deque(maxlen=100) for name in self.reward_group_names}
+
         # create buffers for logging extrinsic and intrinsic rewards
         if self.alg.rnd:
             erewbuffer = deque(maxlen=100)
@@ -224,6 +232,16 @@ class OnPolicyRunner:
                         new_ids = (dones > 0).nonzero(as_tuple=False)
                         rewbuffer.extend(cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
                         lenbuffer.extend(cur_episode_length[new_ids][:, 0].cpu().numpy().tolist())
+                        # record rewards per morphology
+                        if len(new_ids) > 0:
+                            group_ids = (new_ids[:, 0] % self.env.num_morphologies).squeeze(-1)
+                            finished_rewards = cur_reward_sum[new_ids][:, 0]
+                            for idx, group_name in enumerate(self.reward_group_names):
+                                mask = group_ids == idx
+                                if mask.any():
+                                    rewbuffer_groups[group_name].extend(
+                                        finished_rewards[mask].cpu().numpy().tolist()
+                                    )
                         cur_reward_sum[new_ids] = 0
                         cur_episode_length[new_ids] = 0
                         # -- intrinsic and extrinsic rewards
@@ -279,11 +297,9 @@ class OnPolicyRunner:
         WARNING = "\033[93m"
         ENDC = "\033[0m"
         BOLD = "\033[1m"
-
+        base_colors = [HEADER, OKBLUE, OKCYAN, OKGREEN, WARNING]
         GROUP_COLORS = {
-            "reward_minimal": "\033[95m",
-            "reward_dragon": "\033[94m",
-            "reward_full": "\033[92m",
+            name: base_colors[i % len(base_colors)] for i, name in enumerate(self.reward_group_names)
         }
 
         # Compute the collection size
@@ -308,6 +324,8 @@ class OnPolicyRunner:
                     labels.append(f"{k}:" if "/" in k else f"Mean episode {k}:")
             if len(locs.get("rewbuffer", [])) > 0:
                 labels += ["Mean reward:", "Mean episode length:"]
+                for label in self.reward_group_labels:
+                    labels.append(f"Mean {label} reward:")
                 if self.alg.rnd:
                     labels += ["Mean extrinsic reward:", "Mean intrinsic reward:"]
             pad = max(len(label) for label in labels) + 2
@@ -370,6 +388,15 @@ class OnPolicyRunner:
                 self.writer.add_scalar(
                     "Train/mean_episode_length/time", statistics.mean(locs["lenbuffer"]), self.tot_time
                 )
+            for name, label in zip(self.reward_group_names, self.reward_group_labels):
+                buf = locs["rewbuffer_groups"][name]
+                if len(buf) > 0:
+                    mean_val = statistics.mean(buf)
+                    self.writer.add_scalar(f"Train/{label}/mean_reward", mean_val, locs["it"])
+                    if self.logger_type != "wandb":
+                        self.writer.add_scalar(
+                            f"Train/{label}/mean_reward/time", mean_val, self.tot_time
+                        )
 
         title_str = f" {BOLD} Learning iteration {locs['it']}/{locs['tot_iter']} {ENDC} "
 
@@ -388,6 +415,12 @@ class OnPolicyRunner:
             if self.alg.rnd:
                 log_string += f"{OKGREEN}{'Mean extrinsic reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['erewbuffer']):.2f}{ENDC}\n"
                 log_string += f"{OKGREEN}{'Mean intrinsic reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['irewbuffer']):.2f}{ENDC}\n"
+            for name, label in zip(self.reward_group_names, self.reward_group_labels):
+                buf = locs["rewbuffer_groups"][name]
+                if len(buf) > 0:
+                    color = GROUP_COLORS.get(name, OKGREEN)
+                    mean_val = statistics.mean(buf)
+                    log_string += f"{color}{f'Mean {label} reward:':>{pad}}{ENDC} {color}{mean_val:.2f}{ENDC}\n"
             log_string += f"{OKGREEN}{'Mean reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['rewbuffer']):.2f}{ENDC}\n"
             # -- episode info
             log_string += f"{OKGREEN}{'Mean episode length:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['lenbuffer']):.2f}{ENDC}\n"

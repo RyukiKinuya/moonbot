@@ -19,7 +19,7 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
         hidden_dim=48,
         num_experts=4,
         activation="elu",
-        gate_type="linear",
+        gate_type="attention",
         gate_embedding_dim=48,
         gate_num_heads=4,
         gate_dropout=0.1,

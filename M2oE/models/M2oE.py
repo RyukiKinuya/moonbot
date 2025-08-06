@@ -25,9 +25,9 @@ class M2oEGate(nn.Module):
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
 
-        self.q_projection = nn.Linear(embedding_dim, embedding_dim)
-        self.k_projection = nn.Linear(embedding_dim, embedding_dim)
-        self.v_projection = nn.Linear(embedding_dim, embedding_dim)
+        # self.q_projection = nn.Linear(embedding_dim, embedding_dim)
+        # self.k_projection = nn.Linear(embedding_dim, embedding_dim)
+        # self.v_projection = nn.Linear(embedding_dim, embedding_dim)
 
         self.gate = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
@@ -57,12 +57,12 @@ class M2oEGate(nn.Module):
         ], dim=1)   # [batch_size, max_num_modules + 1, embedding_dim]
 
         # Compute attention scores
-        q = self.q_projection(feature_integration)
-        k = self.k_projection(feature_integration)
-        v = self.v_projection(feature_integration)
+        # q = self.q_projection(feature_integration)
+        # k = self.k_projection(feature_integration)
+        # v = self.v_projection(feature_integration)
 
         # q, k, v: [batch_size, max_num_modules + 1, embedding_dim]
-        attn_output, _ = self.multihead_attn(q, k, v)   # [batch_size, max_num_modules + 1, embedding_dim]
+        attn_output, _ = self.multihead_attn(feature_integration, feature_integration, feature_integration)   # [batch_size, max_num_modules + 1, embedding_dim]
         attn_output = self.norm(attn_output + feature_integration)  # Residual connection
 
         gate = self.gate(attn_output[:, 1:, :])

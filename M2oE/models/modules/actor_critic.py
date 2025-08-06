@@ -124,9 +124,9 @@ class M2oEActorCritic(nn.Module):
     def entropy(self):
         return self.distribution.entropy().sum(dim=-1)
 
-    def update_distribution(self, observations, obs_global):
+    def update_distribution(self, observations, obs_global, module_masks=None):
         # compute mean
-        mean = self.actor(observations, obs_global)
+        mean = self.actor(observations, obs_global, module_masks)
         # compute standard deviation
         if self.noise_std_type == "scalar":
             std = self.std.expand_as(mean)
@@ -137,21 +137,21 @@ class M2oEActorCritic(nn.Module):
         # create distribution
         self.distribution = Normal(mean, std)
 
-    def act(self, observations, obs_global, **kwargs):
-        self.update_distribution(observations, obs_global)
+    def act(self, observations, obs_global, module_masks=None, **kwargs):
+        self.update_distribution(observations, obs_global, module_masks)
         return self.distribution.sample()
 
     def get_actions_log_prob(self, actions):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
-    def act_inference(self, observations, obs_global):
-        actions_mean = self.actor(observations, obs_global)
+    def act_inference(self, observations, obs_global, module_masks=None):
+        actions_mean = self.actor(observations, obs_global, module_masks)
         return actions_mean
 
-    def evaluate(self, critic_observations, obs_global, **kwargs):
+    def evaluate(self, critic_observations, obs_global, module_masks=None, **kwargs):
         # critic_observations: [batch_size, num_obs_padded]
         # obs_global: [batch_size, num_global_obs]
-        value = self.critic(critic_observations, obs_global)
+        value = self.critic(critic_observations, obs_global, module_masks)
         return value
 
     def load_state_dict(self, state_dict, strict=True):

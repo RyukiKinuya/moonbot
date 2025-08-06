@@ -45,7 +45,7 @@ class M2oEGate(nn.Module):
             batch_first=True,
         )
 
-    def forward(self, modular_obs, global_obs):
+    def forward(self, modular_obs, global_obs, module_masks=None):
         # modular_obs: [batch_size, max_num_modules, modular_obs_dim]
         # global_obs: [batch_size, global_obs_dim]
         feature_modular = self.input_projection_modular(modular_obs)  # [batch_size, max_num_modules, embedding_dim]
@@ -62,7 +62,22 @@ class M2oEGate(nn.Module):
         # v = self.v_projection(feature_integration)
 
         # q, k, v: [batch_size, max_num_modules + 1, embedding_dim]
-        attn_output, _ = self.multihead_attn(feature_integration, feature_integration, feature_integration)   # [batch_size, max_num_modules + 1, embedding_dim]
+        if module_masks is not None:
+            key_padding_mask = torch.cat(
+                [
+                    torch.zeros(module_masks.shape[0], 1, dtype=torch.bool, device=self.device),
+                    ~module_masks,
+                ],
+                dim=1,
+            )
+        else:
+            key_padding_mask = None
+        attn_output, _ = self.multihead_attn(
+            feature_integration,
+            feature_integration,
+            feature_integration,
+            key_padding_mask=key_padding_mask,
+        )  # [batch_size, max_num_modules + 1, embedding_dim]
         attn_output = self.norm(attn_output + feature_integration)  # Residual connection
 
         gate = self.gate(attn_output[:, 1:, :])
@@ -152,11 +167,13 @@ class M2oE(nn.Module):
         #     nn.Softmax(dim=-1)
         # )
 
-    def forward(self, obs, global_obs):
+    def forward(self, obs, global_obs, module_masks=None):
         # obs: [batch_size, num_obs_padded]
         batch_size = obs.shape[0]   # batch_size = num_envs * num_morphologies
         # obs: [batch_size, num_obs_padded] -> [batch_size, max_num_modules, modular_obs_dim]
         obs = obs.reshape(batch_size, self.max_num_modules, -1)
+        if module_masks is not None:
+            module_masks = module_masks.reshape(batch_size, self.max_num_modules)
         # global_obs: [batch_size, num_global_obs] -> [batch_size, self.max_num_modules, num_global_obs]
         expert_global_obs = global_obs.unsqueeze(1).expand(-1, self.max_num_modules, -1)
         expert_input = torch.cat((obs, expert_global_obs), dim=-1)
@@ -186,7 +203,7 @@ class M2oE(nn.Module):
             gate_input = torch.cat((module_onehot, obs, expert_global_obs), dim=-1)
             gate = self.gate(gate_input)
         elif self.gate_type == "attention":
-            gate = self.gate(obs, global_obs)
+            gate = self.gate(obs, global_obs, module_masks)
         # gate: [batch_size, max_num_modules, num_experts]
 
         # construct output

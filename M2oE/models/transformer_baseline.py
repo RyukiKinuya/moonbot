@@ -40,6 +40,7 @@ class TransformerBaseline(nn.Module):
             nhead=num_heads,
             dropout=dropout,
             activation=activation,
+            dim_feedforward=embedding_dim * 4,
             batch_first=True,
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)

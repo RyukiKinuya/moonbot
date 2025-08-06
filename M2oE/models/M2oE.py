@@ -56,12 +56,6 @@ class M2oEGate(nn.Module):
             feature_modular,
         ], dim=1)   # [batch_size, max_num_modules + 1, embedding_dim]
 
-        # Compute attention scores
-        # q = self.q_projection(feature_integration)
-        # k = self.k_projection(feature_integration)
-        # v = self.v_projection(feature_integration)
-
-        # q, k, v: [batch_size, max_num_modules + 1, embedding_dim]
         if module_masks is not None:
             key_padding_mask = torch.cat(
                 [

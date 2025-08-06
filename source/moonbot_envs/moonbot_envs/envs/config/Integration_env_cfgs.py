@@ -174,7 +174,7 @@ class IntegrationCmdCfg:
                 heading_control_stiffness=0.5,
                 debug_vis=True,
                 ranges=mdp.UniformVelocityCommandCfg.Ranges(
-                    lin_vel_x=(-1.8, 1.8), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
+                    lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
                 ),
             ))
 

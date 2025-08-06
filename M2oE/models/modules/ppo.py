@@ -122,6 +122,7 @@ class PPO:
         global_obs_shape,
         critic_obs_shape,
         actions_shape,
+        module_mask_shape,
     ):
         # create memory for RND as well :)
         if self.rnd:
@@ -137,16 +138,17 @@ class PPO:
             global_obs_shape,
             critic_obs_shape,
             actions_shape,
+            module_mask_shape,
             rnd_state_shape,
             self.device,
         )
 
-    def act(self, obs, obs_global, critic_obs):
+    def act(self, obs, obs_global, critic_obs, module_masks):
         if self.policy.is_recurrent:
             self.transition.hidden_states = self.policy.get_hidden_states()
         # compute the actions and values
-        self.transition.actions = self.policy.act(obs, obs_global).detach()  # type: ignore
-        self.transition.values = self.policy.evaluate(critic_obs, obs_global).detach()
+        self.transition.actions = self.policy.act(obs, obs_global, module_masks=module_masks).detach()  # type: ignore
+        self.transition.values = self.policy.evaluate(critic_obs, obs_global, module_masks=module_masks).detach()
         self.transition.actions_log_prob = self.policy.get_actions_log_prob(self.transition.actions).detach()
         self.transition.action_mean = self.policy.action_mean.detach()
         self.transition.action_sigma = self.policy.action_std.detach()
@@ -154,6 +156,7 @@ class PPO:
         self.transition.observations = obs
         self.transition.global_observations = obs_global  # type: ignore
         self.transition.privileged_observations = critic_obs
+        self.transition.module_masks = module_masks
         return self.transition.actions
 
     def process_env_step(self, rewards, dones, infos):
@@ -184,9 +187,9 @@ class PPO:
         self.transition.clear()
         self.policy.reset(dones)
 
-    def compute_returns(self, last_critic_obs, global_obs):
+    def compute_returns(self, last_critic_obs, global_obs, module_masks):
         # compute value for the last step
-        last_values = self.policy.evaluate(last_critic_obs, global_obs).detach()
+        last_values = self.policy.evaluate(last_critic_obs, global_obs, module_masks=module_masks).detach()
         self.storage.compute_returns(
             last_values, self.gamma, self.lam, normalize_advantage=not self.normalize_advantage_per_mini_batch
         )
@@ -227,6 +230,7 @@ class PPO:
             hid_states_batch,
             masks_batch,
             rnd_state_batch,
+            module_masks_batch,
         ) in generator:
 
             # number of augmentations per sample
@@ -260,6 +264,9 @@ class PPO:
                 target_values_batch = target_values_batch.repeat(num_aug, 1)
                 advantages_batch = advantages_batch.repeat(num_aug, 1)
                 returns_batch = returns_batch.repeat(num_aug, 1)
+                old_mu_batch = old_mu_batch.repeat(num_aug, 1)
+                old_sigma_batch = old_sigma_batch.repeat(num_aug, 1)
+                module_masks_batch = module_masks_batch.repeat(num_aug, 1)
 
             # Recompute actions log prob and entropy for current batch of transitions
             # Note: we need to do this because we updated the policy with the new parameters
@@ -267,12 +274,19 @@ class PPO:
             self.policy.act(
                 obs_batch,
                 global_obs_batch,
+                module_masks=module_masks_batch,
                 masks=masks_batch,
                 hidden_states=hid_states_batch[0],
             )
             actions_log_prob_batch = self.policy.get_actions_log_prob(actions_batch)
             # -- critic
-            value_batch = self.policy.evaluate(critic_obs_batch, global_obs_batch, masks=masks_batch, hidden_states=hid_states_batch[1])
+            value_batch = self.policy.evaluate(
+                critic_obs_batch,
+                global_obs_batch,
+                module_masks=module_masks_batch,
+                masks=masks_batch,
+                hidden_states=hid_states_batch[1],
+            )
             # -- entropy
             # we only keep the entropy of the first augmentation (the original one)
             mu_batch = self.policy.action_mean[:original_batch_size]
@@ -348,9 +362,12 @@ class PPO:
                     )
                     # compute number of augmentations per sample
                     num_aug = int(obs_batch.shape[0] / original_batch_size)
+                    module_masks_batch = module_masks_batch.repeat(num_aug, 1)
 
                 # actions predicted by the actor for symmetrically-augmented observations
-                mean_actions_batch = self.policy.act_inference(obs_batch.detach().clone())
+                mean_actions_batch = self.policy.act_inference(
+                    obs_batch.detach().clone(), module_masks=module_masks_batch
+                )
 
                 # compute the symmetrically augmented actions
                 # note: we are assuming the first augmentation is the original one.

@@ -65,7 +65,7 @@ def main():
     env_cfg.scene.ground.terrain_generator.num_height = 1
     size_now = env_cfg.scene.ground.terrain_generator.size
     env_cfg.scene.ground.terrain_generator.size = (size_now[0], size_now[1], 0.0001)
-    
+
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
@@ -101,23 +101,31 @@ def main():
 
     # reset environment
     obs, _ = env.get_observations()
-    obs, global_obs = process_observations(
+    obs, global_obs, module_masks = process_observations(
         obs, num_obs=env.num_obs, num_global_obs=env.num_global_obs, policy=runner.alg.policy, num_envs=env.num_envs
     )
-    obs, global_obs = obs.to(env.unwrapped.device), global_obs.to(env.unwrapped.device)
+    obs, global_obs, module_masks = (
+        obs.to(env.unwrapped.device),
+        global_obs.to(env.unwrapped.device),
+        module_masks.to(env.unwrapped.device),
+    )
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
         # run everything in inference mode
         with torch.inference_mode():
-            actions = policy(obs, global_obs)
+            actions = policy(obs, global_obs, module_masks)
             # env stepping
             obs, _, _, _ = env.step(actions.to(env.unwrapped.device))
-            obs, global_obs = process_observations(
+            obs, global_obs, module_masks = process_observations(
                 obs, num_obs=env.num_obs, num_global_obs=env.num_global_obs, policy=runner.alg.policy, num_envs=env.num_envs
             )
-            obs, global_obs = obs.to(env.unwrapped.device), global_obs.to(env.unwrapped.device)
+            obs, global_obs, module_masks = (
+                obs.to(env.unwrapped.device),
+                global_obs.to(env.unwrapped.device),
+                module_masks.to(env.unwrapped.device),
+            )
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video

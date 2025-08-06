@@ -16,10 +16,19 @@ def process_observations(obs_dict, num_obs, num_global_obs, policy, num_envs):
         obs_dict.pop(key, None)  # remove global observations from obs_dict
 
     padded_obs = []
+    module_masks = []
     pad_vec = policy.padding
+    max_num_modules = policy.actor.max_num_modules
+    modular_obs_dim = num_obs // max_num_modules
+
     for morph in morphology_configs.morphology_list:
         key = f"obs_{morph.replace('moonbot_', '')}"
         obs = obs_dict[key]
+
+        num_modules = obs.shape[1] // modular_obs_dim
+        mask = torch.zeros(obs.shape[0], max_num_modules, dtype=torch.bool, device=obs.device)
+        mask[:, :num_modules] = True
+
         diff = num_obs - obs.shape[1]
         if policy.padding_method == "concat":
             if diff > 0:
@@ -32,9 +41,11 @@ def process_observations(obs_dict, num_obs, num_global_obs, policy, num_envs):
 
         # padded_obs: [num_envs, 1, num_obs]
         padded_obs.append(obs.unsqueeze(1))
+        module_masks.append(mask.unsqueeze(1))
 
     obs = torch.cat(padded_obs, dim=1).reshape(num_envs, num_obs)
-    return obs, global_obs
+    module_masks = torch.cat(module_masks, dim=1).reshape(num_envs, max_num_modules)
+    return obs, global_obs, module_masks
 
 
 def djikstra_all_pairs(adjacency):

@@ -28,6 +28,7 @@ class RolloutStorage:
             self.action_sigma = None
             self.hidden_states = None
             self.rnd_state = None
+            self.module_masks = None
 
         def clear(self):
             self.__init__()
@@ -41,6 +42,7 @@ class RolloutStorage:
         global_obs_shape,
         privileged_obs_shape,
         actions_shape,
+        module_mask_shape,
         rnd_state_shape=None,
         device="cpu",
     ):
@@ -54,6 +56,7 @@ class RolloutStorage:
         self.privileged_obs_shape = privileged_obs_shape
         self.rnd_state_shape = rnd_state_shape
         self.actions_shape = actions_shape
+        self.module_mask_shape = module_mask_shape
 
         # Core
         self.observations = torch.zeros(num_transitions_per_env, num_envs, *obs_shape, device=self.device)
@@ -67,6 +70,9 @@ class RolloutStorage:
         self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
         self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
         self.dones = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device).byte()
+        self.module_masks = torch.zeros(
+            num_transitions_per_env, num_envs, *module_mask_shape, device=self.device, dtype=torch.bool
+        )
 
         # for distillation
         if training_type == "distillation":
@@ -105,6 +111,7 @@ class RolloutStorage:
         self.actions[self.step].copy_(transition.actions)
         self.rewards[self.step].copy_(transition.rewards.view(-1, 1))
         self.dones[self.step].copy_(transition.dones.view(-1, 1))
+        self.module_masks[self.step].copy_(transition.module_masks)
 
         # for distillation
         if self.training_type == "distillation":
@@ -206,6 +213,7 @@ class RolloutStorage:
         actions = self.actions.flatten(0, 1)
         values = self.values.flatten(0, 1)
         returns = self.returns.flatten(0, 1)
+        module_masks = self.module_masks.flatten(0, 1)
 
         # For PPO
         old_actions_log_prob = self.actions_log_prob.flatten(0, 1)
@@ -239,6 +247,8 @@ class RolloutStorage:
                 old_mu_batch = old_mu[batch_idx]
                 old_sigma_batch = old_sigma[batch_idx]
 
+                module_masks_batch = module_masks[batch_idx]
+
                 # -- For RND
                 if self.rnd_state_shape is not None:
                     rnd_state_batch = rnd_state[batch_idx]
@@ -246,10 +256,22 @@ class RolloutStorage:
                     rnd_state_batch = None
 
                 # yield the mini-batch
-                yield obs_batch, global_obs_batch, privileged_observations_batch, actions_batch, target_values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, old_mu_batch, old_sigma_batch, (
+                yield (
+                    obs_batch,
+                    global_obs_batch,
+                    privileged_observations_batch,
+                    actions_batch,
+                    target_values_batch,
+                    advantages_batch,
+                    returns_batch,
+                    old_actions_log_prob_batch,
+                    old_mu_batch,
+                    old_sigma_batch,
+                    (None, None),
                     None,
-                    None,
-                ), None, rnd_state_batch
+                    rnd_state_batch,
+                    module_masks_batch,
+                )
 
     # for reinfrocement learning with recurrent networks
     def recurrent_mini_batch_generator(self, num_mini_batches, num_epochs=8):
@@ -266,6 +288,7 @@ class RolloutStorage:
             padded_rnd_state_trajectories, _ = split_and_pad_trajectories(self.rnd_state, self.dones)
         else:
             padded_rnd_state_trajectories = None
+        padded_module_mask_trajectories, _ = split_and_pad_trajectories(self.module_masks, self.dones)
 
         mini_batch_size = self.num_envs // num_mini_batches
         for ep in range(num_epochs):
@@ -290,6 +313,7 @@ class RolloutStorage:
                     rnd_state_batch = padded_rnd_state_trajectories[:, first_traj:last_traj]
                 else:
                     rnd_state_batch = None
+                module_masks_batch = padded_module_mask_trajectories[:, first_traj:last_traj]
 
                 actions_batch = self.actions[:, start:stop]
                 old_mu_batch = self.mu[:, start:stop]
@@ -319,8 +343,20 @@ class RolloutStorage:
                 hid_a_batch = hid_a_batch[0] if len(hid_a_batch) == 1 else hid_a_batch
                 hid_c_batch = hid_c_batch[0] if len(hid_c_batch) == 1 else hid_c_batch
 
-                yield obs_batch, global_obs_batch, privileged_obs_batch, actions_batch, values_batch, advantages_batch, returns_batch, old_actions_log_prob_batch, old_mu_batch, old_sigma_batch, (
-                    hid_a_batch,
-                    hid_c_batch,
-                ), masks_batch, rnd_state_batch
+                yield (
+                    obs_batch,
+                    global_obs_batch,
+                    privileged_obs_batch,
+                    actions_batch,
+                    values_batch,
+                    advantages_batch,
+                    returns_batch,
+                    old_actions_log_prob_batch,
+                    old_mu_batch,
+                    old_sigma_batch,
+                    (hid_a_batch, hid_c_batch),
+                    masks_batch,
+                    rnd_state_batch,
+                    module_masks_batch,
+                )
                 first_traj = last_traj

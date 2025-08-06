@@ -99,6 +99,7 @@ class OnPolicyRunner:
             [self.num_global_obs],
             [num_privileged_obs],
             [self.env.num_actions],
+            [self.cfg["max_num_modules"]],
         )
 
         # Decide whether to disable logging
@@ -148,9 +149,14 @@ class OnPolicyRunner:
 
         # start learning
         obs, extras = self.env.get_observations()
-        obs, obs_global = self._process_observations(obs)
+        obs, obs_global, module_masks = self._process_observations(obs)
         privileged_obs = extras["observations"].get(self.privileged_obs_type, obs)
-        obs, obs_global, privileged_obs = obs.to(self.device), obs_global.to(self.device), privileged_obs.to(self.device)
+        obs, obs_global, privileged_obs, module_masks = (
+            obs.to(self.device),
+            obs_global.to(self.device),
+            privileged_obs.to(self.device),
+            module_masks.to(self.device),
+        )
         self.train_mode()  # switch to train mode (for dropout for example)
 
         # Book keeping
@@ -182,13 +188,19 @@ class OnPolicyRunner:
             with torch.inference_mode():
                 for _ in range(self.num_steps_per_env):
                     # Sample actions
-                    actions = self.alg.act(obs, obs_global, privileged_obs)
+                    actions = self.alg.act(obs, obs_global, privileged_obs, module_masks)
                     # Step the environment
                     # obs: dict, rewards: [num_envs * num_morphologies], dones: [num_envs, 1], infos: dict
                     obs, rewards, dones, infos = self.env.step(actions.to(self.env.device))
-                    obs, obs_global = self._process_observations(obs)
+                    obs, obs_global, module_masks = self._process_observations(obs)
                     # Move to device
-                    obs, obs_global, rewards, dones = (obs.to(self.device), obs_global.to(self.device), rewards.to(self.device), dones.to(self.device))
+                    obs, obs_global, rewards, dones, module_masks = (
+                        obs.to(self.device),
+                        obs_global.to(self.device),
+                        rewards.to(self.device),
+                        dones.to(self.device),
+                        module_masks.to(self.device),
+                    )
                     # perform normalization
                     obs = self.obs_normalizer(obs)
                     if self.privileged_obs_type is not None:
@@ -239,7 +251,7 @@ class OnPolicyRunner:
 
                 # compute returns
                 if self.training_type == "rl":
-                    self.alg.compute_returns(privileged_obs, obs_global)
+                    self.alg.compute_returns(privileged_obs, obs_global, module_masks)
 
             # update policy
             loss_dict = self.alg.update()

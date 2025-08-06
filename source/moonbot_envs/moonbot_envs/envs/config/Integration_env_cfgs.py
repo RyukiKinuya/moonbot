@@ -170,11 +170,11 @@ class IntegrationCmdCfg:
                 resampling_time_range=(10.0, 10.0),
                 rel_standing_envs=0.02,
                 rel_heading_envs=1.0,
-                heading_command=False,
+                heading_command=True,
                 heading_control_stiffness=0.5,
                 debug_vis=True,
                 ranges=mdp.UniformVelocityCommandCfg.Ranges(
-                    lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.57, 1.57), heading=(-math.pi/3, math.pi/3)
+                    lin_vel_x=(-1.2, 1.2), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi/3, math.pi/3)
                 ),
             ))
 
@@ -198,7 +198,7 @@ class IntegrationRewardCfg:
             
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=1.0,
+                weight=5.0,
             )
 
             self.diff_from_init_pose = RewTerm(
@@ -430,7 +430,6 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 4
         self.episode_length_s = 20.0
 
-        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2 ** 15
-        # selk.sie.physx.gpu_max_rigid_contact_count = 2 ** 25
-        # self.sim.physx.gpu_collision_stack_size = 2 ** 28 
+        self.sim.physx.gpu_max_rigid_patch_count = 10 * 2 ** 20
         self.sim.dt = 0.005
+        self.sim.gravity = (0.0, 0.0, -1.62)

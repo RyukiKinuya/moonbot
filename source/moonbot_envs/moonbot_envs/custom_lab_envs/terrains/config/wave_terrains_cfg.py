@@ -4,12 +4,12 @@ import isaaclab.terrains as terrain_gen
 
 WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
     size=(150.0, 150.0, 50.0),
-    border_width=00.0,
+    border_width=1.0,
     num_rows=1,
     num_cols=1,
     num_height=3,
     horizontal_scale=0.1,
-    vertical_scale=0.05,
+    vertical_scale=0.1,
     slope_threshold=0.75,
     use_cache=False,
     curriculum=False,
@@ -18,9 +18,9 @@ WAVE_TERRAINS_CFG = TerrainGeneratorCfg(
         # "random_rough": HfRandomUniformTerrainCfg(
         #     proportion=0.5,noise_range=(0.01, 0.05), noise_step=0.01, border_width=0.25
         # ), # type: ignore
-        # "wave": HfOriginWaveTerrainCfg(
-        #    proportion=1.0, amplitude_range=(0.1, 0.5), num_waves=1, border_width=0.5,
-        #), # type: ignore
+        # "wave": HfWaveTerrainCfg(
+        #    proportion=1.0, amplitude_range=(0.0, 0.1), num_waves=2, border_width=0,
+        # ), # type: ignore
         # "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
         #     proportion=0.0, slope_range=(0.0, 0.3), platform_width=2.0, border_width=0.25
         # ),

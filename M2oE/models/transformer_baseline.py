@@ -46,7 +46,16 @@ class TransformerBaseline(nn.Module):
 
         self.action_head = nn.Linear(embedding_dim, self.modular_act_dim)
 
-    def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor) -> torch.Tensor:
+        # initialize weights
+        nn.init.xavier_uniform_(self.input_projection_modular.weight)
+        nn.init.xavier_uniform_(self.input_projection_global.weight)
+        nn.init.xavier_uniform_(self.action_head.weight)
+        nn.init.constant_(self.input_projection_modular.bias, 0.0)
+        nn.init.constant_(self.input_projection_global.bias, 0.0)
+        nn.init.constant_(self.action_head.bias, 0.0)
+
+
+    def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor, module_masks=None) -> torch.Tensor:
         """Compute actions from modular and global observations.
 
         Args:
@@ -63,7 +72,18 @@ class TransformerBaseline(nn.Module):
         feature_global = self.input_projection_global(global_obs).unsqueeze(1) # [batch_size, 1, embedding_dim]
         tokens = torch.cat([feature_global, feature_modular], dim=1)
 
-        encoded = self.transformer(tokens)
+        if module_masks is not None:
+            key_padding_mask = torch.cat(
+                [
+                    torch.zeros(module_masks.shape[0], 1, dtype=torch.bool, device=self.device),
+                    ~module_masks,
+                ],
+                dim=1,
+            )
+        else:
+            key_padding_mask = None
+
+        encoded = self.transformer(tokens, src_key_padding_mask=key_padding_mask) 
         action_tokens = encoded[:, 1:, :]
         actions = self.action_head(action_tokens) # [batch_size, max_num_modules, modular_act_dim]
         if self.aggregate:

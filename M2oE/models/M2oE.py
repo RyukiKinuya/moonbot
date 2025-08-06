@@ -25,9 +25,9 @@ class M2oEGate(nn.Module):
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
 
-        # self.q_projection = nn.Linear(embedding_dim, embedding_dim)
-        # self.k_projection = nn.Linear(embedding_dim, embedding_dim)
-        # self.v_projection = nn.Linear(embedding_dim, embedding_dim)
+        self.q_projection = nn.Linear(embedding_dim, embedding_dim)
+        self.k_projection = nn.Linear(embedding_dim, embedding_dim)
+        self.v_projection = nn.Linear(embedding_dim, embedding_dim)
 
         self.gate = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
@@ -36,6 +36,7 @@ class M2oEGate(nn.Module):
             nn.Softmax(dim=-1)
         )
 
+        self.dropout = nn.Dropout(dropout)
         self.norm = nn.LayerNorm(embedding_dim)
 
         self.multihead_attn = nn.MultiheadAttention(
@@ -66,13 +67,18 @@ class M2oEGate(nn.Module):
             )
         else:
             key_padding_mask = None
+
+        q = self.q_projection(feature_integration)  # [batch_size, max_num_modules + 1, embedding_dim]
+        k = self.k_projection(feature_integration)
+        v = self.v_projection(feature_integration)
+
         attn_output, _ = self.multihead_attn(
-            feature_integration,
-            feature_integration,
-            feature_integration,
+            query=q,
+            key=k,
+            value=v,
             key_padding_mask=key_padding_mask,
         )  # [batch_size, max_num_modules + 1, embedding_dim]
-        attn_output = self.norm(attn_output + feature_integration)  # Residual connection
+        attn_output = self.dropout(self.norm(attn_output))  # Residual connection
 
         gate = self.gate(attn_output[:, 1:, :])
 
@@ -154,12 +160,6 @@ class M2oE(nn.Module):
                 f"Unknown global encoder type: {gate_type}. Should be 'linear' or 'attention'."
             )
 
-        # self.gate = nn.Sequential(
-        #     nn.Linear(self.modular_obs_dim + hidden_dim, hidden_dim),
-        #     self.activation,
-        #     nn.Linear(hidden_dim, num_experts),
-        #     nn.Softmax(dim=-1)
-        # )
 
     def forward(self, obs, global_obs, module_masks=None):
         # obs: [batch_size, num_obs_padded]

@@ -100,11 +100,13 @@ class M2oE(nn.Module):
         gate_num_heads,
         gate_dropout,
         device,
+        top_k=2,
     ):
         super().__init__()
 
         self.device = device
 
+        self.top_k = top_k
         self.num_obs = num_obs
         self.num_global_obs = num_global_obs
         self.num_outputs = num_outputs
@@ -179,18 +181,6 @@ class M2oE(nn.Module):
         # expert_outputs: [batch_size, max_num_modules, num_experts, modular_act_dim]
         expert_outputs = torch.stack(expert_outputs, dim=2)
 
-        # global feature extraction
-        # [batch_size, num_global]
-        # global_obs
-        # global_features = self.gate(global_obs).reshape(batch_size, -1)
-
-        # gate compute
-        # gate_input: [batch_size, max_num_modules, modular_obs_dim + hidden_dim]
-        # gate_input: modular_obs + global_features
-        # global_features = global_features.unsqueeze(1).expand(-1, self.max_num_modules, -1)
-        # gate_input = torch.cat((obs, global_features), dim=-1)
-        # gate: [batch_size, max_num_modules, num_experts]
-        # gate = self.gate(gate_input)
         if self.gate_type == "linear":
             module_onehot = torch.eye(self.max_num_modules, device=self.device)
             module_onehot = module_onehot.unsqueeze(0).expand(batch_size, -1, -1)

@@ -64,6 +64,8 @@ class TransformerBaselineCfg:
     embedding_dim: int = 64
     """Token embedding dimension."""
 
+    dim_feedforward: int = 64
+
     num_heads: int = 4
     """Number of attention heads."""
 

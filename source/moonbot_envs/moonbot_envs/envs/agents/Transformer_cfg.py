@@ -17,7 +17,8 @@ class Transformer_Cfg(M2oEOnPolicyRunnerCfg):
         padding_mode="zero",
     )
     model = TransformerBaselineCfg(
-        embedding_dim=64,
+        embedding_dim=52,
+        dim_feedforward=64,
         num_heads=4,
         dropout=0.0,
         activation="relu",

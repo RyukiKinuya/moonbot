@@ -18,6 +18,7 @@ class TransformerBaseline(nn.Module):
         device: torch.device,
         activation: str = "relu",
         num_layers: int = 4,
+        dim_feedforward: int = 64,
     ) -> None:
         super().__init__()
         self.device = device
@@ -40,7 +41,7 @@ class TransformerBaseline(nn.Module):
             nhead=num_heads,
             dropout=dropout,
             activation=activation,
-            dim_feedforward=embedding_dim * 4,
+            dim_feedforward=dim_feedforward,
             batch_first=True,
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)

@@ -14,11 +14,11 @@ class JointMLP_Cfg(M2oEOnPolicyRunnerCfg):
     empirical_normalization = False
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
-        padding_mode="zero",
+        padding_mode="learnable",
     )
     model = MLPBaselineCfg(
         class_name="JointMLPBaseline",
-        hidden_dims=(64, 64),
+        hidden_dims=(64, 256, 256),
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

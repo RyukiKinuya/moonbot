@@ -41,7 +41,7 @@ class JointMLPBaseline(nn.Module):
         layers.append(nn.Linear(prev_dim, num_outputs))
         self.mlp = nn.Sequential(*layers)
 
-    def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor) -> torch.Tensor:
+    def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor, module_mask=None) -> torch.Tensor:
         batch_size = modular_obs.shape[0]
         obs_flat = modular_obs.reshape(batch_size, -1)
         x = torch.cat([obs_flat, global_obs], dim=-1)
@@ -88,7 +88,7 @@ class SharedModuleMLPBaseline(nn.Module):
         layers.append(nn.Linear(prev_dim, self.modular_act_dim))
         self.mlp = nn.Sequential(*layers)
 
-    def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor) -> torch.Tensor:
+    def forward(self, modular_obs: torch.Tensor, global_obs: torch.Tensor, module_mask=None) -> torch.Tensor:
         """Compute outputs from modular and global observations.
 
         Args:

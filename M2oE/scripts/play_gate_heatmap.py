@@ -7,7 +7,7 @@ import M2oE.utils.cli_args as cli_args  # isort: skip
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a trained RL agent and collect gate activations.")
-parser.add_argument("--num_steps", type=int, default=2000, help="Number of steps to simulate.")
+parser.add_argument("--num_steps", type=int, default=1000, help="Number of steps to simulate.")
 parser.add_argument("--heatmap_path", type=str, default="gate_heatmap.png", help="Path to save the figure.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during play.")
 parser.add_argument("--video_length", type=int, default=1000, help="Length of the recorded video (in steps).")
@@ -58,9 +58,9 @@ def _compute_gate(model, obs, global_obs, module_masks):
     """Compute the gate activations of the M2oE model."""
     batch_size = obs.shape[0]
     max_num_modules = model.max_num_modules
-    obs = obs.view(batch_size, max_num_modules, -1)
+    obs = obs.reshape(batch_size, max_num_modules, -1)
     if module_masks is not None:
-        module_masks = module_masks.view(batch_size, max_num_modules)
+        module_masks = module_masks.reshape(batch_size, max_num_modules)
     if model.gate_type == "linear":
         module_onehot = torch.eye(max_num_modules, device=obs.device).unsqueeze(0).expand(batch_size, -1, -1)
         expert_global_obs = global_obs.unsqueeze(1).expand(-1, max_num_modules, -1)
@@ -140,9 +140,9 @@ def main():
         start_time = time.time()
         with torch.inference_mode():
             actions = inference_policy(obs, global_obs, module_masks)
-            gate = _compute_gate(policy.actor, obs, global_obs, module_masks)   # gate: [batch_size, max_num_modules, num_experts]
-            gate = gate.view(env.base_num_envs, num_morphs, max_num_modules, num_experts)   # reshape to [num_envs, num_morphs, max_num_modules, num_experts]
-            mask = module_masks.view(env.base_num_envs, num_morphs, max_num_modules).float()
+            gate = _compute_gate(policy.actor, obs, global_obs, module_masks)
+            gate = gate.reshape(env.base_num_envs, num_morphs, max_num_modules, num_experts)
+            mask = module_masks.reshape(env.base_num_envs, num_morphs, max_num_modules).float()
             gate_sum += gate * mask.unsqueeze(-1)
             module_counts += mask
 

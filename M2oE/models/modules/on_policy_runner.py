@@ -36,6 +36,8 @@ class OnPolicyRunner:
 
         self.training_type = "rl"
 
+        self.gate_warmup_iters = train_cfg.get("gate_warmup_iters", 0)
+
         obs_dict, extras = self.env.get_observations()
 
         # obs: dict: (name, torch.Tensor)
@@ -88,6 +90,10 @@ class OnPolicyRunner:
 
         self.alg_cfg.pop("class_name")
         self.alg: PPO = PPO(policy, device=self.device, **self.alg_cfg, multi_gpu_cfg=self.multi_gpu_cfg)
+
+        if self.gate_warmup_iters > 0:
+            print(f"[INFO] Freezing gate parameters for {self.gate_warmup_iters} iterations.")
+            self.alg.policy.set_gate_requires_grad(False)
 
         # store training configuration
         self.num_steps_per_env = self.cfg["num_steps_per_env"]
@@ -191,6 +197,9 @@ class OnPolicyRunner:
         start_iter = self.current_learning_iteration
         tot_iter = start_iter + num_learning_iterations
         for it in range(start_iter, tot_iter):
+            if self.gate_warmup_iters and it == self.gate_warmup_iters:
+                print("[INFO] Unfreezing gate parameters.")
+                self.alg.policy.set_gate_requires_grad(True)
             start = time.time()
             # Rollout
             with torch.inference_mode():

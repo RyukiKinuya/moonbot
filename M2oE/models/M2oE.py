@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 
@@ -45,6 +46,35 @@ class M2oEGate(nn.Module):
             dropout=dropout,
             batch_first=True,
         )
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        """Initialize gate networks with Xavier uniform and zero biases.
+
+        The final linear layer before the softmax is initialized to zeros so that the
+        initial gating distribution is uniform over experts.
+        """
+
+        linear_layers = [
+            self.input_projection_modular,
+            self.input_projection_global,
+            self.q_projection,
+            self.k_projection,
+            self.v_projection,
+        ]
+        for layer in linear_layers:
+            nn.init.xavier_uniform_(layer.weight)
+            nn.init.zeros_(layer.bias)
+
+        for module in self.gate.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                nn.init.zeros_(module.bias)
+
+        # start with uniform gating probabilities
+        nn.init.zeros_(self.gate[-2].weight)
+        nn.init.zeros_(self.gate[-2].bias)
 
     def forward(self, modular_obs, global_obs, module_masks=None):
         # modular_obs: [batch_size, max_num_modules, modular_obs_dim]
@@ -162,6 +192,7 @@ class M2oE(nn.Module):
                 f"Unknown global encoder type: {gate_type}. Should be 'linear' or 'attention'."
             )
 
+        self._init_parameters()
 
     def forward(self, obs, global_obs, module_masks=None):
         # obs: [batch_size, num_obs_padded]
@@ -199,3 +230,21 @@ class M2oE(nn.Module):
             output = output.flatten(start_dim=1)
 
         return output
+
+    def _init_parameters(self):
+        """Initialize experts and gate networks."""
+
+        for expert in self.act_experts:
+            for module in expert.modules():
+                if isinstance(module, nn.Linear):
+                    nn.init.kaiming_uniform_(module.weight, a=math.sqrt(5))
+                    nn.init.zeros_(module.bias)
+
+        if self.gate_type == "linear":
+            for module in self.gate:
+                if isinstance(module, nn.Linear):
+                    nn.init.xavier_uniform_(module.weight)
+                    nn.init.zeros_(module.bias)
+            # uniform gating at initialization
+            nn.init.zeros_(self.gate[-2].weight)
+            nn.init.zeros_(self.gate[-2].bias)

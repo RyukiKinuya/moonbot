@@ -169,3 +169,11 @@ class M2oEActorCritic(nn.Module):
 
         super().load_state_dict(state_dict, strict=strict)
         return True
+
+    def set_gate_requires_grad(self, requires_grad: bool) -> None:
+        """Enable or disable gradient computation for gate networks."""
+
+        for model in (self.actor, self.critic):
+            if hasattr(model, "gate"):
+                for param in model.gate.parameters():
+                    param.requires_grad = requires_grad

@@ -1,12 +1,14 @@
 """Script to play a checkpoint and visualize MoE gate activations as a heatmap."""
 import argparse
+
 from isaaclab.app import AppLauncher
+
 import M2oE.utils.cli_args as cli_args  # isort: skip
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a trained RL agent and collect gate activations.")
 parser.add_argument("--num_steps", type=int, default=1000, help="Number of steps to simulate.")
-parser.add_argument("--heatmap_path", type=str, default="gate_heatmap.png", help="Path to save the heatmap.")
+parser.add_argument("--heatmap_path", type=str, default="gate_heatmap.png", help="Path to save the figure.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during play.")
 parser.add_argument("--video_length", type=int, default=1000, help="Length of the recorded video (in steps).")
 parser.add_argument(
@@ -30,6 +32,7 @@ args_cli.headless = True
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
+import math
 import matplotlib
 import os
 import time
@@ -55,9 +58,9 @@ def _compute_gate(model, obs, global_obs, module_masks):
     """Compute the gate activations of the M2oE model."""
     batch_size = obs.shape[0]
     max_num_modules = model.max_num_modules
-    obs = obs.view(batch_size, max_num_modules, -1)
+    obs = obs.reshape(batch_size, max_num_modules, -1)
     if module_masks is not None:
-        module_masks = module_masks.view(batch_size, max_num_modules)
+        module_masks = module_masks.reshape(batch_size, max_num_modules)
     if model.gate_type == "linear":
         module_onehot = torch.eye(max_num_modules, device=obs.device).unsqueeze(0).expand(batch_size, -1, -1)
         expert_global_obs = global_obs.unsqueeze(1).expand(-1, max_num_modules, -1)
@@ -109,7 +112,8 @@ def main():
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     runner.load(resume_path)
 
-    policy = runner.get_inference_policy(device=env.unwrapped.device)
+    policy = runner.alg.policy
+    inference_policy = runner.get_inference_policy(device=env.unwrapped.device)
 
     dt = env.unwrapped.step_dt
 
@@ -126,19 +130,21 @@ def main():
     num_morphs = env.num_morphologies
     max_num_modules = policy.actor.max_num_modules  # type: ignore
     num_experts = policy.actor.num_experts  # type: ignore
-    gate_sum = torch.zeros(num_morphs, max_num_modules, num_experts, device=env.unwrapped.device)
-    module_counts = torch.zeros(num_morphs, max_num_modules, device=env.unwrapped.device)
+    gate_sum = torch.zeros(
+        env.base_num_envs, num_morphs, max_num_modules, num_experts, device=env.unwrapped.device
+    )
+    module_counts = torch.zeros(env.base_num_envs, num_morphs, max_num_modules, device=env.unwrapped.device)
 
     timestep = 0
     while simulation_app.is_running() and timestep < args_cli.num_steps:
         start_time = time.time()
         with torch.inference_mode():
-            actions = policy(obs, global_obs, module_masks)
+            actions = inference_policy(obs, global_obs, module_masks)
             gate = _compute_gate(policy.actor, obs, global_obs, module_masks)
-            gate = gate.view(env.base_num_envs, num_morphs, max_num_modules, num_experts)
-            mask = module_masks.view(env.base_num_envs, num_morphs, max_num_modules).float()
-            gate_sum += (gate * mask.unsqueeze(-1)).sum(dim=0)
-            module_counts += mask.sum(dim=0)
+            gate = gate.reshape(env.base_num_envs, num_morphs, max_num_modules, num_experts)
+            mask = module_masks.reshape(env.base_num_envs, num_morphs, max_num_modules).float()
+            gate_sum += gate * mask.unsqueeze(-1)
+            module_counts += mask
 
             obs, _, _, _ = env.step(actions.to(env.unwrapped.device))
             obs, global_obs, module_masks = process_observations(
@@ -164,18 +170,32 @@ def main():
     env.close()
 
     gate_avg = gate_sum / module_counts.unsqueeze(-1).clamp(min=1)
-    gate_avg = gate_avg.cpu().numpy()
+    gate_avg = gate_avg.mean(dim=0).cpu().numpy()
 
     morphs = morphology_configs.morphology_list
-    fig, axes = plt.subplots(1, num_morphs, figsize=(4 * num_morphs, 4))
-    if num_morphs == 1:
-        axes = [axes]
-    for idx, morph in enumerate(morphs):
-        im = axes[idx].imshow(gate_avg[idx], aspect="auto")
-        axes[idx].set_title(morph)
-        axes[idx].set_xlabel("Expert")
-        axes[idx].set_ylabel("Module")
-        fig.colorbar(im, ax=axes[idx])
+    module_counts_list = [len(morphology_configs.joint_names_dict[morph]) for morph in morphs]
+    num_experts = gate_avg.shape[-1]
+    total_modules = sum(module_counts_list)
+    cols = 3
+    rows = math.ceil(total_modules / cols)
+    fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 4 * rows))
+    axes = axes.flatten()
+
+    plot_idx = 0
+    for morph_idx, morph in enumerate(morphs):
+        for module_idx in range(module_counts_list[morph_idx]):
+            weights = gate_avg[morph_idx, module_idx]
+            ax = axes[plot_idx]
+            ax.bar(range(num_experts), weights)
+            ax.set_title(f"{morph} module {module_idx + 1}")
+            ax.set_xlabel("Expert")
+            ax.set_ylabel("Average gate weight")
+            ax.set_ylim(0, 1)
+            plot_idx += 1
+
+    for ax in axes[plot_idx:]:
+        ax.axis("off")
+
     plt.tight_layout()
     plt.savefig(args_cli.heatmap_path)
 

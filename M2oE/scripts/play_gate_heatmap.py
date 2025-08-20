@@ -1,6 +1,8 @@
 """Script to play a checkpoint and visualize MoE gate activations as a heatmap."""
 import argparse
+
 from isaaclab.app import AppLauncher
+
 import M2oE.utils.cli_args as cli_args  # isort: skip
 
 # add argparse arguments
@@ -109,7 +111,8 @@ def main():
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     runner.load(resume_path)
 
-    policy = runner.get_inference_policy(device=env.unwrapped.device)
+    policy = runner.alg.policy
+    inference_policy = runner.get_inference_policy(device=env.unwrapped.device)
 
     dt = env.unwrapped.step_dt
 
@@ -133,7 +136,7 @@ def main():
     while simulation_app.is_running() and timestep < args_cli.num_steps:
         start_time = time.time()
         with torch.inference_mode():
-            actions = policy(obs, global_obs, module_masks)
+            actions = inference_policy(obs, global_obs, module_masks)
             gate = _compute_gate(policy.actor, obs, global_obs, module_masks)
             gate = gate.view(env.base_num_envs, num_morphs, max_num_modules, num_experts)
             mask = module_masks.view(env.base_num_envs, num_morphs, max_num_modules).float()

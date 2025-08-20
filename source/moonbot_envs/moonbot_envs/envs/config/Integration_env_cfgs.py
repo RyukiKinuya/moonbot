@@ -131,7 +131,6 @@ class IntegrationActCfg:
     class MoonbotActCfg(ActionGroupCfg):
         def __init__(self, asset_name: str, num_morphologies: int = 1):
             super().__init__()
-            import M2oE.configs.morphology_configs as morphology_configs
             for i in range(num_morphologies):
                 leg_action_name = f"module_{i}_action_leg"
                 leg_action_term = mdp.JointPositionActionCfg(

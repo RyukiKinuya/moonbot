@@ -1,28 +1,6 @@
 """Script to play a checkpoint and visualize MoE gate activations as a heatmap."""
-
 import argparse
-import matplotlib
-import os
-import time
-
-matplotlib.use("Agg")
-import gymnasium as gym
-import matplotlib.pyplot as plt
-import torch
-
-import moonbot_envs  # noqa: F401
-
 from isaaclab.app import AppLauncher
-from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
-from isaaclab.utils.dict import print_dict
-from M2oE.configs import morphology_configs
-from M2oE.models.modules.on_policy_runner import OnPolicyRunner
-from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
-from M2oE.utils.utils import process_observations
-
-from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
-
-# local imports
 import M2oE.utils.cli_args as cli_args  # isort: skip
 
 # add argparse arguments
@@ -51,6 +29,26 @@ args_cli.headless = True
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
+
+import matplotlib
+import os
+import time
+
+matplotlib.use("Agg")
+import gymnasium as gym
+import matplotlib.pyplot as plt
+import torch
+
+import moonbot_envs  # noqa: F401
+
+from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
+from isaaclab.utils.dict import print_dict
+from M2oE.configs import morphology_configs
+from M2oE.models.modules.on_policy_runner import OnPolicyRunner
+from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
+from M2oE.utils.utils import process_observations
+
+from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 
 def _compute_gate(model, obs, global_obs, module_masks):
@@ -126,8 +124,8 @@ def main():
     )
 
     num_morphs = env.num_morphologies
-    max_num_modules = policy.actor.max_num_modules
-    num_experts = policy.actor.num_experts
+    max_num_modules = policy.actor.max_num_modules  # type: ignore
+    num_experts = policy.actor.num_experts  # type: ignore
     gate_sum = torch.zeros(num_morphs, max_num_modules, num_experts, device=env.unwrapped.device)
     module_counts = torch.zeros(num_morphs, max_num_modules, device=env.unwrapped.device)
 

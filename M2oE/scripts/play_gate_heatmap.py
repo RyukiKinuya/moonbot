@@ -130,8 +130,10 @@ def main():
     num_morphs = env.num_morphologies
     max_num_modules = policy.actor.max_num_modules  # type: ignore
     num_experts = policy.actor.num_experts  # type: ignore
-    gate_sum = torch.zeros(num_morphs, max_num_modules, num_experts, device=env.unwrapped.device)
-    module_counts = torch.zeros(num_morphs, max_num_modules, device=env.unwrapped.device)
+    gate_sum = torch.zeros(
+        env.base_num_envs, num_morphs, max_num_modules, num_experts, device=env.unwrapped.device
+    )
+    module_counts = torch.zeros(env.base_num_envs, num_morphs, max_num_modules, device=env.unwrapped.device)
 
     timestep = 0
     while simulation_app.is_running() and timestep < args_cli.num_steps:
@@ -141,8 +143,8 @@ def main():
             gate = _compute_gate(policy.actor, obs, global_obs, module_masks)
             gate = gate.view(env.base_num_envs, num_morphs, max_num_modules, num_experts)
             mask = module_masks.view(env.base_num_envs, num_morphs, max_num_modules).float()
-            gate_sum += (gate * mask.unsqueeze(-1)).sum(dim=0)
-            module_counts += mask.sum(dim=0)
+            gate_sum += gate * mask.unsqueeze(-1)
+            module_counts += mask
 
             obs, _, _, _ = env.step(actions.to(env.unwrapped.device))
             obs, global_obs, module_masks = process_observations(
@@ -168,7 +170,7 @@ def main():
     env.close()
 
     gate_avg = gate_sum / module_counts.unsqueeze(-1).clamp(min=1)
-    gate_avg = gate_avg.cpu().numpy()
+    gate_avg = gate_avg.mean(dim=0).cpu().numpy()
 
     morphs = morphology_configs.morphology_list
     module_counts_list = [len(morphology_configs.joint_names_dict[morph]) for morph in morphs]

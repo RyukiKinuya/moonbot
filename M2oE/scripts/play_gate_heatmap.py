@@ -7,7 +7,7 @@ import M2oE.utils.cli_args as cli_args  # isort: skip
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a trained RL agent and collect gate activations.")
-parser.add_argument("--num_steps", type=int, default=1000, help="Number of steps to simulate.")
+parser.add_argument("--num_steps", type=int, default=2000, help="Number of steps to simulate.")
 parser.add_argument("--heatmap_path", type=str, default="gate_heatmap.png", help="Path to save the figure.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during play.")
 parser.add_argument("--video_length", type=int, default=1000, help="Length of the recorded video (in steps).")
@@ -140,8 +140,8 @@ def main():
         start_time = time.time()
         with torch.inference_mode():
             actions = inference_policy(obs, global_obs, module_masks)
-            gate = _compute_gate(policy.actor, obs, global_obs, module_masks)
-            gate = gate.view(env.base_num_envs, num_morphs, max_num_modules, num_experts)
+            gate = _compute_gate(policy.actor, obs, global_obs, module_masks)   # gate: [batch_size, max_num_modules, num_experts]
+            gate = gate.view(env.base_num_envs, num_morphs, max_num_modules, num_experts)   # reshape to [num_envs, num_morphs, max_num_modules, num_experts]
             mask = module_masks.view(env.base_num_envs, num_morphs, max_num_modules).float()
             gate_sum += gate * mask.unsqueeze(-1)
             module_counts += mask

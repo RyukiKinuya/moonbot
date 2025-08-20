@@ -140,6 +140,9 @@ class M2oEOnPolicyRunnerCfg:
     save_interval: int = MISSING
     """The number of iterations between saves."""
 
+    gate_warmup_iters: int = 0
+    """Number of initial iterations where gate parameters are frozen."""
+
     experiment_name: str = MISSING
     """The experiment name."""
 

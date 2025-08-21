@@ -108,6 +108,10 @@ class M2oEActorCritic(nn.Module):
 
         # Store auxiliary loss from gates
         self.load_balance_loss = torch.tensor(0.0, device=self.device)
+        if hasattr(self.actor, "num_experts"):
+            self.expert_usage = torch.zeros(self.actor.num_experts, device=self.device)
+        else:
+            self.expert_usage = None
 
     def reset(self, dones=None):
         pass
@@ -129,8 +133,24 @@ class M2oEActorCritic(nn.Module):
 
     def update_distribution(self, observations, obs_global, module_masks=None):
         # compute mean
-        mean, lb_loss = self.actor(observations, obs_global, module_masks)
+        result = self.actor(observations, obs_global, module_masks)
+        if isinstance(result, tuple):
+            if len(result) == 3:
+                mean, lb_loss, gate_mean = result
+            elif len(result) == 2:
+                mean, lb_loss = result
+                gate_mean = None
+            else:
+                mean = result[0]
+                lb_loss = torch.tensor(0.0, device=self.device)
+                gate_mean = None
+        else:
+            mean = result
+            lb_loss = torch.tensor(0.0, device=self.device)
+            gate_mean = None
         self.load_balance_loss = lb_loss
+        if self.expert_usage is not None and gate_mean is not None:
+            self.expert_usage += gate_mean.detach()
         # compute standard deviation
         if self.noise_std_type == "scalar":
             std = self.std.expand_as(mean)
@@ -149,14 +169,34 @@ class M2oEActorCritic(nn.Module):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations, obs_global, module_masks=None):
-        actions_mean, _ = self.actor(observations, obs_global, module_masks)
+        result = self.actor(observations, obs_global, module_masks)
+        if isinstance(result, tuple):
+            actions_mean = result[0]
+        else:
+            actions_mean = result
         return actions_mean
 
     def evaluate(self, critic_observations, obs_global, module_masks=None, **kwargs):
         # critic_observations: [batch_size, num_obs_padded]
         # obs_global: [batch_size, num_global_obs]
-        value, lb_loss = self.critic(critic_observations, obs_global, module_masks)
+        result = self.critic(critic_observations, obs_global, module_masks)
+        if isinstance(result, tuple):
+            if len(result) == 3:
+                value, lb_loss, gate_mean = result
+            elif len(result) == 2:
+                value, lb_loss = result
+                gate_mean = None
+            else:
+                value = result[0]
+                lb_loss = torch.tensor(0.0, device=self.device)
+                gate_mean = None
+        else:
+            value = result
+            lb_loss = torch.tensor(0.0, device=self.device)
+            gate_mean = None
         self.load_balance_loss = self.load_balance_loss + lb_loss
+        if self.expert_usage is not None and gate_mean is not None:
+            self.expert_usage += gate_mean.detach()
         return value
 
     def load_state_dict(self, state_dict, strict=True):

@@ -230,7 +230,9 @@ class M2oE(nn.Module):
         # compute load balance loss to encourage uniform expert usage
         lb_loss = self._load_balance_loss(gate, module_masks)
 
-        return output, lb_loss
+        gate_mean = gate.mean(dim=(0, 1))
+
+        return output, lb_loss, gate_mean
 
     def _init_parameters(self):
         """Initialize experts and gate networks."""

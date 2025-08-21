@@ -219,6 +219,14 @@ def main():
     ax.set_xticklabels(module_labels, rotation=45, ha="right")
     ax.set_yticklabels([f"Expert {i}" for i in range(num_experts)])
 
+    for i, label in enumerate(ax.get_xticklabels()):
+        if "minimal" in label.get_text():
+            label.set_color("#FFBE7A")  # orange
+        elif "dragon" in label.get_text():
+            label.set_color("#FA7F6F")
+        elif "full" in label.get_text():
+            label.set_color("#8ECFC9")  # light blue
+
     for i in range(num_experts):
         for j in range(gate_matrix.shape[1]):
             text_color = "black" if gate_matrix[i, j] < 0.5 else "white"

@@ -26,16 +26,13 @@ class M2oEGate(nn.Module):
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
 
-        self.q_projection = nn.Linear(embedding_dim, embedding_dim)
-        self.k_projection = nn.Linear(embedding_dim, embedding_dim)
-        self.v_projection = nn.Linear(embedding_dim, embedding_dim)
-
         self.gate = nn.Sequential(
             nn.Linear(embedding_dim, embedding_dim),
             nn.ReLU(),
             nn.Linear(embedding_dim, num_experts),
-            nn.Softmax(dim=-1)
         )
+
+        self.posi = nn.Embedding(self.max_num_modulars + 1, embedding_dim)
 
         self.dropout = nn.Dropout(dropout)
         self.norm = nn.LayerNorm(embedding_dim)
@@ -59,9 +56,6 @@ class M2oEGate(nn.Module):
         linear_layers = [
             self.input_projection_modular,
             self.input_projection_global,
-            self.q_projection,
-            self.k_projection,
-            self.v_projection,
         ]
         for layer in linear_layers:
             nn.init.xavier_uniform_(layer.weight)
@@ -73,19 +67,25 @@ class M2oEGate(nn.Module):
                 nn.init.zeros_(module.bias)
 
         # start with uniform gating probabilities
-        nn.init.zeros_(self.gate[-2].weight)
-        nn.init.zeros_(self.gate[-2].bias)
+        nn.init.zeros_(self.gate[-1].weight)
+        nn.init.zeros_(self.gate[-1].bias)
 
     def forward(self, modular_obs, global_obs, module_masks=None):
         # modular_obs: [batch_size, max_num_modules, modular_obs_dim]
         # global_obs: [batch_size, global_obs_dim]
         feature_modular = self.input_projection_modular(modular_obs)  # [batch_size, max_num_modules, embedding_dim]
         feature_global = self.input_projection_global(global_obs)  # [batch_size, embedding_dim]
-
+        
         feature_integration = torch.cat([
             feature_global.unsqueeze(1),
             feature_modular,
         ], dim=1)   # [batch_size, max_num_modules + 1, embedding_dim]
+
+        # add positional encoding
+        posi_indices = torch.arange(
+            self.max_num_modulars + 1, device=self.device
+        )
+        feature_integration += self.posi(posi_indices).unsqueeze(0)  # [1, max_num_modules + 1, embedding_dim]
 
         if module_masks is not None:
             key_padding_mask = torch.cat(
@@ -98,20 +98,18 @@ class M2oEGate(nn.Module):
         else:
             key_padding_mask = None
 
-        q = self.q_projection(feature_integration)  # [batch_size, max_num_modules + 1, embedding_dim]
-        k = self.k_projection(feature_integration)
-        v = self.v_projection(feature_integration)
-
         attn_output, _ = self.multihead_attn(
-            query=q,
-            key=k,
-            value=v,
+            query=feature_integration,
+            key=feature_integration,
+            value=feature_integration,
             key_padding_mask=key_padding_mask,
         )  # [batch_size, max_num_modules + 1, embedding_dim]
         attn_output = self.dropout(self.norm(attn_output))
         # attn_output = attn_output + feature_integration  # residual connection
 
-        gate = self.gate(attn_output[:, 1:, :])
+        logits = self.gate(attn_output[:, 1:, :])
+        # logits: [batch_size, max_num_modules, num_experts]
+        gate = torch.softmax(logits, dim=-1)
 
         return gate
 

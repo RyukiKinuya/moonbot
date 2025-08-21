@@ -105,7 +105,7 @@ class M2oEGate(nn.Module):
             key_padding_mask=key_padding_mask,
         )  # [batch_size, max_num_modules + 1, embedding_dim]
         attn_output = self.dropout(self.norm(attn_output))
-        # attn_output = attn_output + feature_integration  # residual connection
+        attn_output = attn_output + feature_integration
 
         logits = self.gate(attn_output[:, 1:, :])
         # logits: [batch_size, max_num_modules, num_experts]

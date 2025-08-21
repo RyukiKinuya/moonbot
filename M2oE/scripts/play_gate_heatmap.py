@@ -193,7 +193,9 @@ def main():
     fig, ax = plt.subplots(
         figsize=(0.5 * gate_matrix.shape[1] + 5, 0.5 * num_experts + 2)
     )
+
     im = ax.imshow(gate_matrix, vmin=0, vmax=1, cmap="magma")
+
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label("Average gate weight")
     ax.set_xticks(np.arange(gate_matrix.shape[1]), labels=module_labels, rotation=45, ha="right")
@@ -202,6 +204,7 @@ def main():
         for j in range(gate_matrix.shape[1]):
             text_color = "black" if gate_matrix[i, j] > 0.5 else "white"
             ax.text(j, i, f"{gate_matrix[i, j]:.2f}", ha="center", va="center", color=text_color, fontsize=8)
+
     ax.set_xlabel("Module (minimal \u2192 full)")
     ax.set_ylabel("Expert")
     fig.tight_layout()

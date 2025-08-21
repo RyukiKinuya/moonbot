@@ -21,7 +21,7 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
         num_experts=6,
         activation="elu",
         gate_type="attention",
-        gate_embedding_dim=64,
+        gate_embedding_dim=32,
         gate_num_heads=4,
         gate_dropout=0.1,
     )

@@ -196,19 +196,18 @@ def main():
 
     im = ax.imshow(gate_matrix, vmin=0, vmax=1, cmap="YlGn", aspect="auto")
     
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-    ax.set_xticks(np.arange(-0.5, gate_matrix.shape[1] - 0.5, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, gate_matrix.shape[0] - 0.5, 1), minor=True)
-
-    ax.grid(which="minor", color="black", linestyle="-", linewidth=0.5)
+    ax.set_xticks(np.arange(-0.5, gate_matrix.shape[1], 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, gate_matrix.shape[0], 1), minor=True)
+    ax.grid(which="minor", color="white", linestyle='-', linewidth=2)
     ax.tick_params(which="minor", bottom=False, left=False)
 
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label("Average gate weight")
-    ax.set_xticks(np.arange(gate_matrix.shape[1]), labels=module_labels, rotation=45, ha="right")
-    ax.set_yticks(np.arange(num_experts), labels=[f"Expert {i}" for i in range(num_experts)])
+    ax.set_xticks(np.arange(gate_matrix.shape[1]))
+    ax.set_yticks(np.arange(num_experts))
+    ax.set_xticklabels(module_labels, rotation=45, ha="right")
+    ax.set_yticklabels([f"Expert {i}" for i in range(num_experts)])
+
     for i in range(num_experts):
         for j in range(gate_matrix.shape[1]):
             text_color = "black" if gate_matrix[i, j] < 0.5 else "white"

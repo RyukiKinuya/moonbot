@@ -458,6 +458,10 @@ class PPO:
         # -- For load balance
         if mean_load_balance_loss is not None:
             mean_load_balance_loss /= num_updates
+        expert_usage = None
+        if getattr(self.policy, "expert_usage", None) is not None:
+            expert_usage = (self.policy.expert_usage / num_updates).tolist()
+            self.policy.expert_usage.zero_()
         # -- Clear the storage
         self.storage.clear()
 
@@ -473,6 +477,9 @@ class PPO:
             loss_dict["symmetry"] = mean_symmetry_loss
         if mean_load_balance_loss is not None:
             loss_dict["load_balance"] = mean_load_balance_loss
+        if expert_usage is not None:
+            for i, usage in enumerate(expert_usage):
+                loss_dict[f"expert_usage/{i}"] = usage
 
         return loss_dict
 

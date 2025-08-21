@@ -331,10 +331,13 @@ class OnPolicyRunner:
         iteration_time = locs["collection_time"] + locs["learn_time"]
 
         if pad is None:
+            loss_keys = [k for k in locs["loss_dict"].keys() if not k.startswith("expert_usage/")]
+            usage_keys = [k for k in locs["loss_dict"].keys() if k.startswith("expert_usage/")]
             labels = [
                 "Computation:",
                 "Mean action noise std:",
-                *(f"Mean {k} loss:" for k in locs["loss_dict"].keys()),
+                *(f"Mean {k} loss:" for k in loss_keys),
+                *(f"{k}:" for k in usage_keys),
                 "Total timesteps:",
                 "Iteration time:",
                 "Time elapsed:",
@@ -383,7 +386,10 @@ class OnPolicyRunner:
 
         # -- Losses
         for key, value in locs["loss_dict"].items():
-            self.writer.add_scalar(f"Loss/{key}", value, locs["it"])
+            if key.startswith("expert_usage/"):
+                self.writer.add_scalar(key, value, locs["it"])
+            else:
+                self.writer.add_scalar(f"Loss/{key}", value, locs["it"])
         self.writer.add_scalar("Loss/learning_rate", self.alg.learning_rate, locs["it"])
 
         # -- Policy
@@ -431,7 +437,10 @@ class OnPolicyRunner:
         if len(locs["rewbuffer"]) > 0:
             # -- Losses
             for key, value in locs["loss_dict"].items():
-                log_string += f"{OKCYAN}{f'Mean {key} loss:':>{pad}}{ENDC} {OKCYAN}{value:.4f}{ENDC}\n"
+                if key.startswith("expert_usage/"):
+                    log_string += f"{OKCYAN}{f'{key}:':>{pad}}{ENDC} {OKCYAN}{value:.4f}{ENDC}\n"
+                else:
+                    log_string += f"{OKCYAN}{f'Mean {key} loss:':>{pad}}{ENDC} {OKCYAN}{value:.4f}{ENDC}\n"
             # -- Rewards
             if self.alg.rnd:
                 log_string += f"{OKGREEN}{'Mean extrinsic reward:':>{pad}}{ENDC} {OKGREEN}{statistics.mean(locs['erewbuffer']):.2f}{ENDC}\n"

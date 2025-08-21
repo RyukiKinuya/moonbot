@@ -12,6 +12,7 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     save_interval = 100
     experiment_name = "MoonBot_locomotion"
     empirical_normalization = False
+    gate_warmup_steps = 100
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
     )

@@ -108,7 +108,8 @@ class M2oEGate(nn.Module):
             value=v,
             key_padding_mask=key_padding_mask,
         )  # [batch_size, max_num_modules + 1, embedding_dim]
-        attn_output = self.dropout(self.norm(attn_output))  # Residual connection
+        attn_output = self.dropout(self.norm(attn_output))
+        # attn_output = attn_output + feature_integration  # residual connection
 
         gate = self.gate(attn_output[:, 1:, :])
 

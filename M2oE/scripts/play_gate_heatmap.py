@@ -221,11 +221,11 @@ def main():
 
     for i, label in enumerate(ax.get_xticklabels()):
         if "minimal" in label.get_text():
-            label.set_color("blue")
+            label.set_color("#90EE90")
         elif "dragon" in label.get_text():
-            label.set_color("orange")
+            label.set_color("#228B22")
         elif "full" in label.get_text():
-            label.set_color("green")
+            label.set_color("#006400")
 
     for i in range(num_experts):
         for j in range(gate_matrix.shape[1]):

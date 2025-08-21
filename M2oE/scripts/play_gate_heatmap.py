@@ -202,7 +202,7 @@ def main():
     ax.set_yticks(np.arange(num_experts), labels=[f"Expert {i}" for i in range(num_experts)])
     for i in range(num_experts):
         for j in range(gate_matrix.shape[1]):
-            text_color = "black" if gate_matrix[i, j] > 0.5 else "white"
+            text_color = "black" if gate_matrix[i, j] < 0.5 else "white"
             ax.text(j, i, f"{gate_matrix[i, j]:.2f}", ha="center", va="center", color=text_color, fontsize=8)
 
     ax.set_xlabel("Module (minimal \u2192 full)")

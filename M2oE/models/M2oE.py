@@ -75,7 +75,6 @@ class M2oEGate(nn.Module):
         # global_obs: [batch_size, global_obs_dim]
         feature_modular = self.input_projection_modular(modular_obs)  # [batch_size, max_num_modules, embedding_dim]
         feature_global = self.input_projection_global(global_obs)  # [batch_size, embedding_dim]
-        
         feature_integration = torch.cat([
             feature_global.unsqueeze(1),
             feature_modular,
@@ -228,7 +227,10 @@ class M2oE(nn.Module):
         else:
             output = output.flatten(start_dim=1)
 
-        return output
+        # compute load balance loss to encourage uniform expert usage
+        lb_loss = self._load_balance_loss(gate, module_masks)
+
+        return output, lb_loss
 
     def _init_parameters(self):
         """Initialize experts and gate networks."""
@@ -247,3 +249,28 @@ class M2oE(nn.Module):
             # uniform gating at initialization
             nn.init.zeros_(self.gate[-2].weight)
             nn.init.zeros_(self.gate[-2].bias)
+
+    def _load_balance_loss(self, gate, module_masks=None):
+        """Compute load-balance loss to encourage uniform expert usage.
+
+        Args:
+            gate (torch.Tensor):
+                Gating probabilities with shape ``[batch_size, max_num_modules, num_experts]``.
+            module_masks (torch.Tensor | None):
+                Boolean mask indicating valid modules with shape
+                ``[batch_size, max_num_modules]``. ``True`` denotes a valid module.
+
+        Returns:
+            torch.Tensor: Scalar load-balance loss.
+        """
+
+        if module_masks is not None:
+            mask = module_masks.unsqueeze(-1).float()
+            gate = gate * mask
+            num_tokens = mask.sum()
+            gate_mean = gate.sum(dim=(0, 1)) / (num_tokens + 1e-9)
+        else:
+            gate_mean = gate.mean(dim=(0, 1))
+
+        loss = torch.mean(gate_mean * gate_mean) * (self.num_experts ** 2)
+        return loss

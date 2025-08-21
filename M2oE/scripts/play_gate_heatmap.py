@@ -32,8 +32,8 @@ args_cli.headless = True
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-import math
 import matplotlib
+import numpy as np
 import os
 import time
 
@@ -180,28 +180,31 @@ def main():
     morphs = morphology_configs.morphology_list
     module_counts_list = [len(morphology_configs.joint_names_dict[morph]) for morph in morphs]
     num_experts = gate_avg.shape[-1]
-    total_modules = sum(module_counts_list)
-    cols = 3
-    rows = math.ceil(total_modules / cols)
-    fig, axes = plt.subplots(rows, cols, figsize=(4 * cols, 4 * rows))
-    axes = axes.flatten()
 
-    plot_idx = 0
+    module_labels: list[str] = []
+    gate_matrix_cols = []
     for morph_idx, morph in enumerate(morphs):
         for module_idx in range(module_counts_list[morph_idx]):
-            weights = gate_avg[morph_idx, module_idx]
-            ax = axes[plot_idx]
-            ax.bar(range(num_experts), weights)
-            ax.set_title(f"{morph} module {module_idx + 1}")
-            ax.set_xlabel("Expert")
-            ax.set_ylabel("Average gate weight")
-            ax.set_ylim(0, 1)
-            plot_idx += 1
+            gate_matrix_cols.append(gate_avg[morph_idx, module_idx])
+            module_labels.append(f"{morph.replace('moonbot_', '')} {module_idx + 1}")
 
-    for ax in axes[plot_idx:]:
-        ax.axis("off")
+    gate_matrix = np.stack(gate_matrix_cols, axis=1)
 
-    plt.tight_layout()
+    fig, ax = plt.subplots(
+        figsize=(0.5 * gate_matrix.shape[1] + 5, 0.5 * num_experts + 2)
+    )
+    im = ax.imshow(gate_matrix, vmin=0, vmax=1, cmap="magma")
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label("Average gate weight")
+    ax.set_xticks(np.arange(gate_matrix.shape[1]), labels=module_labels, rotation=45, ha="right")
+    ax.set_yticks(np.arange(num_experts), labels=[f"Expert {i}" for i in range(num_experts)])
+    for i in range(num_experts):
+        for j in range(gate_matrix.shape[1]):
+            text_color = "black" if gate_matrix[i, j] > 0.5 else "white"
+            ax.text(j, i, f"{gate_matrix[i, j]:.2f}", ha="center", va="center", color=text_color, fontsize=8)
+    ax.set_xlabel("Module (minimal \u2192 full)")
+    ax.set_ylabel("Expert")
+    fig.tight_layout()
     plt.savefig(args_cli.heatmap_path)
 
 

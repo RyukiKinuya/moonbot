@@ -106,6 +106,9 @@ class M2oEActorCritic(nn.Module):
         total_params = sum(p.numel() for p in self.parameters())
         print(f"M2oEActorCritic initialized with {total_params} parameters")
 
+        # Store auxiliary loss from gates
+        self.load_balance_loss = torch.tensor(0.0, device=self.device)
+
     def reset(self, dones=None):
         pass
 
@@ -126,7 +129,8 @@ class M2oEActorCritic(nn.Module):
 
     def update_distribution(self, observations, obs_global, module_masks=None):
         # compute mean
-        mean = self.actor(observations, obs_global, module_masks)
+        mean, lb_loss = self.actor(observations, obs_global, module_masks)
+        self.load_balance_loss = lb_loss
         # compute standard deviation
         if self.noise_std_type == "scalar":
             std = self.std.expand_as(mean)
@@ -145,13 +149,14 @@ class M2oEActorCritic(nn.Module):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations, obs_global, module_masks=None):
-        actions_mean = self.actor(observations, obs_global, module_masks)
+        actions_mean, _ = self.actor(observations, obs_global, module_masks)
         return actions_mean
 
     def evaluate(self, critic_observations, obs_global, module_masks=None, **kwargs):
         # critic_observations: [batch_size, num_obs_padded]
         # obs_global: [batch_size, num_global_obs]
-        value = self.critic(critic_observations, obs_global, module_masks)
+        value, lb_loss = self.critic(critic_observations, obs_global, module_masks)
+        self.load_balance_loss = self.load_balance_loss + lb_loss
         return value
 
     def load_state_dict(self, state_dict, strict=True):

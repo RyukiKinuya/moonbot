@@ -194,7 +194,7 @@ def main():
         figsize=(0.5 * gate_matrix.shape[1] + 5, 0.5 * num_experts + 2)
     )
 
-    im = ax.imshow(gate_matrix, vmin=0, vmax=1, cmap="magma")
+    im = ax.imshow(gate_matrix, vmin=0, vmax=1, cmap="YlGn", aspect="auto")
 
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label("Average gate weight")

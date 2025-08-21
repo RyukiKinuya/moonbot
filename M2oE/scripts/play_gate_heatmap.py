@@ -195,6 +195,15 @@ def main():
     )
 
     im = ax.imshow(gate_matrix, vmin=0, vmax=1, cmap="YlGn", aspect="auto")
+    
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    ax.set_xticks(np.arange(-0.5, gate_matrix.shape[1] - 0.5, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, gate_matrix.shape[0] - 0.5, 1), minor=True)
+
+    ax.grid(which="minor", color="black", linestyle="-", linewidth=0.5)
+    ax.tick_params(which="minor", bottom=False, left=False)
 
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label("Average gate weight")

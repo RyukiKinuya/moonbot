@@ -169,8 +169,13 @@ def main():
 
     env.close()
 
-    gate_avg = gate_sum / module_counts.unsqueeze(-1).clamp(min=1)
-    gate_avg = gate_avg.mean(dim=0).cpu().numpy()
+    # Compute average gate activations per morphology and module.
+    # First aggregate gate weights and counts across all environments to
+    # avoid averaging per environment, which could mask differences when
+    # some environments terminate earlier than others.
+    gate_sum = gate_sum.sum(dim=0)
+    module_counts = module_counts.sum(dim=0).unsqueeze(-1).clamp(min=1)
+    gate_avg = (gate_sum / module_counts).cpu().numpy()
 
     morphs = morphology_configs.morphology_list
     module_counts_list = [len(morphology_configs.joint_names_dict[morph]) for morph in morphs]

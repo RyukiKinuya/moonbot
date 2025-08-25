@@ -13,8 +13,8 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": IntegrationEnvCfg,
         "M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg
-        # "M2oE_entry_point": agents.Transformer_cfg.Transformer_Cfg
-        # "M2oE_entry_point": agents.SharedMLP_cfg.SharedMLP_Cfg
+        #"M2oE_entry_point": agents.Transformer_cfg.Transformer_Cfg
+        #"M2oE_entry_point": agents.SharedMLP_cfg.SharedMLP_Cfg
         # "M2oE_entry_point": agents.JointMLP_cfg.JointMLP_Cfg
     }
 )

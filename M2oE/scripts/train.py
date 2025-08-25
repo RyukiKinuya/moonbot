@@ -17,7 +17,7 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=2048, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
-parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument("--seed", type=int, default=114514, help="Seed used for the environment")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
 parser.add_argument(
     "--distributed",

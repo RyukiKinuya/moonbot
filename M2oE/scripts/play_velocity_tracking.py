@@ -1,5 +1,6 @@
 """Play an M2oE agent and plot actual vs commanded linear speed and yaw rate."""
 
+
 import argparse
 
 from isaaclab.app import AppLauncher
@@ -128,6 +129,7 @@ def main():
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")[0]
             cmd_lin_speed = torch.linalg.norm(cmd[:2]).unsqueeze(0)
             cmd_logs[morph].append(torch.cat([cmd_lin_speed, cmd[2].unsqueeze(0)]).cpu().numpy())
+
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
@@ -142,10 +144,12 @@ def main():
     for ax, morph in zip(axes, morphs):
         vel = np.stack(vel_logs[morph])
         cmd = np.stack(cmd_logs[morph])
+
         ax.plot(timesteps, vel[:, 0], label="lin_speed")
         ax.plot(timesteps, cmd[:, 0], "--", label="cmd_lin_speed")
         ax.plot(timesteps, vel[:, 1], label="ang_z")
         ax.plot(timesteps, cmd[:, 1], "--", label="cmd_ang_z")
+
         ax.set_ylabel("Velocity")
         ax.set_title(morph.replace("moonbot_", ""))
         ax.legend(loc="upper right", fontsize="small")

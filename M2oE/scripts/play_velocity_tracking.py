@@ -1,4 +1,5 @@
-"""Play an M2oE agent and plot actual vs commanded velocities."""
+"""Play an M2oE agent and plot actual vs commanded linear speed and yaw rate."""
+
 
 import argparse
 
@@ -123,9 +124,12 @@ def main():
             asset = env.unwrapped.scene[morph]
             lin_vel = asset.data.root_lin_vel_b[0, :2]
             ang_vel = asset.data.root_ang_vel_b[0, 2]
-            vel_logs[morph].append(torch.cat([lin_vel, ang_vel.unsqueeze(0)]).cpu().numpy())
+            lin_speed = torch.linalg.norm(lin_vel).unsqueeze(0)
+            vel_logs[morph].append(torch.cat([lin_speed, ang_vel.unsqueeze(0)]).cpu().numpy())
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")[0]
-            cmd_logs[morph].append(cmd.cpu().numpy())
+            cmd_lin_speed = torch.linalg.norm(cmd[:2]).unsqueeze(0)
+            cmd_logs[morph].append(torch.cat([cmd_lin_speed, cmd[2].unsqueeze(0)]).cpu().numpy())
+
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
@@ -140,12 +144,12 @@ def main():
     for ax, morph in zip(axes, morphs):
         vel = np.stack(vel_logs[morph])
         cmd = np.stack(cmd_logs[morph])
-        ax.plot(timesteps, vel[:, 0], label="lin_x")
-        ax.plot(timesteps, cmd[:, 0], "--", label="cmd_lin_x")
-        ax.plot(timesteps, vel[:, 1], label="lin_y")
-        ax.plot(timesteps, cmd[:, 1], "--", label="cmd_lin_y")
-        ax.plot(timesteps, vel[:, 2], label="ang_z")
-        ax.plot(timesteps, cmd[:, 2], "--", label="cmd_ang_z")
+
+        ax.plot(timesteps, vel[:, 0], label="lin_speed")
+        ax.plot(timesteps, cmd[:, 0], "--", label="cmd_lin_speed")
+        ax.plot(timesteps, vel[:, 1], label="ang_z")
+        ax.plot(timesteps, cmd[:, 1], "--", label="cmd_ang_z")
+
         ax.set_ylabel("Velocity")
         ax.set_title(morph.replace("moonbot_", ""))
         ax.legend(loc="upper right", fontsize="small")

@@ -14,6 +14,7 @@ class M2oEGate(nn.Module):
         dropout,
         num_experts,
         device,
+        num_layers=1,
     ):
         super().__init__()
         self.modular_obs_dim = modular_obs_dim
@@ -22,6 +23,7 @@ class M2oEGate(nn.Module):
         self.num_heads = num_heads
         self.num_experts = num_experts
         self.device = device
+        self.num_layers = num_layers
 
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
@@ -34,15 +36,13 @@ class M2oEGate(nn.Module):
 
         self.posi = nn.Embedding(self.max_num_modulars + 1, embedding_dim)
 
-        self.dropout = nn.Dropout(dropout)
-        self.norm = nn.LayerNorm(embedding_dim)
-
-        self.multihead_attn = nn.MultiheadAttention(
-            embed_dim=embedding_dim,
-            num_heads=num_heads,
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embedding_dim,
+            nhead=num_heads,
             dropout=dropout,
             batch_first=True,
         )
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
         self.reset_parameters()
 
@@ -97,16 +97,12 @@ class M2oEGate(nn.Module):
         else:
             key_padding_mask = None
 
-        attn_output, _ = self.multihead_attn(
-            query=feature_integration,
-            key=feature_integration,
-            value=feature_integration,
-            key_padding_mask=key_padding_mask,
+        encoded = self.encoder(
+            feature_integration,
+            src_key_padding_mask=key_padding_mask,
         )  # [batch_size, max_num_modules + 1, embedding_dim]
-        attn_output = self.dropout(self.norm(attn_output))
-        attn_output = attn_output + feature_integration
 
-        logits = self.gate(attn_output[:, 1:, :])
+        logits = self.gate(encoded[:, 1:, :])
         # logits: [batch_size, max_num_modules, num_experts]
         gate = torch.softmax(logits, dim=-1)
 
@@ -126,6 +122,7 @@ class M2oE(nn.Module):
         gate_type,
         gate_embedding_dim,
         gate_num_heads,
+        gate_num_layers,
         gate_dropout,
         device,
         top_k=2,
@@ -181,6 +178,7 @@ class M2oE(nn.Module):
                 max_num_modulars=max_num_modules,
                 embedding_dim=gate_embedding_dim,
                 num_heads=gate_num_heads,
+                num_layers=gate_num_layers,
                 dropout=gate_dropout,
                 num_experts=num_experts,
                 device=self.device,

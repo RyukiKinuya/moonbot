@@ -1,5 +1,4 @@
-"""Play an M2oE agent and plot actual vs commanded linear speed and yaw rate."""
-
+"""Play an M2oE agent and plot actual vs commanded linear speed and heading."""
 
 import argparse
 
@@ -44,6 +43,8 @@ import torch
 import moonbot_envs  # noqa: F401
 
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
+from isaaclab.utils.math import euler_xyz_from_quat, wrap_to_pi
+
 from M2oE.configs import morphology_configs
 from M2oE.models.modules.on_policy_runner import OnPolicyRunner
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
@@ -123,12 +124,14 @@ def main():
         for morph in morphs:
             asset = env.unwrapped.scene[morph]
             lin_vel = asset.data.root_lin_vel_b[0, :2]
-            ang_vel = asset.data.root_ang_vel_b[0, 2]
             lin_speed = torch.linalg.norm(lin_vel).unsqueeze(0)
-            vel_logs[morph].append(torch.cat([lin_speed, ang_vel.unsqueeze(0)]).cpu().numpy())
+            yaw = euler_xyz_from_quat(asset.data.root_quat_w[0:1])[2]
+            heading = wrap_to_pi(yaw)
+            vel_logs[morph].append(torch.cat([lin_speed, heading]).cpu().numpy())
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")[0]
             cmd_lin_speed = torch.linalg.norm(cmd[:2]).unsqueeze(0)
-            cmd_logs[morph].append(torch.cat([cmd_lin_speed, cmd[2].unsqueeze(0)]).cpu().numpy())
+            cmd_heading = wrap_to_pi(cmd[3].unsqueeze(0))
+            cmd_logs[morph].append(torch.cat([cmd_lin_speed, cmd_heading]).cpu().numpy())
 
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
@@ -144,13 +147,12 @@ def main():
     for ax, morph in zip(axes, morphs):
         vel = np.stack(vel_logs[morph])
         cmd = np.stack(cmd_logs[morph])
-
         ax.plot(timesteps, vel[:, 0], label="lin_speed")
         ax.plot(timesteps, cmd[:, 0], "--", label="cmd_lin_speed")
-        ax.plot(timesteps, vel[:, 1], label="ang_z")
-        ax.plot(timesteps, cmd[:, 1], "--", label="cmd_ang_z")
+        ax.plot(timesteps, vel[:, 1], label="heading")
+        ax.plot(timesteps, cmd[:, 1], "--", label="cmd_heading")
+        ax.set_ylabel("Speed / Heading")
 
-        ax.set_ylabel("Velocity")
         ax.set_title(morph.replace("moonbot_", ""))
         ax.legend(loc="upper right", fontsize="small")
     axes[-1].set_xlabel("Timestep")

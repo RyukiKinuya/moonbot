@@ -39,6 +39,9 @@ class M2oECfg:
     gate_dropout: float = 0.1
     """Dropout probability for the attention gate."""
 
+    gate_num_layers: int = 1
+    """Number of transformer encoder layers in the attention gate."""
+
 
 @configclass
 class MLPBaselineCfg:

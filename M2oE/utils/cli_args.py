@@ -78,6 +78,8 @@ def update_m2oe_cfg(agent_cfg: M2oEOnPolicyRunnerCfg, args_cli: argparse.Namespa
         agent_cfg.load_run = args_cli.load_run
     if args_cli.checkpoint is not None:
         agent_cfg.load_checkpoint = args_cli.checkpoint
+    if args_cli.experiment_name is not None:
+        agent_cfg.experiment_name = args_cli.experiment_name
     if args_cli.run_name is not None:
         agent_cfg.run_name = args_cli.run_name
     if args_cli.logger is not None:
@@ -86,5 +88,9 @@ def update_m2oe_cfg(agent_cfg: M2oEOnPolicyRunnerCfg, args_cli: argparse.Namespa
     if agent_cfg.logger in {"wandb", "neptune"} and args_cli.log_project_name:
         agent_cfg.wandb_project = args_cli.log_project_name
         agent_cfg.neptune_project = args_cli.log_project_name
+
+    # ensure run names follow the pattern "{model_name}_seed_{seed}"
+    if not agent_cfg.run_name:
+        agent_cfg.run_name = f"{agent_cfg.model.class_name}_seed_{agent_cfg.seed}"
 
     return agent_cfg

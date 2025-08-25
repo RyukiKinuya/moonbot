@@ -6,7 +6,6 @@ from isaaclab_rl.rsl_rl.rl_cfg import RslRlPpoAlgorithmCfg
 
 @configclass
 class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
-    run_name = "M2oE_seed_3407"
     num_steps_per_env = 24
     max_num_modules = 3
     max_iterations = 10000

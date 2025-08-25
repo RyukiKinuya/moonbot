@@ -44,6 +44,7 @@ import moonbot_envs  # noqa: F401
 
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.math import euler_xyz_from_quat, wrap_to_pi
+
 from M2oE.configs import morphology_configs
 from M2oE.models.modules.on_policy_runner import OnPolicyRunner
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
@@ -131,6 +132,7 @@ def main():
             cmd_lin_speed = torch.linalg.norm(cmd[:2]).unsqueeze(0)
             cmd_heading = wrap_to_pi(cmd[3].unsqueeze(0))
             cmd_logs[morph].append(torch.cat([cmd_lin_speed, cmd_heading]).cpu().numpy())
+
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
@@ -150,6 +152,7 @@ def main():
         ax.plot(timesteps, vel[:, 1], label="heading")
         ax.plot(timesteps, cmd[:, 1], "--", label="cmd_heading")
         ax.set_ylabel("Speed / Heading")
+
         ax.set_title(morph.replace("moonbot_", ""))
         ax.legend(loc="upper right", fontsize="small")
     axes[-1].set_xlabel("Timestep")

@@ -39,6 +39,7 @@ class M2oEGate(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embedding_dim,
             nhead=num_heads,
+            dim_feedforward=embedding_dim,
             dropout=dropout,
             batch_first=True,
         )

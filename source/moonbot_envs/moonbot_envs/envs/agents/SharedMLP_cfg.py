@@ -18,7 +18,7 @@ class SharedMLP_Cfg(M2oEOnPolicyRunnerCfg):
     )
     model = MLPBaselineCfg(
         class_name="SharedModuleMLPBaseline",
-        hidden_dims=(256, 256, 256),
+        hidden_dims=(256, 128, 64),
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

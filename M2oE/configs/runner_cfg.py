@@ -42,6 +42,9 @@ class M2oECfg:
     gate_num_layers: int = 1
     """Number of transformer encoder layers in the attention gate."""
 
+    gate_use_positional_embedding: bool = True
+    """Whether to use positional embeddings in the attention gate."""
+
 
 @configclass
 class MLPBaselineCfg:

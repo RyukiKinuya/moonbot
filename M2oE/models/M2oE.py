@@ -15,6 +15,7 @@ class M2oEGate(nn.Module):
         num_experts,
         device,
         num_layers=1,
+        use_positional_embedding: bool = True,
     ):
         super().__init__()
         self.modular_obs_dim = modular_obs_dim
@@ -24,6 +25,7 @@ class M2oEGate(nn.Module):
         self.num_experts = num_experts
         self.device = device
         self.num_layers = num_layers
+        self.use_positional_embedding = use_positional_embedding
 
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
@@ -34,7 +36,8 @@ class M2oEGate(nn.Module):
             nn.Linear(embedding_dim, num_experts),
         )
 
-        self.posi = nn.Embedding(self.max_num_modulars + 1, embedding_dim)
+        if self.use_positional_embedding:
+            self.posi = nn.Embedding(self.max_num_modulars + 1, embedding_dim)
 
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embedding_dim,
@@ -81,11 +84,12 @@ class M2oEGate(nn.Module):
             feature_modular,
         ], dim=1)   # [batch_size, max_num_modules + 1, embedding_dim]
 
-        # add positional encoding
-        posi_indices = torch.arange(
-            self.max_num_modulars + 1, device=self.device
-        )
-        feature_integration += self.posi(posi_indices).unsqueeze(0)  # [1, max_num_modules + 1, embedding_dim]
+        if self.use_positional_embedding:
+            # add positional encoding
+            posi_indices = torch.arange(
+                self.max_num_modulars + 1, device=self.device
+            )
+            feature_integration += self.posi(posi_indices).unsqueeze(0)  # [1, max_num_modules + 1, embedding_dim]
 
         if module_masks is not None:
             key_padding_mask = torch.cat(
@@ -126,6 +130,7 @@ class M2oE(nn.Module):
         gate_num_layers,
         gate_dropout,
         device,
+        gate_use_positional_embedding: bool = True,
         top_k=2,
     ):
         super().__init__()
@@ -139,6 +144,7 @@ class M2oE(nn.Module):
         self.num_experts = num_experts
         self.activation = activation
         self.max_num_modules = max_num_modules
+        self.gate_use_positional_embedding = gate_use_positional_embedding
         self.modular_obs_dim = num_obs // max_num_modules
         if num_outputs == 1:
             self.modular_act_dim = 1
@@ -183,6 +189,7 @@ class M2oE(nn.Module):
                 dropout=gate_dropout,
                 num_experts=num_experts,
                 device=self.device,
+                use_positional_embedding=self.gate_use_positional_embedding,
             )
         else:
             raise ValueError(

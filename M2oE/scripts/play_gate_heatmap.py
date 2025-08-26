@@ -235,6 +235,7 @@ def main():
     ax.set_xlabel("Modules", fontsize=12)
     ax.set_ylabel("Experts", fontsize=12)
     fig.tight_layout()
+    plt.subplots_adjust(left=0.2)
     plt.savefig(args_cli.heatmap_path)
 
 

@@ -4,6 +4,7 @@ import argparse
 from isaaclab.app import AppLauncher
 
 import M2oE.utils.cli_args as cli_args  # isort: skip
+import tqdm
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a trained RL agent and collect gate activations.")
@@ -136,7 +137,11 @@ def main():
     module_counts = torch.zeros(env.base_num_envs, num_morphs, max_num_modules, device=env.unwrapped.device)
 
     timestep = 0
-    while simulation_app.is_running() and timestep < args_cli.num_steps:
+    # use tqdm to display a progress bar
+    # while simulation_app.is_running() and timestep < args_cli.num_steps:
+    for _ in tqdm.tqdm(range(args_cli.num_steps), desc="Simulating"):
+        if not simulation_app.is_running():
+            break
         start_time = time.time()
         with torch.inference_mode():
             actions = inference_policy(obs, global_obs, module_masks)
@@ -235,8 +240,8 @@ def main():
     ax.set_xlabel("Modules", fontsize=12)
     ax.set_ylabel("Experts", fontsize=12)
     fig.tight_layout()
-    plt.subplots_adjust(left=0.2)
-    plt.savefig(args_cli.heatmap_path)
+    
+    plt.savefig(args_cli.heatmap_path, dpi=600)
 
 
 if __name__ == "__main__":

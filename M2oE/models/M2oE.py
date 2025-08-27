@@ -131,13 +131,11 @@ class M2oE(nn.Module):
         gate_dropout,
         device,
         gate_use_positional_embedding: bool = True,
-        top_k=2,
     ):
         super().__init__()
 
         self.device = device
 
-        self.top_k = top_k
         self.num_obs = num_obs
         self.num_global_obs = num_global_obs
         self.num_outputs = num_outputs

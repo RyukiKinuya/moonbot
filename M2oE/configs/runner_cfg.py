@@ -104,6 +104,9 @@ class M2oEActorCriticCfg:
     padding_method: str = "concat"
     """Strategy for combining observation padding. Default is ``"concat"``."""
 
+    share_gate: bool = False
+    """Whether actor and critic share a gating network while using separate expert groups."""
+
 
 @configclass
 class M2oEOnPolicyRunnerCfg:

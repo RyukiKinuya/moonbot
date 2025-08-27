@@ -39,7 +39,7 @@ class PPO:
         desired_kl=0.01,
         device="cpu",
         normalize_advantage_per_mini_batch=False,
-        load_balance_loss_coef=0.0,
+        lb_coef=0.0,
         # RND parameters
         rnd_cfg: dict | None = None,
         # Symmetry parameters
@@ -113,7 +113,7 @@ class PPO:
         self.schedule = schedule
         self.learning_rate = learning_rate
         self.normalize_advantage_per_mini_batch = normalize_advantage_per_mini_batch
-        self.load_balance_loss_coef = load_balance_loss_coef
+        self.lb_coef = lb_coef
 
     def init_storage(
         self,
@@ -211,10 +211,7 @@ class PPO:
         else:
             mean_symmetry_loss = None
         # -- Load balance loss
-        if self.load_balance_loss_coef > 0.0:
-            mean_load_balance_loss = 0
-        else:
-            mean_load_balance_loss = None
+        mean_load_balance_loss = 0.0
 
         # generator for mini batches
         if self.policy.is_recurrent:
@@ -358,9 +355,8 @@ class PPO:
 
             loss = surrogate_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_batch.mean()
             # Load balance loss from MoE gates
-            if mean_load_balance_loss is not None:
-                lb_loss = self.policy.load_balance_loss
-                loss += self.load_balance_loss_coef * lb_loss
+            lb_loss = self.policy.load_balance_loss
+            loss += self.lb_coef * lb_loss
 
             # Symmetry loss
             if self.symmetry:
@@ -441,8 +437,7 @@ class PPO:
             if mean_symmetry_loss is not None:
                 mean_symmetry_loss += symmetry_loss.item()
             # -- Load balance loss
-            if mean_load_balance_loss is not None:
-                mean_load_balance_loss += lb_loss.item()
+            mean_load_balance_loss += lb_loss.item()
 
         # -- For PPO
         num_updates = self.num_learning_epochs * self.num_mini_batches
@@ -456,8 +451,7 @@ class PPO:
         if mean_symmetry_loss is not None:
             mean_symmetry_loss /= num_updates
         # -- For load balance
-        if mean_load_balance_loss is not None:
-            mean_load_balance_loss /= num_updates
+        mean_load_balance_loss /= num_updates
         expert_usage = None
         if getattr(self.policy, "expert_usage", None) is not None:
             expert_usage = (self.policy.expert_usage / num_updates).tolist()
@@ -475,8 +469,7 @@ class PPO:
             loss_dict["rnd"] = mean_rnd_loss
         if self.symmetry:
             loss_dict["symmetry"] = mean_symmetry_loss
-        if mean_load_balance_loss is not None:
-            loss_dict["load_balance"] = mean_load_balance_loss
+        loss_dict["load_balance"] = mean_load_balance_loss
         if expert_usage is not None:
             for i, usage in enumerate(expert_usage):
                 loss_dict[f"expert_usage/{i}"] = usage

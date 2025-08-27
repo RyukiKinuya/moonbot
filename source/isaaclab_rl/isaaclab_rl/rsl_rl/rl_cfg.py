@@ -122,7 +122,7 @@ class RslRlPpoAlgorithmCfg:
     in which case RND is not used.
     """
 
-    load_balance_loss_coef: float = 0.0
+    lb_coef: float = 0.0
     """Coefficient for the load-balance loss used in mixture-of-experts models."""
 
 

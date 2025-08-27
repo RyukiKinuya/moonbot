@@ -12,7 +12,7 @@ parser.add_argument("--num_steps", type=int, default=3000, help="Number of steps
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate (fixed to 1).")
+parser.add_argument("--num_envs", type=int, default=64, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
 parser.add_argument("--real_time", action="store_true", default=False, help="Run in real-time, if possible.")
 
@@ -21,8 +21,7 @@ cli_args.add_m2oe_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
-# ensure a single environment and run headless
-args_cli.num_envs = 1
+# run headless
 args_cli.headless = True
 
 # launch omniverse app
@@ -117,17 +116,21 @@ def main():
             )
         for morph in morphs:
             asset = env.unwrapped.scene[morph]
-            lin_vel_x = asset.data.root_lin_vel_b[0, 0].unsqueeze(0)
-            yaw = euler_xyz_from_quat(asset.data.root_quat_w[0:1])[2]
+            lin_vel_x = asset.data.root_lin_vel_b[:, 0]
+            yaw = euler_xyz_from_quat(asset.data.root_quat_w)[:, 2]
             heading = wrap_to_pi(yaw)
-            cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")[0]
-            cmd_lin_vel_x = cmd[0].unsqueeze(0)
+
+            cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")
+            cmd_lin_vel_x = cmd[:, 0]
+
             heading_target = env.unwrapped.command_manager.get_term(
                 f"base_velocity_{morph}"
-            ).heading_target[0].unsqueeze(0)
+            ).heading_target
             cmd_heading = wrap_to_pi(heading_target)
-            error_vec = torch.cat([lin_vel_x - cmd_lin_vel_x, heading - cmd_heading])
-            error = torch.linalg.norm(error_vec).item()
+
+            error_vec = torch.stack([lin_vel_x - cmd_lin_vel_x, heading - cmd_heading], dim=-1)
+            error = torch.linalg.norm(error_vec, dim=-1).mean().item()
+
             ema_errors[morph] = alpha * error + (1 - alpha) * ema_errors[morph]
 
         sleep_time = dt - (time.time() - start_time)

@@ -28,6 +28,7 @@ class M2oEActorCritic(nn.Module):
         num_actions,
         max_num_modules,
         model_cfg: dict,
+        share_gate: bool = False,
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
         padding_mode: str = "learnable",
@@ -102,6 +103,9 @@ class M2oEActorCritic(nn.Module):
             device=self.device,
             **model_cfg,
         )
+
+        if share_gate and model_name == "M2oE" and hasattr(self.actor, "gate"):
+            self.critic.gate = self.actor.gate
 
         total_params = sum(p.numel() for p in self.parameters())
         print(f"M2oEActorCritic initialized with {total_params} parameters")

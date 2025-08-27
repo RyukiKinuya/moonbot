@@ -15,6 +15,7 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     gate_warmup_steps = 100
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
+        share_gate=True,
     )
     model = M2oECfg(
         hidden_dim=64,

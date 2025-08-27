@@ -36,7 +36,6 @@ import torch
 import moonbot_envs  # noqa: F401
 
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
-from isaaclab.utils.math import euler_xyz_from_quat, wrap_to_pi
 from M2oE.configs import morphology_configs
 from M2oE.models.modules.on_policy_runner import OnPolicyRunner
 from M2oE.utils.env_wrapper import ModulerRobotEnvWrapper
@@ -58,7 +57,6 @@ def main():
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
-
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg)
@@ -93,7 +91,8 @@ def main():
     )
 
     morphs = morphology_configs.morphology_list
-    ema_errors: dict[str, float] = {m: 0.0 for m in morphs}
+    ema_lin_errors: dict[str, float] = {m: 0.0 for m in morphs}
+    ema_ang_errors: dict[str, float] = {m: 0.0 for m in morphs}
     alpha = 0.1
 
     num_steps = args_cli.num_steps
@@ -113,14 +112,20 @@ def main():
         for morph in morphs:
             asset = env.unwrapped.scene[morph]
             lin_vel_x = asset.data.root_lin_vel_b[:, 0]
+            ang_vel_z = asset.data.root_ang_vel_b[:, 2]
 
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")
             cmd_lin_vel_x = cmd[:, 0]
+            cmd_ang_vel_z = cmd[:, 2]
 
-            error_vec = torch.stack([lin_vel_x - cmd_lin_vel_x], dim=-1)
-            error = torch.linalg.norm(error_vec, dim=-1).mean().item()
+            lin_error_vec = torch.stack([lin_vel_x - cmd_lin_vel_x], dim=-1)
+            lin_error = torch.linalg.norm(lin_error_vec, dim=-1).mean().item()
 
-            ema_errors[morph] = alpha * error + (1 - alpha) * ema_errors[morph]
+            ang_error_vec = torch.stack([ang_vel_z - cmd_ang_vel_z], dim=-1)
+            ang_error = torch.linalg.norm(ang_error_vec, dim=-1).mean().item()
+
+            ema_lin_errors[morph] = alpha * lin_error + (1 - alpha) * ema_lin_errors[morph]
+            ema_ang_errors[morph] = alpha * ang_error + (1 - alpha) * ema_ang_errors[morph]
 
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
@@ -130,7 +135,8 @@ def main():
 
     for morph in morphs:
         print(
-            f"[RESULT] {morph.replace('moonbot_', '')} EMA tracking error: {ema_errors[morph]:.4f}"
+            f"[RESULT] {morph.replace('moonbot_', '')} EMA tracking error (lin / ang): "
+            f"{ema_lin_errors[morph]:.4f} / {ema_ang_errors[morph]:.4f}"
         )
 
 

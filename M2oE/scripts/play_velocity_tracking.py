@@ -119,14 +119,18 @@ def main():
             lin_vel_x = asset.data.root_lin_vel_b[:, 0]
             yaw = euler_xyz_from_quat(asset.data.root_quat_w)[:, 2]
             heading = wrap_to_pi(yaw)
+
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")
             cmd_lin_vel_x = cmd[:, 0]
+
             heading_target = env.unwrapped.command_manager.get_term(
                 f"base_velocity_{morph}"
             ).heading_target
             cmd_heading = wrap_to_pi(heading_target)
+
             error_vec = torch.stack([lin_vel_x - cmd_lin_vel_x, heading - cmd_heading], dim=-1)
             error = torch.linalg.norm(error_vec, dim=-1).mean().item()
+
             ema_errors[morph] = alpha * error + (1 - alpha) * ema_errors[morph]
 
         sleep_time = dt - (time.time() - start_time)

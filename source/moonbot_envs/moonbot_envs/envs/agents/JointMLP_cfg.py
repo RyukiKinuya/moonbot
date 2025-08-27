@@ -18,7 +18,7 @@ class JointMLP_Cfg(M2oEOnPolicyRunnerCfg):
     )
     model = MLPBaselineCfg(
         class_name="JointMLPBaseline",
-        hidden_dims=(64, 256, 256),
+        hidden_dims=(64, 256, 128),
         activation="elu",
     )
     algorithm = RslRlPpoAlgorithmCfg(

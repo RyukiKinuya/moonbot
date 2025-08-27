@@ -1,21 +1,23 @@
 """Script to play a checkpoint and visualize MoE gate activations as a heatmap."""
 import argparse
+import tqdm
 
 from isaaclab.app import AppLauncher
 
 import M2oE.utils.cli_args as cli_args  # isort: skip
-import tqdm
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a trained RL agent and collect gate activations.")
-parser.add_argument("--num_steps", type=int, default=1000, help="Number of steps to simulate.")
+parser.add_argument("--num_steps", type=int, default=3000, help="Number of steps to simulate.")
 parser.add_argument("--heatmap_path", type=str, default="gate_heatmap.png", help="Path to save the figure.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during play.")
-parser.add_argument("--video_length", type=int, default=1000, help="Length of the recorded video (in steps).")
+parser.add_argument(
+    "--video_length", type=int, default=3000, help="Length of the recorded video (in steps)."
+)
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=12, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=36, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
 parser.add_argument("--real_time", action="store_true", default=False, help="Run in real-time, if possible.")
 
@@ -42,6 +44,10 @@ matplotlib.use("Agg")
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import torch
+
+plt.rcParams["font.weight"] = "bold"
+plt.rcParams["axes.labelweight"] = "bold"
+plt.rcParams["axes.titleweight"] = "bold"
 
 import moonbot_envs  # noqa: F401
 
@@ -113,6 +119,7 @@ def main():
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     runner.load(resume_path)
 
+    runner.alg.policy.eval()
     policy = runner.alg.policy
     inference_policy = runner.get_inference_policy(device=env.unwrapped.device)
 
@@ -204,7 +211,7 @@ def main():
     for sp in ax.spines.values():
         sp.set_visible(False)
     ax.set_facecolor("white")
-    
+
     ax.set_xticks(np.arange(-0.5, gate_matrix.shape[1], 1), minor=True)
     ax.set_yticks(np.arange(-0.5, gate_matrix.shape[0], 1), minor=True)
     ax.grid(which="minor", color="white", linestyle='-', linewidth=2, zorder=10)
@@ -218,13 +225,18 @@ def main():
     im.set_interpolation("nearest")
 
     cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("Average gate weight")
+    cbar.set_label("Average gate weight", fontweight="bold")
+    for label in cbar.ax.get_yticklabels():
+        label.set_fontweight("bold")
     ax.set_xticks(np.arange(gate_matrix.shape[1]))
     ax.set_yticks(np.arange(num_experts))
-    ax.set_xticklabels(module_labels, rotation=45, ha="right")
-    ax.set_yticklabels([f"{i}" for i in range(num_experts)])
+    ax.set_xticklabels(module_labels, rotation=45, ha="right", fontweight="bold")
+    ax.set_yticklabels([f"{i}" for i in range(num_experts)], fontweight="bold")
+    for label in ax.get_yticklabels():
+        label.set_fontweight("bold")
 
     for i, label in enumerate(ax.get_xticklabels()):
+        label.set_fontweight("bold")
         if "minimal" in label.get_text():
             label.set_color("#999999")
         elif "dragon" in label.get_text():
@@ -235,13 +247,22 @@ def main():
     for i in range(num_experts):
         for j in range(gate_matrix.shape[1]):
             text_color = "black" if gate_matrix[i, j] < 0.5 else "white"
-            ax.text(j, i, f"{gate_matrix[i, j]:.2f}", ha="center", va="center", color=text_color, fontsize=8)
+            ax.text(
+                j,
+                i,
+                f"{gate_matrix[i, j]:.2f}",
+                ha="center",
+                va="center",
+                color=text_color,
+                fontsize=8,
+                fontweight="bold",
+            )
 
-    ax.set_xlabel("Modules", fontsize=12)
-    ax.set_ylabel("Experts", fontsize=12)
+    ax.set_xlabel("Modules", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Experts", fontsize=12, fontweight="bold")
     fig.tight_layout()
-    
-    plt.savefig(args_cli.heatmap_path, dpi=600)
+
+    plt.savefig(args_cli.heatmap_path, dpi=600, bbox_inches="tight")
 
 
 if __name__ == "__main__":

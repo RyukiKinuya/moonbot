@@ -1,4 +1,4 @@
-"""Play an M2oE agent and plot actual vs commanded linear-x velocity and heading."""
+"""Play an M2oE agent and compute EMA of velocity-tracking error."""
 
 import argparse
 
@@ -7,9 +7,8 @@ from isaaclab.app import AppLauncher
 import M2oE.utils.cli_args as cli_args  # isort: skip
 
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Play a trained RL agent and record velocity tracking.")
-parser.add_argument("--num_steps", type=int, default=None, help="Number of steps to simulate (defaults to one episode).")
-parser.add_argument("--figure_path", type=str, default="velocity_tracking.png", help="Path to save the plot.")
+parser = argparse.ArgumentParser(description="Play a trained RL agent and compute tracking error EMA.")
+parser.add_argument("--num_steps", type=int, default=3000, help="Number of steps to simulate.")
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
@@ -30,14 +29,9 @@ args_cli.headless = True
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-import matplotlib
-import numpy as np
+import gymnasium as gym
 import os
 import time
-
-matplotlib.use("Agg")
-import gymnasium as gym
-import matplotlib.pyplot as plt
 import torch
 
 import moonbot_envs  # noqa: F401
@@ -87,6 +81,7 @@ def main():
     runner.load(resume_path)
 
     # obtain the trained policy for inference
+    runner.alg.policy.eval()
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
     dt = env.unwrapped.step_dt
@@ -103,10 +98,10 @@ def main():
     )
 
     morphs = morphology_configs.morphology_list
-    vel_logs: dict[str, list[np.ndarray]] = {m: [] for m in morphs}
-    cmd_logs: dict[str, list[np.ndarray]] = {m: [] for m in morphs}
+    ema_errors: dict[str, float] = {m: 0.0 for m in morphs}
+    alpha = 0.1
 
-    num_steps = args_cli.num_steps or env.max_episode_length
+    num_steps = args_cli.num_steps
     for _ in range(num_steps):
         start_time = time.time()
         with torch.inference_mode():
@@ -125,41 +120,26 @@ def main():
             lin_vel_x = asset.data.root_lin_vel_b[0, 0].unsqueeze(0)
             yaw = euler_xyz_from_quat(asset.data.root_quat_w[0:1])[2]
             heading = wrap_to_pi(yaw)
-            vel_logs[morph].append(torch.cat([lin_vel_x, heading]).cpu().numpy())
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")[0]
             cmd_lin_vel_x = cmd[0].unsqueeze(0)
             heading_target = env.unwrapped.command_manager.get_term(
                 f"base_velocity_{morph}"
             ).heading_target[0].unsqueeze(0)
             cmd_heading = wrap_to_pi(heading_target)
-            cmd_logs[morph].append(torch.cat([cmd_lin_vel_x, cmd_heading]).cpu().numpy())
+            error_vec = torch.cat([lin_vel_x - cmd_lin_vel_x, heading - cmd_heading])
+            error = torch.linalg.norm(error_vec).item()
+            ema_errors[morph] = alpha * error + (1 - alpha) * ema_errors[morph]
 
-        # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
 
-    # close the simulator
     env.close()
 
-    # plotting
-    timesteps = np.arange(len(next(iter(vel_logs.values()))))
-    fig, axes = plt.subplots(len(morphs), 1, figsize=(10, 8), sharex=True)
-    for ax, morph in zip(axes, morphs):
-        vel = np.stack(vel_logs[morph])
-        cmd = np.stack(cmd_logs[morph])
-        ax.plot(timesteps, vel[:, 0], label="lin_vel_x")
-        ax.plot(timesteps, cmd[:, 0], "--", label="cmd_lin_vel_x")
-        ax.plot(timesteps, vel[:, 1], label="heading")
-        ax.plot(timesteps, cmd[:, 1], "--", label="cmd_heading")
-        ax.set_ylabel("Vel X / Heading")
-
-        ax.set_title(morph.replace("moonbot_", ""))
-        ax.legend(loc="upper right", fontsize="small")
-    axes[-1].set_xlabel("Timestep")
-    fig.tight_layout()
-    fig.savefig(args_cli.figure_path)
-    print(f"[INFO] Saved figure to {args_cli.figure_path}")
+    for morph in morphs:
+        print(
+            f"[RESULT] {morph.replace('moonbot_', '')} EMA tracking error: {ema_errors[morph]:.4f}"
+        )
 
 
 if __name__ == "__main__":

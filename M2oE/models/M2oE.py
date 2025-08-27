@@ -273,10 +273,10 @@ class M2oE(nn.Module):
         if module_masks is not None:
             mask = module_masks.unsqueeze(-1).float()
             gate = gate * mask
-            num_tokens = mask.sum()
-            gate_mean = gate.sum(dim=(0, 1)) / (num_tokens + 1e-9)
-        else:
-            gate_mean = gate.mean(dim=(0, 1))
 
-        loss = torch.mean(gate_mean * gate_mean) * (self.num_experts ** 2)
+        importance = torch.sum(gate, dim=(0, 1))
+        load = torch.sum(gate, dim=2)
+        loss = self.num_experts * torch.mean(
+            importance.unsqueeze(0).unsqueeze(0) * load.unsqueeze(-1)
+        )
         return loss

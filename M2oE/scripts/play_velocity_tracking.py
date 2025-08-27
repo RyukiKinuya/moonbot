@@ -81,6 +81,7 @@ def main():
     runner.load(resume_path)
 
     # obtain the trained policy for inference
+    runner.alg.policy.eval()
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
     dt = env.unwrapped.step_dt

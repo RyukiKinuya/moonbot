@@ -119,6 +119,7 @@ def main():
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     runner.load(resume_path)
 
+    runner.alg.policy.eval()
     policy = runner.alg.policy
     inference_policy = runner.get_inference_policy(device=env.unwrapped.device)
 

@@ -59,10 +59,6 @@ def main():
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
 
-    # flatten terrain to keep robots close to each other
-    env_cfg.scene.ground.terrain_generator.num_height = 1
-    size_now = env_cfg.scene.ground.terrain_generator.size
-    env_cfg.scene.ground.terrain_generator.size = (size_now[0], size_now[1], 0.0001)
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg)
@@ -117,18 +113,11 @@ def main():
         for morph in morphs:
             asset = env.unwrapped.scene[morph]
             lin_vel_x = asset.data.root_lin_vel_b[:, 0]
-            yaw = euler_xyz_from_quat(asset.data.root_quat_w)[:, 2]
-            heading = wrap_to_pi(yaw)
 
             cmd = env.unwrapped.command_manager.get_command(f"base_velocity_{morph}")
             cmd_lin_vel_x = cmd[:, 0]
 
-            heading_target = env.unwrapped.command_manager.get_term(
-                f"base_velocity_{morph}"
-            ).heading_target
-            cmd_heading = wrap_to_pi(heading_target)
-
-            error_vec = torch.stack([lin_vel_x - cmd_lin_vel_x, heading - cmd_heading], dim=-1)
+            error_vec = torch.stack([lin_vel_x - cmd_lin_vel_x], dim=-1)
             error = torch.linalg.norm(error_vec, dim=-1).mean().item()
 
             ema_errors[morph] = alpha * error + (1 - alpha) * ema_errors[morph]

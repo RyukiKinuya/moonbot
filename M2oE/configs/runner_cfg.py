@@ -42,7 +42,7 @@ class M2oECfg:
     gate_num_layers: int = 1
     """Number of transformer encoder layers in the attention gate."""
 
-    gate_use_positional_embedding: bool = True
+    gate_use_positional_embedding: bool = False
     """Whether to use positional embeddings in the attention gate."""
 
 

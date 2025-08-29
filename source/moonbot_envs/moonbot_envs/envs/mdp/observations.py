@@ -137,6 +137,8 @@ def module_obs(env: CustomManagerBasedRLEnv, module_no: int, asset_cfg: SceneEnt
     # observation terms
     _joint_pos = joint_pos(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids + wheel_ids)
     _joint_vel = joint_vel(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids + wheel_ids)
+    _wheel_body_ref_pos = ee_pose(env, asset_cfg=new_asset_cfg, ee_name=morphology_configs.wheel_link_name_dict[robot_name][module_no])
+
     _last_action = last_action(env, module_no=module_no, asset_cfg=new_asset_cfg)
 
     return torch.cat([

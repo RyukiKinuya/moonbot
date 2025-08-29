@@ -12,10 +12,10 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
     save_interval = 100
     experiment_name = "MoonBot_locomotion"
     empirical_normalization = False
-    gate_warmup_steps = 100
+    gate_warmup_iters = 100
     policy = M2oEActorCriticCfg(
         init_noise_std=1.0,
-        share_gate=True,
+        share_gate=False,
     )
     model = M2oECfg(
         hidden_dim=64,
@@ -26,7 +26,7 @@ class M2oE_Cfg(M2oEOnPolicyRunnerCfg):
         gate_num_heads=4,
         gate_num_layers=1,
         gate_dropout=0.1,
-        gate_use_positional_embedding=True,
+        gate_use_positional_embedding=False,
     )
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=1.0,

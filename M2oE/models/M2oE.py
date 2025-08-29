@@ -15,7 +15,8 @@ class M2oEGate(nn.Module):
         num_experts,
         device,
         num_layers=1,
-        use_positional_embedding: bool = True,
+        use_positional_embedding: bool = False,
+        gating_temperature: float = 1.0,
     ):
         super().__init__()
         self.modular_obs_dim = modular_obs_dim
@@ -26,15 +27,13 @@ class M2oEGate(nn.Module):
         self.device = device
         self.num_layers = num_layers
         self.use_positional_embedding = use_positional_embedding
+        self.tau = gating_temperature
 
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
 
-        self.gate = nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim),
-            nn.ReLU(),
-            nn.Linear(embedding_dim, num_experts),
-        )
+        # Prototype keys for experts (used for dot-product gating)
+        self.expert_keys = nn.Parameter(torch.randn(num_experts, embedding_dim))
 
         if self.use_positional_embedding:
             self.posi = nn.Embedding(self.max_num_modulars + 1, embedding_dim)
@@ -65,14 +64,8 @@ class M2oEGate(nn.Module):
             nn.init.xavier_uniform_(layer.weight)
             nn.init.zeros_(layer.bias)
 
-        for module in self.gate.modules():
-            if isinstance(module, nn.Linear):
-                nn.init.xavier_uniform_(module.weight)
-                nn.init.zeros_(module.bias)
-
-        # start with uniform gating probabilities
-        nn.init.zeros_(self.gate[-1].weight)
-        nn.init.zeros_(self.gate[-1].bias)
+        # Initialize expert prototype keys
+        nn.init.xavier_uniform_(self.expert_keys)
 
     def forward(self, modular_obs, global_obs, module_masks=None):
         # modular_obs: [batch_size, max_num_modules, modular_obs_dim]
@@ -106,11 +99,15 @@ class M2oEGate(nn.Module):
             feature_integration,
             src_key_padding_mask=key_padding_mask,
         )  # [batch_size, max_num_modules + 1, embedding_dim]
-
-        logits = self.gate(encoded[:, 1:, :])
-        # logits: [batch_size, max_num_modules, num_experts]
+        # module tokens
+        H = encoded[:, 1:, :]
+        # cosine similarity to expert keys with temperature
+        Hn = torch.nn.functional.normalize(H, dim=-1)
+        En = torch.nn.functional.normalize(self.expert_keys, dim=-1)
+        logits = torch.einsum('bmd,nd->bmn', Hn, En)
+        if self.tau is not None and self.tau > 0:
+            logits = logits / self.tau
         gate = torch.softmax(logits, dim=-1)
-
         return gate
 
 
@@ -130,7 +127,8 @@ class M2oE(nn.Module):
         gate_num_layers,
         gate_dropout,
         device,
-        gate_use_positional_embedding: bool = True,
+        gate_use_positional_embedding: bool = False,
+        gate_temperature: float = 1.0,
     ):
         super().__init__()
 
@@ -188,6 +186,7 @@ class M2oE(nn.Module):
                 num_experts=num_experts,
                 device=self.device,
                 use_positional_embedding=self.gate_use_positional_embedding,
+                gating_temperature=gate_temperature,
             )
         else:
             raise ValueError(
@@ -203,6 +202,27 @@ class M2oE(nn.Module):
         obs = obs.reshape(batch_size, self.max_num_modules, -1)
         if module_masks is not None:
             module_masks = module_masks.reshape(batch_size, self.max_num_modules)
+
+        # Shuffle valid modules during training and restore order later
+        need_shuffle = self.training and (module_masks is not None)
+        if need_shuffle:
+            # Vectorized per-sample permutation of valid modules only.
+            # Build scores that randomize valid tokens and keep invalid tokens ordered at the end.
+            rand_scores = torch.rand(batch_size, self.max_num_modules, device=self.device)
+            positions = torch.arange(self.max_num_modules, device=self.device).unsqueeze(0).expand(batch_size, -1)
+            # valid -> random scores in [0,1); invalid -> 1.0 + position/(M+1) to preserve original order
+            scores = torch.where(
+                module_masks,
+                rand_scores,
+                1.0 + positions.to(rand_scores.dtype) / (self.max_num_modules + 1.0),
+            )
+            idx = torch.argsort(scores, dim=1)  # [B, M]
+            inv_idx = torch.argsort(idx, dim=1)  # [B, M]
+
+            # Apply permutation to obs and masks in one gather
+            gather_idx_obs = idx.unsqueeze(-1).expand(-1, -1, obs.size(-1))
+            obs = obs.gather(1, gather_idx_obs)
+            module_masks = module_masks.gather(1, idx)
         # global_obs: [batch_size, num_global_obs] -> [batch_size, self.max_num_modules, num_global_obs]
         expert_global_obs = global_obs.unsqueeze(1).expand(-1, self.max_num_modules, -1)
         expert_input = torch.cat((obs, expert_global_obs), dim=-1)
@@ -215,8 +235,10 @@ class M2oE(nn.Module):
         expert_outputs = torch.stack(expert_outputs, dim=2)
 
         if self.gate_type == "linear":
-            module_onehot = torch.eye(self.max_num_modules, device=self.device)
-            module_onehot = module_onehot.unsqueeze(0).expand(batch_size, -1, -1)
+            module_onehot = torch.eye(self.max_num_modules, device=self.device).unsqueeze(0).expand(batch_size, -1, -1)
+            if need_shuffle:
+                gather_idx_oh = idx.unsqueeze(-1).expand(-1, -1, self.max_num_modules)
+                module_onehot = module_onehot.gather(1, gather_idx_oh)
             gate_input = torch.cat((module_onehot, obs, expert_global_obs), dim=-1)
             gate = self.gate(gate_input)
         elif self.gate_type == "attention":
@@ -226,6 +248,11 @@ class M2oE(nn.Module):
         # construct output
         # output: [batch_size, max_num_modules, modular_act_dim]
         output = torch.einsum('bmn, bmnk -> bmk', gate, expert_outputs)
+
+        # restore original order if shuffled
+        if need_shuffle:
+            gather_idx_out = inv_idx.unsqueeze(-1).expand(-1, -1, output.size(-1))
+            output = output.gather(1, gather_idx_out)
         if self.num_outputs == 1:
             output = output.mean(dim=1)
         else:

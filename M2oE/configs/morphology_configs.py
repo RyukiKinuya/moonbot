@@ -83,6 +83,27 @@ contact_sensor_links = {
     "moonbot_full": "base_link",
 }
 
+wheel_body_name_dict = {
+    "moonbot_minimal": [
+        "base_link",
+    ],
+
+    "moonbot_dragon": [
+        "wheel14_body_left",
+        "wheel14_body_right",
+        "wheel12_body_left",
+        "wheel12_body_right",
+    ],
+    "moonbot_full": [
+        "leg1_wheel_body_left",
+        "leg1_wheel_body_right",
+        "leg2_wheel_body_left",
+        "leg2_wheel_body_right",
+        "leg3_wheel_body_left",
+        "leg3_wheel_body_right",
+    ],
+}
+
 joint_names_dict = {
     "moonbot_minimal": [{
         "leg": ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7"],

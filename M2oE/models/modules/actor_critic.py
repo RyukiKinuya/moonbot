@@ -136,6 +136,8 @@ class M2oEActorCritic(nn.Module):
         return self.distribution.entropy().sum(dim=-1)
 
     def update_distribution(self, observations, obs_global, module_masks=None):
+        # ensure learnable padding participates in graph by composing inside the model call
+        observations = self._compose_padding(observations, module_masks)
         # compute mean
         result = self.actor(observations, obs_global, module_masks)
         if isinstance(result, tuple):
@@ -173,6 +175,7 @@ class M2oEActorCritic(nn.Module):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations, obs_global, module_masks=None):
+        observations = self._compose_padding(observations, module_masks)
         result = self.actor(observations, obs_global, module_masks)
         if isinstance(result, tuple):
             actions_mean = result[0]
@@ -183,6 +186,7 @@ class M2oEActorCritic(nn.Module):
     def evaluate(self, critic_observations, obs_global, module_masks=None, **kwargs):
         # critic_observations: [batch_size, num_obs_padded]
         # obs_global: [batch_size, num_global_obs]
+        critic_observations = self._compose_padding(critic_observations, module_masks)
         result = self.critic(critic_observations, obs_global, module_masks)
         if isinstance(result, tuple):
             if len(result) == 3:
@@ -202,6 +206,37 @@ class M2oEActorCritic(nn.Module):
         if self.expert_usage is not None and gate_mean is not None:
             self.expert_usage += gate_mean.detach()
         return value
+
+    def _compose_padding(self, observations: torch.Tensor, module_masks: torch.Tensor | None):
+        """Compose learnable padding inside the graph.
+
+        - concat: replace invalid-module segments with slices from self.padding.
+        - add: add padding vector element-wise.
+        - others: return observations unchanged.
+        """
+        if self.padding_mode != "learnable":
+            return observations
+
+        if self.padding_method == "add":
+            # broadcast and add
+            return observations + self.padding.expand_as(observations)
+
+        if self.padding_method == "concat" and module_masks is not None:
+            # observations: [B, num_actor_obs], masks: [B, M]
+            max_num_modules = getattr(self.actor, "max_num_modules", None)
+            if max_num_modules is None:
+                return observations
+            modular_obs_dim = self.num_actor_obs // max_num_modules
+            B = observations.shape[0]
+            obs_view = observations.view(B, max_num_modules, modular_obs_dim)
+            # build padding view per module
+            pad_view = self.padding.view(max_num_modules, modular_obs_dim)
+            pad_view = pad_view.unsqueeze(0).expand(B, -1, -1)
+            mask = module_masks.unsqueeze(-1)  # [B, M, 1]
+            obs_view = torch.where(mask, obs_view, pad_view)
+            return obs_view.reshape(B, -1)
+
+        return observations
 
     def load_state_dict(self, state_dict, strict=True):
         """Load the parameters of the actor-critic model.

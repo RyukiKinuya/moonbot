@@ -32,6 +32,7 @@ import gymnasium as gym
 import os
 import time
 import torch
+import tqdm
 
 import moonbot_envs  # noqa: F401
 
@@ -96,7 +97,7 @@ def main():
     alpha = 0.1
 
     num_steps = args_cli.num_steps
-    for _ in range(num_steps):
+    for _ in tqdm.tqdm(range(num_steps), desc="Playing trained policy"):
         start_time = time.time()
         with torch.inference_mode():
             actions = policy(obs, global_obs, module_masks)

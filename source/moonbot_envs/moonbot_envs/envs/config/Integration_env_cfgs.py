@@ -220,15 +220,6 @@ class IntegrationRewardCfg:
             )            
             
             if asset_cfg.name == "moonbot_full":
-                # self.base_height = RewTerm(
-                #     func=mdp.base_height_reward,
-                #     weight=2.0,
-                #     params={
-                #         "asset_cfg": asset_cfg,
-                #         "target_height": 0.5,
-                #     },
-                # )
-            
                 self.wheel_distance = RewTerm(
                     func=mdp.wheel_distances,
                     weight= 1.0,
@@ -236,11 +227,7 @@ class IntegrationRewardCfg:
                         "asset_cfg": asset_cfg,
                     },
                 )
-                # self.diff_from_init_pose.weight = 100.0
-
-
-
-            # staget 2: moving
+                self.diff_from_init_pose.weight = 10.0
 
             self.base_balance = RewTerm(
                 func=mdp.base_balance,

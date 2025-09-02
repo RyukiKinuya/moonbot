@@ -49,6 +49,7 @@ morphology_asset_init_state = {
         "joint_pos":{
             "leg1_joint7": -1.0471975,
             "leg2_joint7": 1.0471975,
+            "leg3_joint7": 3.1415926,
         }
     },
 }

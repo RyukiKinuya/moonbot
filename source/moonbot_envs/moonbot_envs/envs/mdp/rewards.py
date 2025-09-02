@@ -173,6 +173,54 @@ def wheel_air_time(
     reward = torch.exp(-n_air_time_diff**2)
     return reward
 
+
+def wheel_on_ground(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg | None = None,
+    contact_sensor_cfg: SceneEntityCfg | None = None,
+    threshold: float = 0.0,
+) -> torch.Tensor:
+    """Penalty when wheels are not in ground contact.
+    """
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]  # type: ignore
+
+    wheel_names: list[str] = []
+    wheel_names = morphology_configs.wheel_link_name_dict[asset_cfg.name]
+
+    sensor_body_names = list(getattr(contact_sensor, "body_names", []))
+    name_to_idx = {name: i for i, name in enumerate(sensor_body_names)}
+
+    indices: list[int] = []
+    if wheel_names:
+        for wn in wheel_names:
+            # try exact match first
+            if wn in name_to_idx:
+                indices.append(name_to_idx[wn])
+                continue
+            # fallback: regex fullmatch over sensor body names
+            for i, bname in enumerate(sensor_body_names):
+                if re.fullmatch(wn, bname):
+                    indices.append(i)
+                    break
+
+    if indices:
+        idx = torch.tensor(indices, device=env.device, dtype=torch.long)
+    else:
+        # If we cannot resolve indices, return zero to avoid destabilizing training
+        return torch.zeros(env.num_envs, device=env.device)
+
+    # Contact/air time based classification
+    contact_time = contact_sensor.data.current_contact_time[:, idx]
+    not_in_contact = contact_time <= 0.0
+
+    if threshold is not None and threshold > 0.0:
+        air_time = contact_sensor.data.current_air_time[:, idx]
+        # Either explicitly in air, or air time exceeding threshold
+        not_in_contact = torch.logical_or(not_in_contact, air_time > threshold)
+
+    penalty = not_in_contact.float().sum(dim=1) / len(indices)
+    return penalty
+
 def diff_from_init_pose(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -556,15 +604,6 @@ def dragon_flat_orientation_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg
 
 
 
-def wheel_on_ground(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg, threshold) -> torch.Tensor:
-    """Penalize undesired contacts as the number of violations that are above a threshold."""
-    # extract the used quantities (to enable type-hinting)
-    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    # check if contact force is above threshold
-    net_contact_forces = contact_sensor.data.net_forces_w_history
-    is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
-    # sum over contacts for each environment
-    return torch.sum(is_contact, dim=1)
 
 
 # Integration rewards
@@ -710,7 +749,7 @@ def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnti
         wheel_joint_names = module["wheel"]
         wheel_joint_ids = asset.find_joints(wheel_joint_names)[0]
         wheel_joint_vels = asset.data.joint_vel[:, wheel_joint_ids]
-        error += torch.abs(torch.abs(wheel_joint_vels[:, 0]) - torch.abs(wheel_joint_vels[:, 1]))
+        error += torch.abs(wheel_joint_vels[:, 0] + wheel_joint_vels[:, 1])
 
     n_error = error / 5.0
 
@@ -718,4 +757,33 @@ def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnti
 
     return reward
 
+
+def wheel_rolling_consistency(
+    env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), wheel_radius: float = 0.25
+) -> torch.Tensor:
+    robot = env.scene[asset_cfg.name]
+    
+    wheel_bodies = morphology_configs.wheel_link_name_dict[asset_cfg.name]
+    joint_names_dict = morphology_configs.joint_names_dict[asset_cfg.name]
+
+    command_vel = env.command_manager.get_command(command_name)[:, :2]
+    command_speed = torch.norm(command_vel, dim=1)
+    
+    total_reward = torch.zeros(env.num_envs, device=env.device)
+
+    for wheel, module in zip(wheel_bodies, joint_names_dict):
+        for wheel_name, joint_name in zip(wheel, module["wheel"]):
+            ang_vel = robot.data.joint_vel[:, robot.find_joints(joint_name)[0][0]]  
+            wheel_lin_speed = torch.abs(ang_vel * wheel_radius)
+            
+            reward = torch.exp(-torch.abs(wheel_lin_speed - command_speed))
+
+            total_reward += reward
+
+    total_reward /= (len(wheel_bodies) * 2)
+    return total_reward
+
+
+
+        
 

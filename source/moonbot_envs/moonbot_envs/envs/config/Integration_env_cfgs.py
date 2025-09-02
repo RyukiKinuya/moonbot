@@ -207,10 +207,16 @@ class IntegrationRewardCfg:
                 params={"asset_cfg": asset_cfg},
             )
 
-            self.wheel_ang_vel = RewTerm(
-                func=mdp.wheel_joint_ang_velocity_reward,
-                weight=-1.0,
-                params={"asset_cfg": asset_cfg},
+            # self.wheel_ang_vel = RewTerm(
+            #     func=mdp.wheel_joint_ang_velocity_reward,
+            #     weight=-1.0,
+            #     params={"asset_cfg": asset_cfg},
+            # )
+
+            self.wheel_rolling_consistency = RewTerm(
+                func=mdp.wheel_rolling_consistency,
+                weight=3.0,
+                params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}"},
             )
             
             self.wheel_same_act = RewTerm(
@@ -218,6 +224,12 @@ class IntegrationRewardCfg:
                 weight=2.0,
                 params={"asset_cfg": asset_cfg},
             )            
+
+            self.wheel_on_ground = RewTerm(
+                func=mdp.wheel_on_ground,
+                weight=-1.0,
+                    params={"asset_cfg": asset_cfg, "contact_sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
+            )
             
             if asset_cfg.name == "moonbot_full":
                 self.wheel_distance = RewTerm(

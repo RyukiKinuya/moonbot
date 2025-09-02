@@ -76,9 +76,9 @@ contact_undesired_dict = {
 }
 
 contact_sensor_links = {
-    "moonbot_minimal": "base_link|Arm_Link1|Arm_Link2|Arm_Link3|Arm_Link4|Arm_Link5|Arm_Link6|Arm_Link7",
-    "moonbot_dragon": "leg3link3|leg3link4|leg4link3|leg4link4",
-    "moonbot_full": "base",
+    "moonbot_minimal": ".*",
+    "moonbot_dragon": ".*",
+    "moonbot_full": ".*",
 }
 
 ee_body_name_dict = {
@@ -160,4 +160,12 @@ adjacency_mat_dict = {
         [1, 1, 1, 1],
         [1, 1, 1, 1]
     ]
+}
+
+wheel_link_name_dict = {
+    "moonbot_minimal": ["Wheel_Link1", "Wheel_Link2"],
+    "moonbot_dragon": ["wheel12_left", "wheel12_right", "wheel14_left", "wheel14_right"],
+    "moonbot_full": ["leg1_wheel_left", "leg1_wheel_right",
+                    "leg2_wheel_left", "leg2_wheel_right",
+                    "leg3_wheel_left", "leg3_wheel_right"],
 }

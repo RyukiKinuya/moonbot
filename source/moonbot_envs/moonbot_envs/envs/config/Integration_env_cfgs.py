@@ -137,14 +137,18 @@ class IntegrationActCfg:
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["leg"],
                     scale= 0.25,
-                    use_default_offset=True,)
+                    use_default_offset=True,
+                    preserve_order=True,
+                )
                 setattr(self, leg_action_name, leg_action_term)
 
                 wheel_action_name = f"module_{i}_action_wheel"
                 wheel_action_term = mdp.JointVelocityActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["wheel"],
-                    scale= 20,)
+                    scale= 20,
+                    preserve_order=True,
+                )
                 setattr(self, wheel_action_name, wheel_action_term)
 
     act_moonbot_minimal: MoonbotActCfg = MoonbotActCfg(
@@ -292,7 +296,7 @@ class IntegrationTerminationCfg:
     )
     base_contact_full = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base_link"), "threshold": 8.0}
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base"), "threshold": 8.0}
     )
     # bad_orientation_full = DoneTerm(
     #     func=mdp.bad_orientation,  
@@ -400,15 +404,15 @@ class IntegrationCurriculumCfg:
     #                 },
     #             ))
 
-# @configclass
-# class IntegrationViewerCfg(ViewerCfg):
-#     eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
-#     lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
-#     cam_prim_path: str = "/OmniverseKit_Persp"
-#     resolution: tuple[int, int] = (1280, 720)
-#     origin_type: str = "asset_root" # type: ignore
-#     env_index: int = 0
-#     asset_name: str = "moonbot_full" # type: ignore
+@configclass
+class IntegrationViewerCfg(ViewerCfg):
+    eye: tuple[float, float, float] = (7.5, 7.5, 7.5)
+    lookat: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    cam_prim_path: str = "/OmniverseKit_Persp"
+    resolution: tuple[int, int] = (1280, 720)
+    origin_type: str = "asset_root" # type: ignore
+    env_index: int = 0
+    asset_name: str = "moonbot_full" # type: ignore
 
 @configclass
 class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
@@ -423,7 +427,7 @@ class IntegrationEnvCfg(ManagerBasedRLEnvCfg):
 
     events: IntegrationEventCfg = IntegrationEventCfg() # type: ignore
     curriculum: IntegrationCurriculumCfg = IntegrationCurriculumCfg() # type: ignore
-    # viewer: IntegrationViewerCfg = IntegrationViewerCfg() # type: ignore
+    viewer: IntegrationViewerCfg = IntegrationViewerCfg() # type: ignore
 
     def __post_init__(self):
         self.decimation = 4

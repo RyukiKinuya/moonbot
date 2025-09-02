@@ -70,6 +70,29 @@ class TransformerBaseline(nn.Module):
         """
         batch_size = modular_obs.shape[0]
         modular_obs = modular_obs.view(batch_size, self.max_num_modules, self.modular_obs_dim)
+
+        # Shuffle valid modules during training and restore later (align with M2oE)
+        if module_masks is not None:
+            module_masks = module_masks.view(batch_size, self.max_num_modules)
+        need_shuffle = self.training and (module_masks is not None)
+
+        if need_shuffle:
+            rand_scores = torch.rand(batch_size, self.max_num_modules, device=self.device)
+            positions = torch.arange(self.max_num_modules, device=self.device).unsqueeze(0).expand(batch_size, -1)
+            scores = torch.where(
+                module_masks,
+                rand_scores,
+                1.0 + positions.to(rand_scores.dtype) / (self.max_num_modules + 1.0),
+            )
+            _idx = torch.argsort(scores, dim=1)  # [B, M]
+            _inv_idx = torch.argsort(_idx, dim=1)  # [B, M]
+
+            gather_idx_obs = _idx.unsqueeze(-1).expand(-1, -1, modular_obs.size(-1))
+            modular_obs = modular_obs.gather(1, gather_idx_obs)
+            module_masks = module_masks.gather(1, _idx)
+        else:
+            _inv_idx = None
+
         feature_modular = self.input_projection_modular(modular_obs) # [batch_size, max_num_modules, embedding_dim]
         feature_global = self.input_projection_global(global_obs).unsqueeze(1) # [batch_size, 1, embedding_dim]
         tokens = torch.cat([feature_global, feature_modular], dim=1)
@@ -88,6 +111,12 @@ class TransformerBaseline(nn.Module):
         encoded = self.transformer(tokens, src_key_padding_mask=key_padding_mask)
         action_tokens = encoded[:, 1:, :]
         actions = self.action_head(action_tokens)  # [batch_size, max_num_modules, modular_act_dim]
+
+        # Restore original module order if shuffled
+        if need_shuffle and _inv_idx is not None:
+            gather_idx_out = _inv_idx.unsqueeze(-1).expand(-1, -1, actions.size(-1))
+            actions = actions.gather(1, gather_idx_out)
+            module_masks = module_masks.gather(1, _inv_idx)
         if module_masks is not None:
             actions = actions * module_masks.unsqueeze(-1)
         if self.aggregate:

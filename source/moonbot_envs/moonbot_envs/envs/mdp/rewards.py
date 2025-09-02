@@ -322,8 +322,8 @@ def wheel_distances(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnt
     robot = env.scene[asset_cfg.name]
 
 
-    wheel_body_idx = robot.find_bodies("leg.*_wheel_body")[0]
-    base_idx = robot.find_bodies("base_link")[0][0]
+    wheel_body_idx = robot.find_bodies("leg.*_gripper2_base")[0]
+    base_idx = robot.find_bodies("base")[0][0]
 
     body_state_w = robot.data.body_state_w[:, wheel_body_idx, :3]  # (num_instances, num_wheel_bodies, 3)
     base_state_w = robot.data.body_state_w[:, base_idx, :3].squeeze(1)        # (num_instances, 3)

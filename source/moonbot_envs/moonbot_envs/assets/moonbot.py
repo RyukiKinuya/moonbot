@@ -8,7 +8,7 @@ from isaaclab.assets import ArticulationCfg
 TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="usd/moonbot_hero.usd",
+        usd_path="usd/tricycle/tricycle.usda",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
@@ -30,22 +30,23 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.6),
         joint_pos={
-            ".*": 0.0,
+            "leg1_joint7": -1.0471975,
+            "leg2_joint7": 1.0471975,
         },
     ),
     actuators={
         "arm": ImplicitActuatorCfg(
-            joint_names_expr=["arm_joint.*"],
-            stiffness=800.0,
-            damping=20.0,
+            joint_names_expr=["arm.*"],
+            stiffness=10000000000.0,
+            damping=80000000.0,
             effort_limit=87.0,
             velocity_limit=1.0,
         ),
 
         "leg": ImplicitActuatorCfg(
-            joint_names_expr=["(?!.*wheel.*).*leg.*"],
-            stiffness=10000000000.0,
-            damping=80000000.0,
+            joint_names_expr=["leg[1-3]_joint.*"],
+            stiffness=800.0,
+            damping=20.0,
             effort_limit=87.0,
             velocity_limit=1.0,
         ),
@@ -55,13 +56,6 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
             stiffness=0.0,
             damping=100.0,
             velocity_limit=5.0,
-        ),
-
-        "finger": ImplicitActuatorCfg(
-            joint_names_expr=["finger.*"],
-            stiffness=800.0,
-            damping=40.0,
-            effort_limit=87.0,
         ),
     },
 )

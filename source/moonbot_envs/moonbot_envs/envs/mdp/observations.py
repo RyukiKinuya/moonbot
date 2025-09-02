@@ -121,6 +121,11 @@ def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, joint_ids: list[i
 
 from M2oE.configs import morphology_configs
 
+def link_ref_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg, link_name: str) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+    link_idx = asset.find_bodies(link_name)[0][0]
+    return asset.data.body_pos_w[:, link_idx, :3] - asset.data.root_pos_w[:, :3]
+
 
 def module_obs(env: CustomManagerBasedRLEnv, module_no: int, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     robot_name = asset_cfg.name
@@ -131,19 +136,22 @@ def module_obs(env: CustomManagerBasedRLEnv, module_no: int, asset_cfg: SceneEnt
     leg_joint_names = joint_names["leg"]
     wheel_joint_names = joint_names["wheel"]
 
-    leg_ids = env.scene[robot_name].find_joints(leg_joint_names)[0]
-    wheel_ids = env.scene[robot_name].find_joints(wheel_joint_names)[0]
+    leg_ids = env.scene[robot_name].find_joints(leg_joint_names, preserve_order=True)[0]
+    wheel_ids = env.scene[robot_name].find_joints(wheel_joint_names, preserve_order=True)[0]
 
     # observation terms
     _joint_pos = joint_pos(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids + wheel_ids)
     _joint_vel = joint_vel(env, asset_cfg=new_asset_cfg, joint_ids=leg_ids + wheel_ids)
-    _wheel_body_ref_pos = ee_pose(env, asset_cfg=new_asset_cfg, ee_name=morphology_configs.wheel_link_name_dict[robot_name][module_no])
+    _wheel_body_pos = link_ref_pos(env, asset_cfg=new_asset_cfg, link_name=morphology_configs.module_links_name_dict[robot_name][module_no][0])
+    _ee_link_pos = link_ref_pos(env, asset_cfg=new_asset_cfg, link_name=morphology_configs.module_links_name_dict[robot_name][module_no][1])
 
     _last_action = last_action(env, module_no=module_no, asset_cfg=new_asset_cfg)
 
     return torch.cat([
-        _joint_pos,  # Select only the leg joints
+        _joint_pos,  
         _joint_vel,
+        _wheel_body_pos,
+        _ee_link_pos,
         _last_action,
     ], dim=-1)
 

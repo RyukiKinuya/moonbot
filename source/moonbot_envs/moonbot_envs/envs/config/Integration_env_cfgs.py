@@ -188,7 +188,7 @@ class IntegrationRewardCfg:
             
             self.track_lin_vel_xy_exp = RewTerm(
                 func=mdp.track_lin_vel_xy_exp, 
-                weight=6.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                weight=8.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.track_ang_vel_z_exp = RewTerm(
@@ -228,7 +228,7 @@ class IntegrationRewardCfg:
             self.wheel_on_ground = RewTerm(
                 func=mdp.wheel_on_ground,
                 weight=-1.0,
-                    params={"asset_cfg": asset_cfg, "contact_sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 1.0},
+                    params={"asset_cfg": asset_cfg, "contact_sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}"), "threshold": 0.1},
             )
             
             if asset_cfg.name == "moonbot_full":

@@ -76,9 +76,9 @@ contact_undesired_dict = {
 }
 
 contact_sensor_links = {
-    "moonbot_minimal": ".*",
-    "moonbot_dragon": ".*",
-    "moonbot_full": ".*",
+    "moonbot_minimal": "base_link|Arm_Link1|Arm_Link2|Arm_Link3|Arm_Link4|Arm_Link5|Arm_Link6|Arm_Link7|Wheel_Link1|Wheel_Link2",
+    "moonbot_dragon": "leg3link3|leg3link4|leg4link3|leg4link4|wheel12_left|wheel12_right|wheel14_left|wheel14_right",
+    "moonbot_full": "base|leg[1-3]_wheel_[left|right]",
 }
 
 ee_body_name_dict = {

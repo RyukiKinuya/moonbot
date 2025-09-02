@@ -761,29 +761,38 @@ def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnti
 def wheel_rolling_consistency(
     env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), wheel_radius: float = 0.25
 ) -> torch.Tensor:
+    """Encourage wheel joint speeds to be consistent with commanded base speed.
+
+    Notes:
+    - Iterates directly over wheel joint names from morphology config to avoid
+      misusing link-name lists and per-character iteration on strings.
+    - Normalizes by the exact number of wheel joints considered.
+    - Keeps the original behavior of comparing |v_wheel| (|ω|*r) to |v_xy| only,
+      without adding yaw components (to remain minimally invasive).
+    """
     robot = env.scene[asset_cfg.name]
-    
-    wheel_bodies = morphology_configs.wheel_link_name_dict[asset_cfg.name]
+
     joint_names_dict = morphology_configs.joint_names_dict[asset_cfg.name]
 
     command_vel = env.command_manager.get_command(command_name)[:, :2]
     command_speed = torch.norm(command_vel, dim=1)
-    
+
     total_reward = torch.zeros(env.num_envs, device=env.device)
+    count = 0
 
-    for wheel, module in zip(wheel_bodies, joint_names_dict):
-        for wheel_name, joint_name in zip(wheel, module["wheel"]):
-            ang_vel = robot.data.joint_vel[:, robot.find_joints(joint_name)[0][0]]  
+    for module in joint_names_dict:
+        for joint_name in module["wheel"]:
+            jidx = robot.find_joints(joint_name)[0][0]
+            ang_vel = robot.data.joint_vel[:, jidx]
             wheel_lin_speed = torch.abs(ang_vel * wheel_radius)
-            
             reward = torch.exp(-torch.abs(wheel_lin_speed - command_speed))
-
             total_reward += reward
+            count += 1
 
-    total_reward /= (len(wheel_bodies) * 2)
+    if count > 0:
+        total_reward = total_reward / count
     return total_reward
 
 
 
         
-

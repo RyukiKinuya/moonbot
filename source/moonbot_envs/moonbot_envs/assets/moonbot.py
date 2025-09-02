@@ -46,7 +46,7 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
         "leg": ImplicitActuatorCfg(
             joint_names_expr=["leg[1-3]_joint.*"],
             stiffness=800.0,
-            damping=20.0,
+            damping=80.0,
             effort_limit=87.0,
             velocity_limit=1.0,
         ),

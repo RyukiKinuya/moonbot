@@ -69,9 +69,8 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
                 .replace(prim_path="{ENV_REGEX_NS}/"+asset_name).replace(
                     init_state= ArticulationCfg.InitialStateCfg(
                         pos=morphology_configs.morphology_asset_init_state[asset_name]["base_position"],
-                        joint_pos={
-                            ".*": 0.0,
-                        },
+                        joint_pos=morphology_configs.morphology_asset_init_state[asset_name]["joint_pos"],
+                        
                 )
             ))
 
@@ -136,7 +135,7 @@ class IntegrationActCfg:
                 leg_action_term = mdp.JointPositionActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["leg"],
-                    scale= 0.25,
+                    scale= 0.1,
                     use_default_offset=True,
                     preserve_order=True,
                 )
@@ -146,7 +145,7 @@ class IntegrationActCfg:
                 wheel_action_term = mdp.JointVelocityActionCfg(
                     asset_name=asset_name,
                     joint_names=morphology_configs.joint_names_dict[asset_name][i]["wheel"],
-                    scale= 20,
+                    scale= 10,
                     preserve_order=True,
                 )
                 setattr(self, wheel_action_name, wheel_action_term)
@@ -171,7 +170,7 @@ class IntegrationCmdCfg:
             setattr(self, f"base_velocity_{asset_name}", mdp.UniformVelocityCommandCfg(
                 asset_name=asset_name,
                 resampling_time_range=(10.0, 10.0),
-                rel_standing_envs=0.02,
+                rel_standing_envs=0.1,
                 rel_heading_envs=1.0,
                 heading_command=True,
                 heading_control_stiffness=0.5,
@@ -197,7 +196,6 @@ class IntegrationRewardCfg:
                 func=mdp.track_ang_vel_z_exp, 
                 weight=3.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )            
-            
             
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
@@ -296,7 +294,7 @@ class IntegrationTerminationCfg:
     )
     base_contact_full = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base|leg.*"), "threshold": 8.0}
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base|leg.*"), "threshold": 2.0}
     )
     # bad_orientation_full = DoneTerm(
     #     func=mdp.bad_orientation,  
@@ -315,12 +313,13 @@ class IntegrationEventCfg:
             params={
             "pose_range": {"z": (0.05, 0.10),"yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (-0.5, 0.5),
-                "y": (-0.5, 0.5),
-                "z": (-0.5, 0.5),
-                "roll": (-0.5, 0.5),
-                "pitch": (-0.5, 0.5),
-                "yaw": (-0.5, 0.5),
+                # Narrow ranges to keep initial state close to standing pose
+                "x": (-0.05, 0.05),
+                "y": (-0.05, 0.05),
+                "z": (-0.02, 0.02),
+                "roll": (-0.1, 0.1),
+                "pitch": (-0.1, 0.1),
+                "yaw": (-0.1, 0.1),
                 },
             },
         ))
@@ -352,8 +351,9 @@ class IntegrationEventCfg:
                 mode="reset",
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
-                    "position_range": (-0.3, 0.3),
-                    "velocity_range": (-1.5, 1.5),
+                    # Keep joints close to default standing pose with minimal initial motion
+                    "position_range": (-0.1, 0.1),
+                    "velocity_range": (0.0, 0.0),
                 }
             ))
 

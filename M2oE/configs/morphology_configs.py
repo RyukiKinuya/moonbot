@@ -32,14 +32,24 @@ morphology_asset_init_state = {
     "moonbot_minimal": {
         "base_position": [0.0, 0.0, 0.35],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
+        "joint_pos":{
+            ".*": 0.0,
+        }
     },
     "moonbot_dragon": {
         "base_position": [0.0, 0.0, 0.33],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
+        "joint_pos":{
+            ".*": 0.0,
+        }
     },
     "moonbot_full": {
         "base_position": [0.0, 0.0, 0.51],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
+        "joint_pos":{
+            "leg1_joint7": -1.0471975,
+            "leg2_joint7": 1.0471975,
+        }
     },
 }
 

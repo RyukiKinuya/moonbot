@@ -70,7 +70,6 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
                     init_state= ArticulationCfg.InitialStateCfg(
                         pos=morphology_configs.morphology_asset_init_state[asset_name]["base_position"],
                         joint_pos=morphology_configs.morphology_asset_init_state[asset_name]["joint_pos"],
-                        
                 )
             ))
 

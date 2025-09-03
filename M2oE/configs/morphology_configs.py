@@ -44,7 +44,7 @@ morphology_asset_init_state = {
         }
     },
     "moonbot_full": {
-        "base_position": [0.0, 0.0, 0.51],
+        "base_position": [0.0, 0.0, 0.6],
         "base_orientation": [0.0, 0.0, 0.0, 1.0],
         "joint_pos":{
             "leg1_joint7": -1.0471975,

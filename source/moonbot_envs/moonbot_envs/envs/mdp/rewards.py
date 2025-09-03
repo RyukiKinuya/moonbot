@@ -1,6 +1,3 @@
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
 from __future__ import annotations
 
 import math
@@ -236,7 +233,7 @@ def diff_from_init_pose(
 
     # compute difference from default pose only for the leg joints
     difference = torch.abs(robot.data.joint_pos[:, leg_joint_ids] - robot.data.default_joint_pos[:, leg_joint_ids])
-    n_diff = torch.mean(difference, dim=-1) / 1.0
+    n_diff = torch.mean(difference, dim=-1) / 0.25
 
     reward = torch.exp(-n_diff**2)
 

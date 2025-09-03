@@ -410,7 +410,7 @@ class IntegrationViewerCfg(ViewerCfg):
     resolution: tuple[int, int] = (1280, 720)
     origin_type: str = "asset_root" # type: ignore
     env_index: int = 0
-    asset_name: str = "moonbot_full" # type: ignore
+    asset_name: str = "moonbot_dragon" # type: ignore
 
 @configclass
 class IntegrationEnvCfg(ManagerBasedRLEnvCfg):

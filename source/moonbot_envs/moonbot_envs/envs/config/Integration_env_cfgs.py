@@ -185,7 +185,6 @@ class IntegrationRewardCfg:
     @configclass
     class MoonbotRewardCfg(RewardGroupCfg):
         def __init__(self, asset_cfg: SceneEntityCfg):
-            
             self.track_lin_vel_xy_exp = RewTerm(
                 func=mdp.track_lin_vel_xy_exp, 
                 weight=8.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}

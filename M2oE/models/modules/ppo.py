@@ -33,6 +33,7 @@ class PPO:
         value_loss_coef=1.0,
         entropy_coef=0.0,
         learning_rate=1e-3,
+        gate_lr_mult: float = 0.5,
         max_grad_norm=1.0,
         use_clipped_value_loss=True,
         schedule="fixed",
@@ -94,7 +95,26 @@ class PPO:
         self.policy = policy
         self.policy.to(self.device)
         # Create optimizer
-        self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
+        # Build param groups to allow separate LR for gate vs non-gate
+        def _collect_gate_params():
+            gate_params = []
+            for model in (self.policy.actor, self.policy.critic):
+                if hasattr(model, "gate") and model.gate is not None:
+                    gate_params += list(model.gate.parameters())
+            # deduplicate shared gate params if actor/critic share
+            gate_ids = {id(p) for p in gate_params}
+            return gate_params, gate_ids
+
+        gate_params, gate_ids = _collect_gate_params()
+        if len(gate_params) > 0:
+            non_gate_params = [p for p in self.policy.parameters() if id(p) not in gate_ids]
+            param_groups = [
+                {"params": non_gate_params, "lr": learning_rate},
+                {"params": gate_params, "lr": learning_rate * gate_lr_mult},
+            ]
+            self.optimizer = optim.Adam(param_groups)
+        else:
+            self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
         # Create rollout storage
         self.storage: RolloutStorage = None  # type: ignore
         self.transition = RolloutStorage.Transition()
@@ -112,6 +132,7 @@ class PPO:
         self.desired_kl = desired_kl
         self.schedule = schedule
         self.learning_rate = learning_rate
+        self.gate_lr_mult = gate_lr_mult
         self.normalize_advantage_per_mini_batch = normalize_advantage_per_mini_batch
         self.load_balance_loss_coef = load_balance_loss_coef
 
@@ -334,8 +355,12 @@ class PPO:
                         self.learning_rate = lr_tensor.item()
 
                     # Update the learning rate for all parameter groups
-                    for param_group in self.optimizer.param_groups:
-                        param_group["lr"] = self.learning_rate
+                    for i, param_group in enumerate(self.optimizer.param_groups):
+                        # keep relative scaling between non-gate and gate params
+                        if i == 0:
+                            param_group["lr"] = self.learning_rate
+                        else:
+                            param_group["lr"] = self.learning_rate * self.gate_lr_mult
 
             # Surrogate loss
             ratio = torch.exp(actions_log_prob_batch - torch.squeeze(old_actions_log_prob_batch))

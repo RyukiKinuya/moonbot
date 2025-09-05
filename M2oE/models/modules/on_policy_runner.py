@@ -91,6 +91,20 @@ class OnPolicyRunner:
         self.alg_cfg.pop("class_name")
         self.alg: PPO = PPO(policy, device=self.device, **self.alg_cfg, multi_gpu_cfg=self.multi_gpu_cfg)
 
+        # Gate temperature annealing configuration (with sensible defaults)
+        # Defaults: start from current model tau (if any), end at 0.2 over first 30% iterations
+        default_tau = None
+        if hasattr(self.alg.policy.actor, "gate") and hasattr(self.alg.policy.actor.gate, "tau"):
+            default_tau = float(self.alg.policy.actor.gate.tau)
+        self.gate_anneal_cfg = self.cfg.get(
+            "gate_temperature_anneal",
+            {
+                "start": default_tau if default_tau is not None else 1.0,
+                "end": 0.2,
+                "fraction": 0.3,
+            },
+        )
+
         if self.gate_warmup_iters > 0:
             print(f"[INFO] Freezing gate parameters for {self.gate_warmup_iters} iterations.")
             self.alg.policy.set_gate_requires_grad(False)
@@ -197,6 +211,22 @@ class OnPolicyRunner:
         start_iter = self.current_learning_iteration
         tot_iter = start_iter + num_learning_iterations
         for it in range(start_iter, tot_iter):
+            # Update gate temperature with linear annealing over configured fraction of iterations
+            try:
+                if self.gate_anneal_cfg is not None:
+                    frac = float(self.gate_anneal_cfg.get("fraction", 0.3))
+                    start_tau = float(self.gate_anneal_cfg.get("start", 1.0))
+                    end_tau = float(self.gate_anneal_cfg.get("end", 0.2))
+                    anneal_iters = max(1, int((tot_iter - start_iter) * max(0.0, min(1.0, frac))))
+                    progress = min(1.0, (it - start_iter + 1) / anneal_iters)
+                    curr_tau = start_tau + (end_tau - start_tau) * progress
+                    # apply to actor/critic gates if present
+                    for model in (self.alg.policy.actor, self.alg.policy.critic):
+                        if hasattr(model, "gate") and hasattr(model.gate, "tau"):
+                            model.gate.tau = float(curr_tau)
+            except Exception:
+                # keep training even if annealing config is ill-formed
+                pass
             if self.gate_warmup_iters and it == self.gate_warmup_iters:
                 print("[INFO] Unfreezing gate parameters.")
                 self.alg.policy.set_gate_requires_grad(True)

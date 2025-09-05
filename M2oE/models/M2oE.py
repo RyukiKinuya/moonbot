@@ -264,9 +264,24 @@ class M2oE(nn.Module):
         if need_shuffle:
             gather_idx_out = inv_idx.unsqueeze(-1).expand(-1, -1, output.size(-1))
             output = output.gather(1, gather_idx_out)
-        if self.num_outputs == 1:
-            output = output.mean(dim=1)
+        # Mask-aware aggregation and formatting
+        if module_masks is not None:
+            mask3 = module_masks.unsqueeze(-1).to(output.dtype)
         else:
+            mask3 = None
+
+        if self.num_outputs == 1:
+            # aggregate over modules: use masked mean if mask provided
+            if mask3 is not None:
+                masked_sum = (output * mask3).sum(dim=1)
+                denom = mask3.sum(dim=1).clamp_min(1.0)
+                output = masked_sum / denom
+            else:
+                output = output.mean(dim=1)
+        else:
+            # for per-module actions, zero-out invalid modules if mask provided
+            if mask3 is not None:
+                output = output * mask3
             output = output.flatten(start_dim=1)
 
         # compute load balance loss to encourage uniform expert usage

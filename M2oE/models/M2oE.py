@@ -31,6 +31,8 @@ class M2oEGate(nn.Module):
 
         self.input_projection_modular = nn.Linear(modular_obs_dim, embedding_dim)
         self.input_projection_global = nn.Linear(global_obs_dim, embedding_dim)
+        # Pre-encoder LayerNorm to stabilize feature scale across morphologies/modules
+        self.pre_enc_ln = nn.LayerNorm(embedding_dim)
 
         # Prototype keys for experts (used for dot-product gating)
         self.expert_keys = nn.Parameter(torch.randn(num_experts, embedding_dim))
@@ -41,9 +43,10 @@ class M2oEGate(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embedding_dim,
             nhead=num_heads,
-            dim_feedforward=embedding_dim,
+            dim_feedforward=embedding_dim * 4,
             dropout=dropout,
             batch_first=True,
+            norm_first=True,
         )
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
@@ -83,6 +86,9 @@ class M2oEGate(nn.Module):
                 self.max_num_modulars + 1, device=self.device
             )
             feature_integration += self.posi(posi_indices).unsqueeze(0)  # [1, max_num_modules + 1, embedding_dim]
+
+        # Apply pre-encoder LayerNorm on token features
+        feature_integration = self.pre_enc_ln(feature_integration)
 
         if module_masks is not None:
             key_padding_mask = torch.cat(
@@ -149,6 +155,9 @@ class M2oE(nn.Module):
                 num_outputs % max_num_modules == 0
             ), "num_outputs must be divisible by max_num_modules"
             self.modular_act_dim = num_outputs // max_num_modules
+
+        # Normalize expert inputs (modular + global) to stabilize across morphologies
+        self.expert_in_ln = nn.LayerNorm(self.modular_obs_dim + self.num_global_obs)
 
         # initialize
         self.act_experts = nn.ModuleList([
@@ -226,6 +235,8 @@ class M2oE(nn.Module):
         # global_obs: [batch_size, num_global_obs] -> [batch_size, self.max_num_modules, num_global_obs]
         expert_global_obs = global_obs.unsqueeze(1).expand(-1, self.max_num_modules, -1)
         expert_input = torch.cat((obs, expert_global_obs), dim=-1)
+        # LayerNorm on expert inputs
+        expert_input = self.expert_in_ln(expert_input)
 
         expert_outputs = []
         for i in range(self.num_experts):

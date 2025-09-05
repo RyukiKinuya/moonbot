@@ -15,13 +15,14 @@ class JointMLPBaseline(nn.Module):
 
     def __init__(
         self,
+        device: torch.device,
         num_obs: int,
         num_global_obs: int,
         max_num_modules: int,
         num_outputs: int,
         hidden_dims: Sequence[int],
         activation: str,
-        device: torch.device,
+        dropout: float | None = None,
     ) -> None:
         super().__init__()
         self.device = device
@@ -43,10 +44,14 @@ class JointMLPBaseline(nn.Module):
 
         layers = []
         input_dim = num_obs + num_global_obs
+        # Input normalization to stabilize scale across morphologies/modules
+        self.input_ln = nn.LayerNorm(input_dim)
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
             layers.append(nn.Linear(prev_dim, hidden_dim))
             layers.append(act_cls())
+            if dropout is not None and dropout > 0.0:
+                layers.append(nn.Dropout(p=float(dropout)))
             prev_dim = hidden_dim
         layers.append(nn.Linear(prev_dim, num_outputs))
         self.mlp = nn.Sequential(*layers)
@@ -76,6 +81,7 @@ class JointMLPBaseline(nn.Module):
         # flatten back to [B, M*Dm]
         obs_flat = obs_view.reshape(batch_size, -1)
         x = torch.cat([obs_flat, global_obs], dim=-1)
+        x = self.input_ln(x)
         y = self.mlp(x)
 
         # If outputs are per-module, restore original order
@@ -98,6 +104,7 @@ class SharedModuleMLPBaseline(nn.Module):
         hidden_dims: Sequence[int],
         activation: str,
         device: torch.device,
+        dropout: float | None = None,
     ) -> None:
         super().__init__()
         self.device = device
@@ -117,11 +124,14 @@ class SharedModuleMLPBaseline(nn.Module):
             raise ValueError(f"Unsupported activation '{activation}'.")
 
         input_dim = self.modular_obs_dim + num_global_obs
+        # Input normalization per (module, global) pair
         layers = []
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
             layers.append(nn.Linear(prev_dim, hidden_dim))
             layers.append(act_cls())
+            if dropout is not None and dropout > 0.0:
+                layers.append(nn.Dropout(p=float(dropout)))
             prev_dim = hidden_dim
         layers.append(nn.Linear(prev_dim, self.modular_act_dim))
         self.mlp = nn.Sequential(*layers)

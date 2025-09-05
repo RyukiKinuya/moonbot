@@ -44,8 +44,8 @@ class IntegrationSceneCfg(InteractiveSceneCfg):
             physics_material=sim_utils.RigidBodyMaterialCfg(
                 friction_combine_mode="multiply",
                 restitution_combine_mode="multiply",
-                static_friction=1.0,
-                dynamic_friction=1.0,
+                static_friction=1.1,
+                dynamic_friction=0.8,
             ),
             visual_material=sim_utils.MdlFileCfg(
                 mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
@@ -187,7 +187,7 @@ class IntegrationRewardCfg:
         def __init__(self, asset_cfg: SceneEntityCfg):
             self.track_lin_vel_xy_exp = RewTerm(
                 func=mdp.track_lin_vel_xy_exp, 
-                weight=8.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
+                weight=6.0, params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}", "std": math.sqrt(0.25)}
             )
 
             self.track_ang_vel_z_exp = RewTerm(
@@ -197,7 +197,7 @@ class IntegrationRewardCfg:
             
             self.is_alive = RewTerm(
                 func=mdp.is_alive,
-                weight=5.0,
+                weight=0.0,
             )
 
             self.diff_from_init_pose = RewTerm(
@@ -206,10 +206,22 @@ class IntegrationRewardCfg:
                 params={"asset_cfg": asset_cfg},
             )
 
-            self.wheel_ang_vel = RewTerm(
-                func=mdp.wheel_joint_ang_velocity_reward,
-                weight=-1.0,
-                params={"asset_cfg": asset_cfg},
+            # self.wheel_ang_vel = RewTerm(
+            #     func=mdp.wheel_joint_ang_velocity_reward,
+            #     weight=-0.1,
+            #     params={"asset_cfg": asset_cfg},
+            # )
+
+            #self.wheel_on_ground = RewTerm(
+            #    func=mdp.wheel_on_ground,
+            #    weight=-1.0,
+            #    params={"asset_cfg": asset_cfg, "contact_sensor_cfg": SceneEntityCfg(f"contact_forces_{asset_cfg.name}")},
+            #)
+
+            self.wheel_rolling_resistance = RewTerm(
+                func=mdp.wheel_rolling_consistency,
+                weight = -1.0,
+                params={"asset_cfg": asset_cfg, "command_name": f"base_velocity_{asset_cfg.name}"},
             )
 
             if asset_cfg.name == "moonbot_full":
@@ -220,6 +232,15 @@ class IntegrationRewardCfg:
                         "asset_cfg": asset_cfg,
                     },
                 )
+
+            # if asset_cfg.name != "moonbot_minimal":
+            #     self.wheel_orientation = RewTerm(
+            #         func=mdp.bad_wheel_orientation,
+            #         weight= 1.0,
+            #         params={
+            #             "asset_cfg": asset_cfg,
+            #         },
+            #     )
 
             self.base_balance = RewTerm(
                 func=mdp.base_balance,
@@ -236,7 +257,6 @@ class IntegrationRewardCfg:
             
             self.ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.1, params={"asset_cfg": asset_cfg})
         
-            # stage 3: polishing action
             self.dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2e-5, params={"asset_cfg": asset_cfg})
             
             self.power = RewTerm(func=mdp.joint_power, weight=-5e-4, params={"asset_cfg": asset_cfg})
@@ -252,35 +272,22 @@ class IntegrationRewardCfg:
     reward_moonbot_dragon: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_dragon", joint_names=morphology_configs.joint_names_dict_flat["moonbot_dragon"]["leg"]))
     reward_moonbot_full: MoonbotRewardCfg = MoonbotRewardCfg(asset_cfg=SceneEntityCfg("moonbot_full", joint_names=morphology_configs.joint_names_dict_flat["moonbot_full"]["leg"]))
 
+
 @configclass
 class IntegrationTerminationCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact_minimal = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_minimal", body_names="base_link"), "threshold": 8.0},
+        func=mdp.illegal_contact_moonbot,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_minimal", body_names="base_link"), "threshold": 1.0},
     )
     base_contact_dragon = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 8.0},
-    )
-    bad_orientation_dragon = DoneTerm(
-        func=mdp.bad_orientation,  
-        params={
-            "asset_cfg": SceneEntityCfg("moonbot_dragon", body_names=["wheel.*_body"]),
-            "limit_angle": 0.1,
-        },
+        func=mdp.illegal_contact_moonbot,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_dragon", body_names="leg4link[3-4]|leg3link[3-6]|leg3gripper2|leg3gripper2_straight"), "threshold": 1.0},
     )
     base_contact_full = DoneTerm(
-        func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base|leg.*"), "threshold": 2.0}
+        func=mdp.illegal_contact_moonbot,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces_moonbot_full", body_names="base"), "threshold": 1.0}
     )
-    # bad_orientation_full = DoneTerm(
-    #     func=mdp.bad_orientation,  
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("moonbot_full", body_names=["^leg[1-3]_wheel_body$"]),
-    #         "limit_angle": 0.1,
-    #     },
-    # )
 
 @configclass
 class IntegrationEventCfg:
@@ -304,25 +311,37 @@ class IntegrationEventCfg:
         import M2oE.configs.morphology_configs as morphology_configs
 
         for asset_name in morphology_configs.morphology_list:
+            setattr(self, f"wheel_physics_randomize_{asset_name}", EventTerm(
+                func=mdp.randomize_rigid_body_material,
+                mode="startup",
+                params={
+                    "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.wheel_link_name_dict[asset_name]),
+                    "static_friction_range": (0.8, 1.2),
+                    "dynamic_friction_range": (0.4, 0.9),
+                    "restitution_range": (0.0, 0.0),
+                    "num_buckets": 16
+                },
+            ))
+
             setattr(self, f"base_mass_randomize_{asset_name}", EventTerm(
                 func=mdp.randomize_rigid_body_mass,
                 mode="startup",
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
-                    "mass_distribution_params": (3.0, 10.0),
-                    "operation": "add",
+                    "mass_distribution_params": (0.8, 1.2),
+                    "operation": "scale",
                 },
             ))
 
-            setattr(self, f"base_external_force_{asset_name}", EventTerm(
-                func=mdp.apply_external_force_torque,
-                mode="reset",
-                params={
-                    "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
-                    "force_range": (-0.0, 0.0),
-                    "torque_range": (-0.0, 0.0),
-                },
-            ))
+            #setattr(self, f"base_external_force_{asset_name}", EventTerm(
+            #    func=mdp.apply_external_force_torque,
+            #    mode="reset",
+            #    params={
+            #        "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
+            #        "force_range": (-50.0, 50.0),
+            #        "torque_range": (-10.0, 10.0),
+            #    },
+            #))
 
             setattr(self, f"reset_joints_{asset_name}", EventTerm(
                 func=mdp.reset_joints_by_offset,
@@ -330,9 +349,19 @@ class IntegrationEventCfg:
                 params={
                     "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
                     # Keep joints close to default standing pose with minimal initial motion
-                    "position_range": (-0.1, 0.1),
-                    "velocity_range": (0.0, 0.0),
+                    "position_range": (-0.3, 0.3),
+                    "velocity_range": (-0.0, 0.0),
                 }
+            ))
+
+            setattr(self, f"push_robot_{asset_name}", EventTerm(
+                func=mdp.push_by_setting_velocity,
+                mode="interval",
+                interval_range_s=(3.0, 7.0),
+                params={
+                    "asset_cfg": SceneEntityCfg(asset_name, body_names=morphology_configs.base_link_name_dict[asset_name]),
+                    "velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}
+                },
             ))
 
 @configclass

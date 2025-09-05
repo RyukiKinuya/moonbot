@@ -175,48 +175,32 @@ def wheel_on_ground(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg | None = None,
     contact_sensor_cfg: SceneEntityCfg | None = None,
-    threshold: float = 0.0,
+    threshold: float | None = None,
 ) -> torch.Tensor:
-    """Penalty when wheels are not in ground contact.
+    """Penalty proportion for wheels not in ground contact.
+
+    Returns the fraction of wheels that are NOT in contact (in [0,1]).
+    Pair this with a negative weight to penalize losing contact.
     """
+    # resolve contact sensor and wheel link ids
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]  # type: ignore
+    wheel_link_names = morphology_configs.wheel_link_name_dict[asset_cfg.name]  # type: ignore
+    wheel_link_ids = contact_sensor.find_bodies(wheel_link_names)[0]  # type: ignore
 
-    wheel_names: list[str] = []
-    wheel_names = morphology_configs.wheel_link_name_dict[asset_cfg.name]
+    # contact force magnitudes per wheel (world frame)
+    net_forces_w = contact_sensor.data.net_forces_w[:, wheel_link_ids, :]
+    force_mag = torch.norm(net_forces_w, dim=-1)
 
-    sensor_body_names = list(getattr(contact_sensor, "body_names", []))
-    name_to_idx = {name: i for i, name in enumerate(sensor_body_names)}
+    # choose threshold: explicit argument or sensor's configured threshold
+    force_thresh = threshold if threshold is not None else contact_sensor.cfg.force_threshold
 
-    indices: list[int] = []
-    if wheel_names:
-        for wn in wheel_names:
-            # try exact match first
-            if wn in name_to_idx:
-                indices.append(name_to_idx[wn])
-                continue
-            # fallback: regex fullmatch over sensor body names
-            for i, bname in enumerate(sensor_body_names):
-                if re.fullmatch(wn, bname):
-                    indices.append(i)
-                    break
+    # a wheel is considered in contact if the force magnitude exceeds the threshold
+    in_contact = force_mag > force_thresh
+    not_in_contact = ~in_contact
 
-    if indices:
-        idx = torch.tensor(indices, device=env.device, dtype=torch.long)
-    else:
-        # If we cannot resolve indices, return zero to avoid destabilizing training
-        return torch.zeros(env.num_envs, device=env.device)
+    # return fraction of wheels not in contact (penalty term)
+    return not_in_contact.float().mean(dim=1)
 
-    # Contact/air time based classification
-    contact_time = contact_sensor.data.current_contact_time[:, idx]
-    not_in_contact = contact_time <= 0.0
-
-    if threshold is not None and threshold > 0.0:
-        air_time = contact_sensor.data.current_air_time[:, idx]
-        # Either explicitly in air, or air time exceeding threshold
-        not_in_contact = torch.logical_or(not_in_contact, air_time > threshold)
-
-    penalty = not_in_contact.float().sum(dim=1) / len(indices)
-    return penalty
 
 def diff_from_init_pose(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -226,7 +210,7 @@ def diff_from_init_pose(
     # collect leg joint names from morphology configuration
     leg_joint_names: list[str] = []
     for module_joints in morphology_configs.joint_names_dict[asset_cfg.name]:
-        leg_joint_names += module_joints["leg"]
+        leg_joint_names += module_joints["leg"][1:]
 
     # find joint indices for the leg joints
     leg_joint_ids = robot.find_joints(leg_joint_names)[0]
@@ -688,17 +672,6 @@ def undesired_contacts_moonbot(
     # sum over contacts for each environment
     return torch.sum(is_contact, dim=1)
 
-def bad_wheel_orientation(
-    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-) -> torch.Tensor:
-    """Terminate when the asset's orientation is too far from the desired orientation limits.
-
-    This is computed by checking the angle between the projected gravity vector and the z-axis.
-    """
-    # extract the used quantities (to enable type-hinting)
-    asset: RigidObject = env.scene[asset_cfg.name]
-    return torch.acos(-asset.data.projected_gravity_b[:, 2]).abs()
-
 def joint_power(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Reward joint_power"""
     # extract the used quantities (to enable type-hinting)
@@ -758,15 +731,7 @@ def wheel_same_act(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEnti
 def wheel_rolling_consistency(
     env: ManagerBasedRLEnv, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), wheel_radius: float = 0.25
 ) -> torch.Tensor:
-    """Encourage wheel joint speeds to be consistent with commanded base speed.
-
-    Notes:
-    - Iterates directly over wheel joint names from morphology config to avoid
-      misusing link-name lists and per-character iteration on strings.
-    - Normalizes by the exact number of wheel joints considered.
-    - Keeps the original behavior of comparing |v_wheel| (|ω|*r) to |v_xy| only,
-      without adding yaw components (to remain minimally invasive).
-    """
+    # panalty
     robot = env.scene[asset_cfg.name]
 
     joint_names_dict = morphology_configs.joint_names_dict[asset_cfg.name]
@@ -774,7 +739,7 @@ def wheel_rolling_consistency(
     command_vel = env.command_manager.get_command(command_name)[:, :2]
     command_speed = torch.norm(command_vel, dim=1)
 
-    total_reward = torch.zeros(env.num_envs, device=env.device)
+    total_panalty = torch.zeros(env.num_envs, device=env.device)
     count = 0
 
     for module in joint_names_dict:
@@ -782,13 +747,34 @@ def wheel_rolling_consistency(
             jidx = robot.find_joints(joint_name)[0][0]
             ang_vel = robot.data.joint_vel[:, jidx]
             wheel_lin_speed = torch.abs(ang_vel * wheel_radius)
-            reward = torch.exp(-torch.abs(wheel_lin_speed - command_speed))
-            total_reward += reward
+            panalty = torch.abs(wheel_lin_speed - command_speed)
+            total_panalty += panalty
             count += 1
 
     if count > 0:
-        total_reward = total_reward / count
-    return total_reward
+        total_panalty /= count
+    return total_panalty
+
+# def bad_wheel_orientation(
+#     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+# ) -> torch.Tensor:
+#     robot: Articulation = env.scene[asset_cfg.name]
+#
+#     wheel_base_name = [base_name for base_name,_ in morphology_configs.module_links_name_dict[asset_cfg.name]]
+#
+#     wheel_base_idx = robot.find_bodies(wheel_base_name)[0]
+#
+#     wheel_base_rot = robot.data.body_state_w[:, wheel_base_idx, 3:7]
+#
+#     wheel_base_x_axis = quat_rotate(wheel_base_rot, torch.tensor([1, 0, 0], dtype=torch.float, device=env.device).unsqueeze(0)) #(num_env, num_wheel_bases, 3)
+#     
+#     if asset_cfg.name == "moonbot_full":
+
+
+
+
+
+
 
 
 

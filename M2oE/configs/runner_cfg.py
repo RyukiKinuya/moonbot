@@ -59,6 +59,9 @@ class MLPBaselineCfg:
     activation: str = "elu"
     """Activation function used in the MLP."""
 
+    dropout: float | None = None
+    """Dropout probability applied after each hidden-layer activation. ``None`` disables dropout."""
+
 
 @configclass
 class TransformerBaselineCfg:

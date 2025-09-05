@@ -4,6 +4,7 @@ from .config.tri_legged_env_cfgs import *
 from .config.uni_legged_env_cfgs import *
 from .config.dragon_env_cfgs import *
 from .config.Integration_env_cfgs import IntegrationEnvCfg
+from .config.Integration_play_env_cfgs import PlayIntegrationEnvCfg
 from . import agents
 
 gym.register(
@@ -12,11 +13,21 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": IntegrationEnvCfg,
-        "M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg
-        # "M2oE_entry_point": agents.Transformer_cfg.Transformer_Cfg
-        # "M2oE_entry_point": agents.SharedMLP_cfg.SharedMLP_Cfg
-        # "M2oE_entry_point": agents.JointMLP_cfg.JointMLP_Cfg
+        #"M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg,
+        #"M2oE_entry_point": agents.Transformer_cfg.Transformer_Cfg
+        "M2oE_entry_point": agents.SharedMLP_cfg.SharedMLP_Cfg
+        #"M2oE_entry_point": agents.JointMLP_cfg.JointMLP_Cfg
     }
+)
+
+gym.register(
+    id="Integration_Locomotion_Play_v1",
+    entry_point="moonbot_envs.custom_lab_envs:CustomManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": PlayIntegrationEnvCfg,
+        "M2oE_entry_point": agents.M2oE_cfg.M2oE_Cfg,
+    },
 )
 
 gym.register(

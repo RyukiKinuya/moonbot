@@ -20,8 +20,8 @@ class Transformer_Cfg(M2oEOnPolicyRunnerCfg):
         embedding_dim=52,
         dim_feedforward=64,
         num_heads=4,
-        dropout=0.0,
-        activation="relu",
+        dropout=0.2,
+        activation="gelu",
         num_layers=3,
     )
     algorithm = RslRlPpoAlgorithmCfg(

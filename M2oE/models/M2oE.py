@@ -172,9 +172,11 @@ class M2oE(nn.Module):
 
         self.gate_type = gate_type
         if gate_type == "linear":
+            # Per-module gating: each module decides its expert usage
+            # using its own observation concatenated with the global observation.
             self.gate = nn.Sequential(
                 nn.Linear(
-                    max_num_modules + self.modular_obs_dim + num_global_obs,
+                    self.modular_obs_dim + num_global_obs,
                     hidden_dim,
                 ),
                 self.activation,
@@ -231,7 +233,9 @@ class M2oE(nn.Module):
             # Apply permutation to obs and masks in one gather
             gather_idx_obs = idx.unsqueeze(-1).expand(-1, -1, obs.size(-1))
             obs = obs.gather(1, gather_idx_obs)
-            module_masks = module_masks.gather(1, idx)
+            module_masks_perm = module_masks.gather(1, idx)
+        else:
+            module_masks_perm = module_masks
         # global_obs: [batch_size, num_global_obs] -> [batch_size, self.max_num_modules, num_global_obs]
         expert_global_obs = global_obs.unsqueeze(1).expand(-1, self.max_num_modules, -1)
         expert_input = torch.cat((obs, expert_global_obs), dim=-1)
@@ -246,14 +250,12 @@ class M2oE(nn.Module):
         expert_outputs = torch.stack(expert_outputs, dim=2)
 
         if self.gate_type == "linear":
-            module_onehot = torch.eye(self.max_num_modules, device=self.device).unsqueeze(0).expand(batch_size, -1, -1)
-            if need_shuffle:
-                gather_idx_oh = idx.unsqueeze(-1).expand(-1, -1, self.max_num_modules)
-                module_onehot = module_onehot.gather(1, gather_idx_oh)
-            gate_input = torch.cat((module_onehot, obs, expert_global_obs), dim=-1)
-            gate = self.gate(gate_input)
+            # Per-module gating: concat each module's obs with global obs.
+            # obs: [B, M, Dm], global_obs: [B, Dg]
+            gate_input = torch.cat((obs, expert_global_obs), dim=-1)  # [B, M, Dm + Dg]
+            gate = self.gate(gate_input)    # [B, M, N]
         elif self.gate_type == "attention":
-            gate = self.gate(obs, global_obs, module_masks)
+            gate = self.gate(obs, global_obs, module_masks_perm)
         # gate: [batch_size, max_num_modules, num_experts]
 
         # construct output
@@ -272,7 +274,8 @@ class M2oE(nn.Module):
 
         if self.num_outputs == 1:
             # aggregate over modules: use masked mean if mask provided
-            if mask3 is not None:
+            if module_masks is not None:
+                mask3 = module_masks.unsqueeze(-1).to(output.dtype)
                 masked_sum = (output * mask3).sum(dim=1)
                 denom = mask3.sum(dim=1).clamp_min(1.0)
                 output = masked_sum / denom
@@ -280,12 +283,13 @@ class M2oE(nn.Module):
                 output = output.mean(dim=1)
         else:
             # for per-module actions, zero-out invalid modules if mask provided
-            if mask3 is not None:
+            if module_masks is not None:
+                mask3 = module_masks.unsqueeze(-1).to(output.dtype)
                 output = output * mask3
             output = output.flatten(start_dim=1)
 
         # compute load balance loss to encourage uniform expert usage
-        lb_loss = self._load_balance_loss(gate, module_masks)
+        lb_loss = self._load_balance_loss(gate, module_masks_perm)
 
         gate_mean = gate.mean(dim=(0, 1))
 

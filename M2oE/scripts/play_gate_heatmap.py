@@ -17,7 +17,7 @@ parser.add_argument(
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=36, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=64, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
 parser.add_argument("--real_time", action="store_true", default=False, help="Run in real-time, if possible.")
 
@@ -237,11 +237,11 @@ def main():
 
     for i, label in enumerate(ax.get_xticklabels()):
         label.set_fontweight("bold")
-        if "minimal" in label.get_text():
+        if "Minimal" in label.get_text():
             label.set_color("#999999")
-        elif "dragon" in label.get_text():
+        elif "Dragon" in label.get_text():
             label.set_color("#666666")
-        elif "full" in label.get_text():
+        elif "Tricycl" in label.get_text():
             label.set_color("#333333")
 
     for i in range(num_experts):

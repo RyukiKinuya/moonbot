@@ -193,12 +193,12 @@ def main():
     module_counts_list = [len(morphology_configs.joint_names_dict[morph]) for morph in morphs]
     num_experts = gate_avg.shape[-1]
 
-    module_labels: list[str] = []
+    module_labels: list[str] = ["Minimal 1st", "Dragon 1st", "Dragon 2nd", "Full 1st", "Full 2nd", "Full 3rd"]
     gate_matrix_cols = []
+    num_suffix = ["st", "nd", "rd"] + ["th"] * 7
     for morph_idx, morph in enumerate(morphs):
         for module_idx in range(module_counts_list[morph_idx]):
             gate_matrix_cols.append(gate_avg[morph_idx, module_idx])
-            module_labels.append(f"{morph.replace('moonbot_', '')} {module_idx + 1}")
 
     gate_matrix = np.stack(gate_matrix_cols, axis=1)
 

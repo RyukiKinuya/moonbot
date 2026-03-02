@@ -35,7 +35,7 @@ matplotlib.use("Agg")
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import torch
-from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 plt.rcParams["font.weight"] = "bold"
 plt.rcParams["axes.labelweight"] = "bold"
@@ -196,8 +196,8 @@ def main():
         all_features.append(query_arrays[key])
     all_features = np.concatenate(all_features, axis=0)
 
-    pca = PCA(n_components=2)
-    projected = pca.fit_transform(all_features)
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42, init="pca", learning_rate="auto")
+    projected = tsne.fit_transform(all_features)
 
     # Split back
     expert_proj = projected[:num_experts]
@@ -257,9 +257,9 @@ def main():
     for i in range(1, num_experts):
         pass  # already plotted, no duplicate legend entries needed
 
-    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)", fontsize=12, fontweight="bold")
-    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)", fontsize=12, fontweight="bold")
-    ax.set_title("Expert Keys and Query Features (PCA)", fontsize=13, fontweight="bold")
+    ax.set_xlabel("t-SNE 1", fontsize=12, fontweight="bold")
+    ax.set_ylabel("t-SNE 2", fontsize=12, fontweight="bold")
+    ax.set_title("Expert Keys and Query Features (t-SNE)", fontsize=13, fontweight="bold")
 
     # Make legend with larger markers for readability
     handles, labels = ax.get_legend_handles_labels()

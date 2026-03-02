@@ -53,7 +53,7 @@ from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 
 def _extract_queries(gate_module, obs, global_obs, module_masks):
-    """Run the gate forward pass and return normalized query vectors Hn."""
+    """Run the gate forward pass and return raw query vectors H (unnormalized)."""
     batch_size = obs.shape[0]
     max_num_modules = gate_module.max_num_modulars
 
@@ -80,8 +80,7 @@ def _extract_queries(gate_module, obs, global_obs, module_masks):
 
     encoded = gate_module.encoder(feature_integration, src_key_padding_mask=key_padding_mask)
     H = encoded[:, 1:, :]
-    Hn = torch.nn.functional.normalize(H, dim=-1)
-    return Hn
+    return H
 
 
 def main():
@@ -175,8 +174,8 @@ def main():
     env.close()
 
     # --- Gather data for PCA ---
-    # Expert keys (normalized)
-    expert_keys = torch.nn.functional.normalize(gate_module.expert_keys.data, dim=-1).cpu().numpy()
+    # Expert keys (raw, unnormalized)
+    expert_keys = gate_module.expert_keys.data.cpu().numpy()
     num_experts = expert_keys.shape[0]
 
     # Subsample queries per module

@@ -35,7 +35,7 @@ matplotlib.use("Agg")
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import torch
-from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 plt.rcParams["font.weight"] = "bold"
 plt.rcParams["axes.labelweight"] = "bold"
@@ -189,23 +189,21 @@ def main():
             cat = cat[indices]
         query_arrays[key] = cat
 
-    # Stack all for t-SNE
-    all_features = [expert_keys]
-    for key in sorted(query_arrays.keys()):
-        all_features.append(query_arrays[key])
-    all_features = np.concatenate(all_features, axis=0)
+    # Fit PCA on query features only, then project expert keys with the same transform
+    all_queries = np.concatenate([query_arrays[k] for k in sorted(query_arrays.keys())], axis=0)
+    pca = PCA(n_components=2)
+    pca.fit(all_queries)
 
-    tsne = TSNE(n_components=2, perplexity=30, random_state=42, init="pca", learning_rate="auto")
-    projected = tsne.fit_transform(all_features)
-
-    # Split back
-    expert_proj = projected[:num_experts]
-    offset = num_experts
+    # Project queries
+    offset = 0
     query_proj: dict[tuple[int, int], np.ndarray] = {}
     for key in sorted(query_arrays.keys()):
         n = query_arrays[key].shape[0]
-        query_proj[key] = projected[offset : offset + n]
+        query_proj[key] = pca.transform(query_arrays[key])
         offset += n
+
+    # Project expert keys using the same PCA
+    expert_proj = pca.transform(expert_keys)
 
     # --- Plot ---
     morph_short_names = ["Minimal", "Dragon", "Full"]
@@ -251,9 +249,9 @@ def main():
             fontweight="bold",
         )
 
-    ax.set_xlabel("t-SNE 1", fontsize=12, fontweight="bold")
-    ax.set_ylabel("t-SNE 2", fontsize=12, fontweight="bold")
-    ax.set_title("Expert Keys and Query Features (t-SNE)", fontsize=13, fontweight="bold")
+    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)", fontsize=12, fontweight="bold")
+    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)", fontsize=12, fontweight="bold")
+    ax.set_title("Expert Keys and Query Features (PCA)", fontsize=13, fontweight="bold")
 
     handles, labels = ax.get_legend_handles_labels()
     # Normalize legend marker sizes so the star doesn't dominate
@@ -275,7 +273,7 @@ def main():
 
     fig.tight_layout()
     plt.savefig(args_cli.save_path, dpi=600, bbox_inches="tight")
-    print(f"[INFO] Saved t-SNE plot to {args_cli.save_path}")
+    print(f"[INFO] Saved PCA plot to {args_cli.save_path}")
 
 
 if __name__ == "__main__":

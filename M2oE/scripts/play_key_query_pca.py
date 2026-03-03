@@ -178,25 +178,34 @@ def main():
     expert_keys = gate_module.expert_keys.data.cpu().numpy()
     num_experts = expert_keys.shape[0]
 
-    # Compute mean query feature per module
-    query_means: dict[tuple[int, int], np.ndarray] = {}
+    # Subsample queries per module
+    query_arrays: dict[tuple[int, int], np.ndarray] = {}
     for key, tensors in query_store.items():
         if len(tensors) == 0:
             continue
-        cat = torch.cat(tensors, dim=0)
-        query_means[key] = cat.mean(dim=0).numpy()  # [embedding_dim]
+        cat = torch.cat(tensors, dim=0).numpy()
+        if cat.shape[0] > args_cli.max_query_samples:
+            indices = np.random.choice(cat.shape[0], args_cli.max_query_samples, replace=False)
+            cat = cat[indices]
+        query_arrays[key] = cat
 
-    # Stack: expert_keys + mean queries -> (num_experts + num_modules, embedding_dim)
-    sorted_keys = sorted(query_means.keys())
-    all_features = np.stack([expert_keys[i] for i in range(num_experts)] + [query_means[k] for k in sorted_keys])
+    # Stack all for t-SNE
+    all_features = [expert_keys]
+    for key in sorted(query_arrays.keys()):
+        all_features.append(query_arrays[key])
+    all_features = np.concatenate(all_features, axis=0)
 
-    num_total = all_features.shape[0]
-    perplexity = min(5, num_total - 1)  # few points, keep perplexity small
-    tsne = TSNE(n_components=2, perplexity=perplexity, random_state=42, init="pca", learning_rate="auto")
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42, init="pca", learning_rate="auto")
     projected = tsne.fit_transform(all_features)
 
+    # Split back
     expert_proj = projected[:num_experts]
-    query_proj = {k: projected[num_experts + i] for i, k in enumerate(sorted_keys)}
+    offset = num_experts
+    query_proj: dict[tuple[int, int], np.ndarray] = {}
+    for key in sorted(query_arrays.keys()):
+        n = query_arrays[key].shape[0]
+        query_proj[key] = projected[offset : offset + n]
+        offset += n
 
     # --- Plot ---
     morph_short_names = ["Minimal", "Dragon", "Full"]
@@ -205,20 +214,19 @@ def main():
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    # Plot mean query features
-    for (morph_idx, mod_idx), pt in query_proj.items():
+    # Plot queries
+    for (morph_idx, mod_idx), pts in query_proj.items():
         num_suffix = ["st", "nd", "rd"] + ["th"] * 7
         label = f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module"
         ax.scatter(
-            pt[0],
-            pt[1],
+            pts[:, 0],
+            pts[:, 1],
             c=morph_colors[morph_idx],
             marker=module_markers[mod_idx % len(module_markers)],
-            s=200,
-            zorder=5,
-            edgecolors="black",
-            linewidths=0.8,
+            s=4,
+            alpha=0.15,
             label=label,
+            rasterized=True,
         )
 
     # Plot expert keys
@@ -228,7 +236,7 @@ def main():
             expert_proj[i, 1],
             c="black",
             marker="*",
-            s=400,
+            s=300,
             zorder=10,
             edgecolors="white",
             linewidths=0.8,
@@ -238,14 +246,14 @@ def main():
             f"E{i}",
             (expert_proj[i, 0], expert_proj[i, 1]),
             textcoords="offset points",
-            xytext=(8, 8),
-            fontsize=10,
+            xytext=(6, 6),
+            fontsize=9,
             fontweight="bold",
         )
 
     ax.set_xlabel("t-SNE 1", fontsize=12, fontweight="bold")
     ax.set_ylabel("t-SNE 2", fontsize=12, fontweight="bold")
-    ax.set_title("Expert Keys and Mean Query Features (t-SNE)", fontsize=13, fontweight="bold")
+    ax.set_title("Expert Keys and Query Features (t-SNE)", fontsize=13, fontweight="bold")
 
     handles, labels = ax.get_legend_handles_labels()
     # Normalize legend marker sizes so the star doesn't dominate

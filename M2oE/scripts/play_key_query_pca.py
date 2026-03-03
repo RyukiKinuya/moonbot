@@ -15,7 +15,7 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=64, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
-parser.add_argument("--max_query_samples", type=int, default=5000, help="Max query samples per module to keep.")
+parser.add_argument("--max_query_samples", type=int, default=200, help="Max query samples per module to keep.")
 
 cli_args.add_m2oe_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
@@ -216,71 +216,137 @@ def main():
     expert_proj = pca.transform(expert_keys)
 
     # --- Plot ---
+    from scipy.stats import gaussian_kde
+    from matplotlib.patches import FancyArrowPatch
+
     morph_short_names = ["Minimal", "Dragon", "Full"]
     morph_colors = ["#4E79A7", "#E15759", "#59A14F"]  # blue, red, green
+    # Lighter versions for scatter, saturated for contours
+    morph_colors_light = ["#A8C4DE", "#F2A8A9", "#A8D5A2"]
     module_markers = ["o", "s", "D", "^", "v", "P"]
 
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(9, 7))
+    ax.set_facecolor("#FAFAFA")
 
-    # Plot queries
+    # 1) Draw KDE contours per module to show density
+    for (morph_idx, mod_idx), pts in query_proj.items():
+        if pts.shape[0] < 10:
+            continue
+        try:
+            kde = gaussian_kde(pts.T)
+            xmin, xmax = pts[:, 0].min(), pts[:, 0].max()
+            ymin, ymax = pts[:, 1].min(), pts[:, 1].max()
+            pad = 0.15 * max(xmax - xmin, ymax - ymin)
+            xx, yy = np.meshgrid(
+                np.linspace(xmin - pad, xmax + pad, 100),
+                np.linspace(ymin - pad, ymax + pad, 100),
+            )
+            zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
+            ax.contour(
+                xx, yy, zz, levels=3,
+                colors=[morph_colors[morph_idx]],
+                linewidths=0.8,
+                alpha=0.5,
+            )
+        except np.linalg.LinAlgError:
+            pass
+
+    # 2) Scatter query points
     for (morph_idx, mod_idx), pts in query_proj.items():
         num_suffix = ["st", "nd", "rd"] + ["th"] * 7
         label = f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module"
         ax.scatter(
             pts[:, 0],
             pts[:, 1],
-            c=morph_colors[morph_idx],
+            c=morph_colors_light[morph_idx],
             marker=module_markers[mod_idx % len(module_markers)],
-            s=4,
-            alpha=0.15,
+            s=3,
+            alpha=0.25,
             label=label,
             rasterized=True,
+            edgecolors="none",
         )
 
-    # Plot expert keys
+    # 3) Plot per-module centroids
+    for (morph_idx, mod_idx), pts in query_proj.items():
+        centroid = pts.mean(axis=0)
+        ax.scatter(
+            centroid[0], centroid[1],
+            c=morph_colors[morph_idx],
+            marker=module_markers[mod_idx % len(module_markers)],
+            s=120,
+            zorder=8,
+            edgecolors="black",
+            linewidths=1.0,
+        )
+
+    # 4) Plot expert keys with prominent markers
+    expert_cmap = plt.cm.Set2  # type: ignore
     for i in range(num_experts):
+        color = expert_cmap(i / max(num_experts - 1, 1))
         ax.scatter(
             expert_proj[i, 0],
             expert_proj[i, 1],
-            c="black",
+            c=[color],
             marker="*",
-            s=300,
+            s=500,
             zorder=10,
-            edgecolors="white",
-            linewidths=0.8,
-            label=f"Expert key {i}",
+            edgecolors="black",
+            linewidths=1.2,
         )
         ax.annotate(
             f"E{i}",
             (expert_proj[i, 0], expert_proj[i, 1]),
             textcoords="offset points",
-            xytext=(6, 6),
-            fontsize=9,
+            xytext=(8, 8),
+            fontsize=10,
             fontweight="bold",
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="gray", alpha=0.8),
         )
 
-    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)", fontsize=12, fontweight="bold")
-    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)", fontsize=12, fontweight="bold")
-    ax.set_title("Expert Keys and Query Features (PCA)", fontsize=13, fontweight="bold")
+    # 5) Build clean legend
+    from matplotlib.lines import Line2D
+    legend_handles = []
+    for (morph_idx, mod_idx) in sorted(query_proj.keys()):
+        num_suffix = ["st", "nd", "rd"] + ["th"] * 7
+        legend_handles.append(Line2D(
+            [0], [0],
+            marker=module_markers[mod_idx % len(module_markers)],
+            color="none",
+            markerfacecolor=morph_colors[morph_idx],
+            markeredgecolor="black",
+            markersize=8,
+            label=f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module",
+        ))
+    legend_handles.append(Line2D(
+        [0], [0],
+        marker="*",
+        color="none",
+        markerfacecolor="gray",
+        markeredgecolor="black",
+        markersize=14,
+        label="Expert key",
+    ))
 
-    handles, labels = ax.get_legend_handles_labels()
-    # Normalize legend marker sizes so the star doesn't dominate
-    for h in handles:
-        h.set_sizes([60])
     legend = ax.legend(
-        handles,
-        labels,
+        handles=legend_handles,
         loc="best",
-        fontsize=8,
+        fontsize=9,
         framealpha=0.9,
+        edgecolor="gray",
     )
     for text in legend.get_texts():
         text.set_fontweight("bold")
 
-    ax.tick_params(labelsize=10)
+    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)", fontsize=13, fontweight="bold")
+    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)", fontsize=13, fontweight="bold")
+    ax.set_title("Expert Keys and Query Features (PCA)", fontsize=14, fontweight="bold")
+
+    ax.tick_params(labelsize=11)
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontweight("bold")
 
+    ax.grid(True, alpha=0.2, linestyle="--")
     fig.tight_layout()
     plt.savefig(args_cli.save_path, dpi=600, bbox_inches="tight")
     print(f"[INFO] Saved PCA plot to {args_cli.save_path}")

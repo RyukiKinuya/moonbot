@@ -99,6 +99,15 @@ def main():
     size_now = env_cfg.scene.ground.terrain_generator.size
     env_cfg.scene.ground.terrain_generator.size = (size_now[0], size_now[1], 0.0001)
 
+    # Fix velocity commands: forward at 1.0 m/s, heading=0
+    for asset_name in morphology_configs.morphology_list:
+        cmd_cfg = getattr(env_cfg.commands, f"base_velocity_{asset_name}")
+        cmd_cfg.ranges.lin_vel_x = (1.0, 1.0)
+        cmd_cfg.ranges.lin_vel_y = (0.0, 0.0)
+        cmd_cfg.ranges.ang_vel_z = (0.0, 0.0)
+        cmd_cfg.ranges.heading = (0.0, 0.0)
+        cmd_cfg.rel_standing_envs = 0.0
+
     env = gym.make(args_cli.task, cfg=env_cfg)
 
     if isinstance(env.unwrapped, DirectMARLEnv):

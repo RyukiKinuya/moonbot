@@ -80,7 +80,8 @@ def _extract_queries(gate_module, obs, global_obs, module_masks):
 
     encoded = gate_module.encoder(feature_integration, src_key_padding_mask=key_padding_mask)
     H = encoded[:, 1:, :]
-    return H
+    Hn = torch.nn.functional.normalize(H, dim=-1)
+    return Hn
 
 
 def main():
@@ -183,8 +184,8 @@ def main():
     env.close()
 
     # --- Gather data ---
-    # Expert keys (raw, unnormalized)
-    expert_keys = gate_module.expert_keys.data.cpu().numpy()
+    # Expert keys (L2 normalized, same as gating mechanism)
+    expert_keys = torch.nn.functional.normalize(gate_module.expert_keys.data, dim=-1).cpu().numpy()
     num_experts = expert_keys.shape[0]
 
     # Subsample queries per module

@@ -35,7 +35,7 @@ matplotlib.use("Agg")
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import torch
-from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 
 plt.rcParams["font.weight"] = "bold"
 plt.rcParams["axes.labelweight"] = "bold"
@@ -184,10 +184,6 @@ def main():
     env.close()
 
     # --- Gather data ---
-    # Expert keys (L2 normalized, same as gating mechanism)
-    expert_keys = torch.nn.functional.normalize(gate_module.expert_keys.data, dim=-1).cpu().numpy()
-    num_experts = expert_keys.shape[0]
-
     # Subsample queries per module
     query_arrays: dict[tuple[int, int], np.ndarray] = {}
     for key, tensors in query_store.items():
@@ -199,21 +195,18 @@ def main():
             cat = cat[indices]
         query_arrays[key] = cat
 
-    # Fit PCA on query features only, then project expert keys with the same transform
+    # Stack all queries for t-SNE
     all_queries = np.concatenate([query_arrays[k] for k in sorted(query_arrays.keys())], axis=0)
-    pca = PCA(n_components=2)
-    pca.fit(all_queries)
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42, init="pca", learning_rate="auto")
+    projected = tsne.fit_transform(all_queries)
 
-    # Project queries
+    # Split back
     offset = 0
     query_proj: dict[tuple[int, int], np.ndarray] = {}
     for key in sorted(query_arrays.keys()):
         n = query_arrays[key].shape[0]
-        query_proj[key] = pca.transform(query_arrays[key])
+        query_proj[key] = projected[offset : offset + n]
         offset += n
-
-    # Project expert keys using the same PCA
-    expert_proj = pca.transform(expert_keys)
 
     # --- Plot ---
     morph_short_names = ["Minimal", "Dragon", "Full"]
@@ -239,31 +232,7 @@ def main():
             edgecolors="none",
         )
 
-    # Plot expert keys with prominent markers
-    expert_cmap = plt.cm.Set2  # type: ignore
-    for i in range(num_experts):
-        color = expert_cmap(i / max(num_experts - 1, 1))
-        ax.scatter(
-            expert_proj[i, 0],
-            expert_proj[i, 1],
-            c=[color],
-            marker="*",
-            s=500,
-            zorder=10,
-            edgecolors="black",
-            linewidths=1.2,
-        )
-        ax.annotate(
-            f"E{i}",
-            (expert_proj[i, 0], expert_proj[i, 1]),
-            textcoords="offset points",
-            xytext=(8, 8),
-            fontsize=10,
-            fontweight="bold",
-            bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="gray", alpha=0.8),
-        )
-
-    # 5) Build clean legend
+    # Build legend
     from matplotlib.lines import Line2D
     legend_handles = []
     for (morph_idx, mod_idx) in sorted(query_proj.keys()):
@@ -277,15 +246,6 @@ def main():
             markersize=8,
             label=f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module",
         ))
-    legend_handles.append(Line2D(
-        [0], [0],
-        marker="*",
-        color="none",
-        markerfacecolor="gray",
-        markeredgecolor="black",
-        markersize=14,
-        label="Expert key",
-    ))
 
     legend = ax.legend(
         handles=legend_handles,
@@ -297,9 +257,9 @@ def main():
     for text in legend.get_texts():
         text.set_fontweight("bold")
 
-    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}%)", fontsize=13, fontweight="bold")
-    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}%)", fontsize=13, fontweight="bold")
-    ax.set_title("Expert Keys and Query Features (PCA)", fontsize=14, fontweight="bold")
+    ax.set_xlabel("t-SNE 1", fontsize=13, fontweight="bold")
+    ax.set_ylabel("t-SNE 2", fontsize=13, fontweight="bold")
+    ax.set_title("Query Features (t-SNE)", fontsize=14, fontweight="bold")
 
     ax.tick_params(labelsize=11)
     for label in ax.get_xticklabels() + ax.get_yticklabels():

@@ -210,7 +210,12 @@ def main():
 
     # --- Plot ---
     morph_short_names = ["Minimal", "Dragon", "Full"]
-    morph_colors = ["#4E79A7", "#E15759", "#59A14F"]  # blue, red, green
+    # Color families: blues, reds, greens — shades per module within each morphology
+    morph_color_palettes = {
+        0: ["#2166AC"],                              # Minimal: 1 module, single blue
+        1: ["#E03531", "#F4A582"],                   # Dragon:  2 modules, dark red → light red
+        2: ["#1B7837", "#5AAE61", "#A6D96A"],        # Full:    3 modules, dark green → mid → light
+    }
     module_markers = ["o", "s", "D", "^", "v", "P"]
 
     fig, ax = plt.subplots(figsize=(9, 7))
@@ -218,30 +223,33 @@ def main():
 
     # Scatter query points
     for (morph_idx, mod_idx), pts in query_proj.items():
+        color = morph_color_palettes[morph_idx][mod_idx]
         num_suffix = ["st", "nd", "rd"] + ["th"] * 7
         label = f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module"
         ax.scatter(
             pts[:, 0],
             pts[:, 1],
-            c=morph_colors[morph_idx],
+            c=color,
             marker=module_markers[mod_idx % len(module_markers)],
-            s=15,
-            alpha=0.5,
+            s=18,
+            alpha=0.6,
             label=label,
             rasterized=True,
-            edgecolors="none",
+            edgecolors="white",
+            linewidths=0.3,
         )
 
     # Build legend
     from matplotlib.lines import Line2D
     legend_handles = []
     for (morph_idx, mod_idx) in sorted(query_proj.keys()):
+        color = morph_color_palettes[morph_idx][mod_idx]
         num_suffix = ["st", "nd", "rd"] + ["th"] * 7
         legend_handles.append(Line2D(
             [0], [0],
             marker=module_markers[mod_idx % len(module_markers)],
             color="none",
-            markerfacecolor=morph_colors[morph_idx],
+            markerfacecolor=color,
             markeredgecolor="black",
             markersize=8,
             label=f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module",
@@ -265,10 +273,14 @@ def main():
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontweight("bold")
 
-    ax.grid(True, alpha=0.2, linestyle="--")
+    # Hide tick values — t-SNE axes have no meaningful scale
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+
+    ax.grid(True, alpha=0.15, linestyle="--")
     fig.tight_layout()
     plt.savefig(args_cli.save_path, dpi=600, bbox_inches="tight")
-    print(f"[INFO] Saved PCA plot to {args_cli.save_path}")
+    print(f"[INFO] Saved t-SNE plot to {args_cli.save_path}")
 
 
 if __name__ == "__main__":

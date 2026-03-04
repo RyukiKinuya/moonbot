@@ -218,9 +218,8 @@ def main():
     }
     module_markers = ["o", "s", "D", "^", "v", "P"]
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(9, 7))
     ax.set_facecolor("#FAFAFA")
-    ax.set_aspect("equal")
 
     # Scatter query points
     for (morph_idx, mod_idx), pts in query_proj.items():
@@ -252,25 +251,25 @@ def main():
             color="none",
             markerfacecolor=color,
             markeredgecolor="black",
-            markersize=12,
+            markersize=10,
             label=f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module",
         ))
 
     legend = ax.legend(
         handles=legend_handles,
         loc="best",
-        fontsize=14,
+        fontsize=12,
         framealpha=0.9,
         edgecolor="gray",
     )
     for text in legend.get_texts():
         text.set_fontweight("bold")
 
-    ax.set_xlabel("t-SNE 1", fontsize=20, fontweight="bold")
-    ax.set_ylabel("t-SNE 2", fontsize=20, fontweight="bold")
-    ax.set_title("Query Features (t-SNE)", fontsize=21, fontweight="bold")
+    ax.set_xlabel("t-SNE 1", fontsize=16, fontweight="bold")
+    ax.set_ylabel("t-SNE 2", fontsize=16, fontweight="bold")
+    ax.set_title("Query Features (t-SNE)", fontsize=17, fontweight="bold")
 
-    ax.tick_params(labelsize=16)
+    ax.tick_params(labelsize=13)
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontweight("bold")
 

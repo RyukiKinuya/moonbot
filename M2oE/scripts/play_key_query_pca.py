@@ -216,71 +216,30 @@ def main():
     expert_proj = pca.transform(expert_keys)
 
     # --- Plot ---
-    from scipy.stats import gaussian_kde
-    from matplotlib.patches import FancyArrowPatch
-
     morph_short_names = ["Minimal", "Dragon", "Full"]
     morph_colors = ["#4E79A7", "#E15759", "#59A14F"]  # blue, red, green
-    # Lighter versions for scatter, saturated for contours
-    morph_colors_light = ["#A8C4DE", "#F2A8A9", "#A8D5A2"]
     module_markers = ["o", "s", "D", "^", "v", "P"]
 
     fig, ax = plt.subplots(figsize=(9, 7))
     ax.set_facecolor("#FAFAFA")
 
-    # 1) Draw KDE contours per module to show density
-    for (morph_idx, mod_idx), pts in query_proj.items():
-        if pts.shape[0] < 10:
-            continue
-        try:
-            kde = gaussian_kde(pts.T)
-            xmin, xmax = pts[:, 0].min(), pts[:, 0].max()
-            ymin, ymax = pts[:, 1].min(), pts[:, 1].max()
-            pad = 0.15 * max(xmax - xmin, ymax - ymin)
-            xx, yy = np.meshgrid(
-                np.linspace(xmin - pad, xmax + pad, 100),
-                np.linspace(ymin - pad, ymax + pad, 100),
-            )
-            zz = kde(np.vstack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
-            ax.contour(
-                xx, yy, zz, levels=3,
-                colors=[morph_colors[morph_idx]],
-                linewidths=0.8,
-                alpha=0.5,
-            )
-        except np.linalg.LinAlgError:
-            pass
-
-    # 2) Scatter query points
+    # Scatter query points
     for (morph_idx, mod_idx), pts in query_proj.items():
         num_suffix = ["st", "nd", "rd"] + ["th"] * 7
         label = f"{morph_short_names[morph_idx]} {mod_idx+1}{num_suffix[mod_idx]} module"
         ax.scatter(
             pts[:, 0],
             pts[:, 1],
-            c=morph_colors_light[morph_idx],
+            c=morph_colors[morph_idx],
             marker=module_markers[mod_idx % len(module_markers)],
-            s=3,
-            alpha=0.25,
+            s=15,
+            alpha=0.5,
             label=label,
             rasterized=True,
             edgecolors="none",
         )
 
-    # 3) Plot per-module centroids
-    for (morph_idx, mod_idx), pts in query_proj.items():
-        centroid = pts.mean(axis=0)
-        ax.scatter(
-            centroid[0], centroid[1],
-            c=morph_colors[morph_idx],
-            marker=module_markers[mod_idx % len(module_markers)],
-            s=120,
-            zorder=8,
-            edgecolors="black",
-            linewidths=1.0,
-        )
-
-    # 4) Plot expert keys with prominent markers
+    # Plot expert keys with prominent markers
     expert_cmap = plt.cm.Set2  # type: ignore
     for i in range(num_experts):
         color = expert_cmap(i / max(num_experts - 1, 1))

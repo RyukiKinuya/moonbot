@@ -15,7 +15,7 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=64, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Integration_Locomotion_v1", help="Name of the task.")
-parser.add_argument("--max_query_samples", type=int, default=200, help="Max query samples per module to keep.")
+parser.add_argument("--max_query_samples", type=int, default=500, help="Max query samples per module to keep.")
 
 cli_args.add_m2oe_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)

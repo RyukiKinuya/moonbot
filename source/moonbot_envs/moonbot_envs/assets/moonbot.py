@@ -8,7 +8,7 @@ from isaaclab.assets import ArticulationCfg
 TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="usd/tricycle/tricycle.usda",
+        usd_path="/workspace/isaaclab/source/moonbot_envs/moonbot_envs/assets/usd/tricycle/tricycle.usda",
         collision_props=sim_utils.CollisionPropertiesCfg(
             collision_enabled=True,
         ),
@@ -62,7 +62,7 @@ TRI_LEGGED_MOONBOT_CFG = ArticulationCfg(
 UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="usd/moonbothm_urdf_v8.usd",
+        usd_path="/workspace/isaaclab/source/moonbot_envs/moonbot_envs/assets/usd/moonbothm_urdf_v8.usd",
         collision_props=sim_utils.CollisionPropertiesCfg(
             collision_enabled=True,
         ),
@@ -110,7 +110,7 @@ UNI_LEGGED_MOONBOT_CFG = ArticulationCfg(
 UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UrdfFileCfg(
-        asset_path="usd/moonbothm_urdf_v8/moonbothm_urdf_v8/urdf/moonbothm_urdf_v8.urdf",
+        asset_path="/workspace/isaaclab/source/moonbot_envs/moonbot_envs/assets/usd/moonbothm_urdf_v8/moonbothm_urdf_v8/urdf/moonbothm_urdf_v8.urdf",
         fix_base=False,
         merge_fixed_joints=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -161,7 +161,7 @@ UNI_LEGGED_FIX_BASE_MOONBOT_CFG = ArticulationCfg(
 DRAGON_MOONBOT_CFG = ArticulationCfg(
     prim_path="{ENV_REGEX_NS}/Robot",
     spawn=sim_utils.UsdFileCfg(
-        usd_path="usd/hero_dragon.usd",
+        usd_path="/workspace/isaaclab/source/moonbot_envs/moonbot_envs/assets/usd/hero_dragon.usd",
         collision_props=sim_utils.CollisionPropertiesCfg(
             collision_enabled=True,
         ),
